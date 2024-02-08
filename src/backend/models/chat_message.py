@@ -45,7 +45,9 @@ class ChatNotification(ChatMessage):
     }
 
     id: Mapped[int] = mapped_column(ForeignKey("chat_messages.id"), primary_key=True)
+    params: Mapped[str]
 
-    def __init__(self, chat_id: uuid.UUID, text: str):
+    def __init__(self, chat_id: uuid.UUID, text: str, params: str):
         self.chat_id = chat_id
         self.text = text
+        self.params = params

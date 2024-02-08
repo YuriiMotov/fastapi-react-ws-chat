@@ -36,6 +36,7 @@ async def test_insert_notification(async_session: AsyncSession):
     notification = ChatNotification(
         chat_id=uuid.uuid4(),
         text="my notification",
+        params=str(uuid.uuid4()),
     )
     async_session.add(notification)
     await async_session.commit()
@@ -45,3 +46,4 @@ async def test_insert_notification(async_session: AsyncSession):
     assert notification.id > 0
     assert notification.is_notification is True
     assert notification.text == "my notification"
+    assert notification.params is not None

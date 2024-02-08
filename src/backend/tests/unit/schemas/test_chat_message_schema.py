@@ -34,6 +34,7 @@ def test_validate_notification():
         "id": 1,
         "chat_id": uuid.uuid4(),
         "text": "message text",
+        "params": str(uuid.uuid4()),
         "dt": datetime.utcnow(),
         "is_notification": True,
     }
