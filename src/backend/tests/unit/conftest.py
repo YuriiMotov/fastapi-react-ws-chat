@@ -27,14 +27,16 @@ async def prepare_database(engine):
         await conn.run_sync(BaseModel.metadata.drop_all)
 
 
-@pytest.fixture(scope="session")
-def async_session_maker(engine) -> Generator[async_sessionmaker, None, None]:
+@pytest.fixture()
+def async_session_maker(
+    engine, prepare_database
+) -> Generator[async_sessionmaker, None, None]:
     yield async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest.fixture()
 async def async_session(
-    prepare_database, async_session_maker: async_sessionmaker
+    async_session_maker: async_sessionmaker,
 ) -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session

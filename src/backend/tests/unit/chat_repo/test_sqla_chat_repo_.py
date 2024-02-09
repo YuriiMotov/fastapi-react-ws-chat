@@ -14,7 +14,7 @@ from tests.unit.chat_repo.chat_repo_test_base import ChatRepoTestBase
 class TestChatRepoMemory(ChatRepoTestBase):
 
     @pytest.fixture(autouse=True)
-    def _request_google_page(self, async_session: AsyncSession):
+    def _create_repo(self, async_session: AsyncSession):
         self._session = async_session
         self.repo = SQLAlchemyChatRepo(async_session)
         yield
