@@ -8,27 +8,27 @@ from schemas.chat_message import (
     ChatNotificationCreateSchema,
 )
 
+PAGE_LIMIT_DEFAULT = 20
+
 
 class ChatRepoException(Exception):
     pass
 
 
-class ChatRepo(ABC):
+class AbstractChatRepo(ABC):
 
     @abstractmethod
-    async def commit(self):
+    async def add_chat(self, chat: ChatSchema) -> ChatSchema:
         raise NotImplementedError()
 
     @abstractmethod
-    async def rollback(self):
+    async def get_chats(
+        self, owner_id: uuid.UUID, offset: int = 0, limit: int = PAGE_LIMIT_DEFAULT
+    ) -> list[ChatSchema]:
         raise NotImplementedError()
 
     @abstractmethod
     async def add_user_to_chat(self, chat_id: uuid.UUID, user_id: uuid.UUID):
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def add_chat(self, chat: ChatSchema) -> ChatSchema:
         raise NotImplementedError()
 
     @abstractmethod

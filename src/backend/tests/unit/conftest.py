@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Generator
 import pytest
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -8,17 +8,18 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from models.base import BaseModel
+from models.user import User
 
 
 @pytest.fixture(scope="session")
-def engine() -> AsyncEngine:
+def engine() -> Generator[AsyncEngine, None, None]:
     yield create_async_engine(
         "sqlite+aiosqlite://", connect_args={"check_same_thread": False}
     )
 
 
 @pytest.fixture()
-async def prepare_database(engine) -> None:
+async def prepare_database(engine):
     async with engine.begin() as conn:
         await conn.run_sync(BaseModel.metadata.create_all)
     yield
@@ -27,7 +28,7 @@ async def prepare_database(engine) -> None:
 
 
 @pytest.fixture(scope="session")
-def async_session_maker(engine) -> async_sessionmaker:
+def async_session_maker(engine) -> Generator[async_sessionmaker, None, None]:
     yield async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
