@@ -36,7 +36,7 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         res = await self._session.scalars(st)
         return [ChatSchema.model_validate(chat) for chat in res]
 
-    async def add_user_to_chat(self, chat_id: uuid.UUID, user_id: uuid.UUID):
+    async def add_user_to_chat(self, chat_id: uuid.UUID, user_id: uuid.UUID) -> None:
         await self._session.execute(
             insert(UserChatLink), {"user_id": user_id, "chat_id": chat_id}
         )

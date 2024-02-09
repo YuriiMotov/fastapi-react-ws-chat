@@ -28,7 +28,7 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def add_user_to_chat(self, chat_id: uuid.UUID, user_id: uuid.UUID):
+    async def add_user_to_chat(self, chat_id: uuid.UUID, user_id: uuid.UUID) -> None:
         raise NotImplementedError()
 
     @abstractmethod
