@@ -26,6 +26,7 @@ class ChatMessage(BaseModel):
 class ChatUserMessage(ChatMessage):
     __tablename__ = "chat_user_messages"
     __mapper_args__ = {
+        "polymorphic_load": "selectin",
         "polymorphic_identity": False,
     }
 
@@ -41,6 +42,7 @@ class ChatUserMessage(ChatMessage):
 class ChatNotification(ChatMessage):
     __tablename__ = "chat_notifications"
     __mapper_args__ = {
+        "polymorphic_load": "selectin",
         "polymorphic_identity": True,
     }
 

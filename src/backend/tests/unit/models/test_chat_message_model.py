@@ -75,3 +75,20 @@ async def test_query_different_types(async_session: AsyncSession):
     else:
         assert isinstance(messages[0], ChatUserMessage)
         assert isinstance(messages[1], ChatNotification)
+
+
+async def test_query_specific_fields_loaded(async_session: AsyncSession):
+    notification = ChatNotification(
+        chat_id=uuid.uuid4(),
+        text="my notification",
+        params=str(uuid.uuid4()),
+    )
+    async_session.add(notification)
+    await async_session.commit()
+
+    messages = (await async_session.scalars(select(ChatMessage))).all()
+    assert len(messages) == 1
+    message = messages[0]
+    assert isinstance(message, ChatNotification)
+    if isinstance(message, ChatNotification):
+        assert message.params == notification.params
