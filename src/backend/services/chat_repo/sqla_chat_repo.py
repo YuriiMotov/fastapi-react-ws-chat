@@ -29,12 +29,27 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         )
         return ChatSchema.model_validate(chat_db)
 
-    async def get_chats(
-        self, owner_id: uuid.UUID, offset: int = 0, limit: int = PAGE_LIMIT_DEFAULT
+    async def get_owned_chats(
+        self, owner_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[ChatSchema]:
-        st = select(Chat).where(Chat.owner_id == owner_id).offset(offset).limit(limit)
+        st = select(Chat).where(Chat.owner_id == owner_id).offset(offset)
+        if limit is not None:
+            st = st.limit(limit)
         res = await self._session.scalars(st)
         return [ChatSchema.model_validate(chat) for chat in res]
+
+    async def get_joined_chat_ids(
+        self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
+    ) -> list[uuid.UUID]:
+        st = (
+            select(UserChatLink.chat_id)
+            .where(UserChatLink.user_id == user_id)
+            .offset(offset)
+        )
+        if limit is not None:
+            st = st.limit(limit)
+        res = await self._session.scalars(st)
+        return list(res)
 
     async def add_user_to_chat(self, chat_id: uuid.UUID, user_id: uuid.UUID) -> None:
         await self._session.execute(

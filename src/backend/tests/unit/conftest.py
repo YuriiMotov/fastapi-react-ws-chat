@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncEngine,
 )
+from services.chat_manager.chat_manager import ChatManager
+from services.message_broker.in_memory_message_broker import InMemoryMessageBroker
+from services.uow.sqla_uow import SQLAlchemyUnitOfWork
 
 from models.base import BaseModel
 from models.user import User
@@ -40,3 +43,12 @@ async def async_session(
 ) -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
+
+
+@pytest.fixture()
+def chat_manager(async_session_maker: async_sessionmaker):
+    chat_manager = ChatManager(
+        uow=SQLAlchemyUnitOfWork(async_session_maker),
+        message_broker=InMemoryMessageBroker(),
+    )
+    yield chat_manager

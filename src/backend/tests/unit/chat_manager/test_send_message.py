@@ -9,7 +9,6 @@ from services.chat_manager.chat_manager_exc import (
     ChatManagerException,
     UnauthorizedAction,
 )
-from services.uow.sqla_uow import SQLAlchemyUnitOfWork
 from models.chat import Chat
 from models.user import User
 from models.user_chat_link import UserChatLink
@@ -17,8 +16,9 @@ from models.user_chat_link import UserChatLink
 from services.chat_manager.chat_manager import ChatManager
 
 
-async def test_send_message_success(async_session_maker: async_sessionmaker):
-    chat_manager = ChatManager(SQLAlchemyUnitOfWork(async_session_maker))
+async def test_send_message_success(
+    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+):
     user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
     session: AsyncSession
@@ -43,8 +43,9 @@ async def test_send_message_success(async_session_maker: async_sessionmaker):
     assert messages[0].text == message.text
 
 
-async def test_send_message_wrong_sender(async_session_maker: async_sessionmaker):
-    chat_manager = ChatManager(SQLAlchemyUnitOfWork(async_session_maker))
+async def test_send_message_wrong_sender(
+    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+):
     user_id = uuid.uuid4()
     another_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()

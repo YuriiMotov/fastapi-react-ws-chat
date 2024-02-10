@@ -4,8 +4,10 @@ from schemas.chat import ChatSchema
 
 from models.chat_message import ChatUserMessage, ChatNotification
 from schemas.chat_message import (
+    ChatNotificationSchema,
     ChatUserMessageCreateSchema,
     ChatNotificationCreateSchema,
+    ChatUserMessageSchema,
 )
 
 PAGE_LIMIT_DEFAULT = 20
@@ -22,9 +24,15 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_chats(
-        self, owner_id: uuid.UUID, offset: int = 0, limit: int = PAGE_LIMIT_DEFAULT
+    async def get_owned_chats(
+        self, owner_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[ChatSchema]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get_joined_chat_ids(
+        self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
+    ) -> list[uuid.UUID]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -34,11 +42,11 @@ class AbstractChatRepo(ABC):
     @abstractmethod
     async def add_message(
         self, message: ChatUserMessageCreateSchema
-    ) -> ChatUserMessage:
+    ) -> ChatUserMessageSchema:
         raise NotImplementedError()
 
     @abstractmethod
     async def add_notification(
         self, notification: ChatNotificationCreateSchema
-    ) -> ChatNotification:
+    ) -> ChatNotificationSchema:
         raise NotImplementedError()
