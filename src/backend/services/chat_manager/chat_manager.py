@@ -34,7 +34,7 @@ class ChatManager:
             raise UnauthorizedAction(
                 detail=f"Can't send message on behalf of another user"
             )
-        # TODO: check if user can send message to this chat
+        # TODO: check if user is allowed to send message to this chat
         async with self.uow:
             await self.uow.chat_repo.add_message(message)
             await self.uow.commit()
