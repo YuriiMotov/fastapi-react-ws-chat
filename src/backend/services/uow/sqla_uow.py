@@ -11,8 +11,9 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
         self._session_factory = async_session_maker
 
     async def __aenter__(self):
-        self._session = self._session_factory()
-        self.chat_repo = SQLAlchemyChatRepo(self._session)
+        session = self._session_factory()
+        self._session = session
+        self.chat_repo = SQLAlchemyChatRepo(session)
 
     async def __aexit__(self, *args):
         if self._session is not None:

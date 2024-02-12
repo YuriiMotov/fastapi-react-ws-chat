@@ -26,7 +26,7 @@ async def test_insert_user_message_null_sender(async_session: AsyncSession):
     um = ChatUserMessage(
         chat_id=uuid.uuid4(),
         text="my message",
-        sender_id=None,
+        sender_id=None,  # type: ignore
     )
     async_session.add(um)
     with pytest.raises(SQLAlchemyError):

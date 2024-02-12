@@ -24,7 +24,7 @@ class ChatManager:
         )
 
     async def join_chat(
-        self, current_user_id: uuid.UUID, user_id: uuid.UUID, chat_id: str
+        self, current_user_id: uuid.UUID, user_id: uuid.UUID, chat_id: uuid.UUID
     ):
         async with self.uow:
             # TODO: check if chat exists

@@ -80,7 +80,7 @@ class ChatRepoTestBase:
     async def _check_if_chat_has_persisted(self, chat_id: uuid.UUID) -> bool:
         raise NotImplementedError()
 
-    async def _check_if_message_has_persisted(self, message_id: uuid.UUID) -> bool:
+    async def _check_if_message_has_persisted(self, message_id: int) -> bool:
         raise NotImplementedError()
 
     async def _check_if_user_chat_link_has_persisted(

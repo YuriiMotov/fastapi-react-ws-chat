@@ -21,12 +21,15 @@ def test_validate_user_message():
         "is_notification": False,
     }
 
-    message_adapter: TypeAdapter[ChatMessageAny] = TypeAdapter(AnnotatedChatMessageAny)
+    message_adapter: TypeAdapter[ChatMessageAny] = TypeAdapter(
+        AnnotatedChatMessageAny  # type: ignore
+    )
 
     message = message_adapter.validate_python(json_data)
 
     assert isinstance(message, ChatUserMessageSchema) is True
-    assert message.sender_id == json_data["sender_id"]
+    if isinstance(message, ChatUserMessageSchema):
+        assert message.sender_id == json_data["sender_id"]
 
 
 def test_validate_notification():
@@ -39,7 +42,9 @@ def test_validate_notification():
         "is_notification": True,
     }
 
-    message_adapter: TypeAdapter[ChatMessageAny] = TypeAdapter(AnnotatedChatMessageAny)
+    message_adapter: TypeAdapter[ChatMessageAny] = TypeAdapter(
+        AnnotatedChatMessageAny  # type: ignore
+    )
 
     message = message_adapter.validate_python(json_data)
 

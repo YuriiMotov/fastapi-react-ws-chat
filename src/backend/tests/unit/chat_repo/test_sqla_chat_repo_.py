@@ -23,7 +23,7 @@ class TestChatRepoMemory(ChatRepoTestBase):
         chat = await self._session.get(Chat, chat_id)
         return chat is not None
 
-    async def _check_if_message_has_persisted(self, message_id: uuid.UUID) -> bool:
+    async def _check_if_message_has_persisted(self, message_id: int) -> bool:
         message = await self._session.get(ChatMessage, message_id)
         return message is not None
 

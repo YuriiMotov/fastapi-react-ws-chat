@@ -19,4 +19,4 @@ class TestInMemoryMessageBroker(MessageBrokerTestBase):
 
     async def _get_messages(self, user_id: uuid.UUID) -> list[str]:
         message_broker = cast(InMemoryMessageBroker, self.message_broker)
-        return message_broker._message_queue[str(user_id)]
+        return list(message_broker._message_queue[str(user_id)])
