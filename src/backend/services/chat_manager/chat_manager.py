@@ -39,13 +39,11 @@ class ChatManager:
                 notification_create
             )
             await self.uow.commit()
-        await self.message_broker.subscribe(
-            channel=f"channel_{str(chat_id)}", user_id=current_user_id
-        )
         channel = f"channel_{str(chat_id)}"
         await self.message_broker.post_message(
             channel=channel, message=notification.model_dump_json()
         )
+        await self.message_broker.subscribe(channel=channel, user_id=current_user_id)
 
     async def send_message(
         self, current_user_id: uuid.UUID, message: ChatUserMessageCreateSchema
