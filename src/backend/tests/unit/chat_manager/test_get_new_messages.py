@@ -8,7 +8,7 @@ from schemas.chat_message import ChatUserMessageSchema
 from services.chat_manager.chat_manager import ChatManager
 
 
-async def test_get_messages(chat_manager: ChatManager):
+async def test_get_new_messages(chat_manager: ChatManager):
     user_id = uuid.uuid4()
     another_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
@@ -32,7 +32,7 @@ async def test_get_messages(chat_manager: ChatManager):
     assert messages[0] == message.model_dump_json()
 
 
-async def test_get_messages_empty(chat_manager: ChatManager):
+async def test_get_new_messages_empty(chat_manager: ChatManager):
     user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
     channel = f"chat_{chat_id}"
@@ -44,7 +44,7 @@ async def test_get_messages_empty(chat_manager: ChatManager):
     assert len(messages) == 0
 
 
-async def test_get_messages_not_subscribed(chat_manager: ChatManager):
+async def test_get_new_messages_not_subscribed(chat_manager: ChatManager):
     user_id = uuid.uuid4()
 
     with pytest.raises(UserNotSubscribed):
