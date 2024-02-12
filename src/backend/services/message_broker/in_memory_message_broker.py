@@ -46,7 +46,7 @@ class InMemoryMessageBroker(AbstractMessageBroker):
         if user_id_str in self._subscribers:
             self._subscribers.remove(user_id_str)
 
-    async def get_messages(self, user_id: uuid.UUID, limit: int = 20) -> list[str]:
+    async def get_messages(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
         """
         Return all new messages for specific user.
         """
@@ -54,6 +54,8 @@ class InMemoryMessageBroker(AbstractMessageBroker):
         if user_id_str not in self._subscribers:
             raise UserNotSubscribed()
         messages = self._message_queue[user_id_str]
+        if limit == -1:
+            limit = len(messages)
         return [messages.popleft() for _ in range(min(len(messages), limit))]
 
     async def post_message(self, channel: str, message: str):

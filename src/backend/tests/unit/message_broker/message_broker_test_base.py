@@ -72,6 +72,27 @@ class MessageBrokerTestBase:
         assert user_1_messages[0] == message
         assert user_2_messages[0] == message
 
+    async def test_post_message_unsubscribed(self):
+        user_id = uuid.uuid4()
+        channel = f"chat_{uuid.uuid4()}"
+        message = "my message"
+        await self.message_broker.subscribe(channel=channel, user_id=user_id)
+        await self.message_broker.unsubscribe(user_id=user_id)
+
+        await self.message_broker.post_message(channel=channel, message=message)
+
+        user_1_messages = await self._get_messages(user_id)
+        assert len(user_1_messages) == 0
+
+    async def test_post_message_before_subscription(self):
+        user_id = uuid.uuid4()
+        channel = f"chat_{uuid.uuid4()}"
+        message = "my message"
+        await self.message_broker.post_message(channel=channel, message=message)
+        await self.message_broker.subscribe(channel=channel, user_id=user_id)
+        user_1_messages = await self._get_messages(user_id)
+        assert len(user_1_messages) == 0
+
     async def test_get_messages_one(self):
         user_id = uuid.uuid4()
         channel = f"chat_{uuid.uuid4()}"

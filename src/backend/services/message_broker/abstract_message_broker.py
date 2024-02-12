@@ -33,7 +33,7 @@ class AbstractMessageBroker(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_messages(self, user_id: uuid.UUID, limit: int = 20) -> list[str]:
+    async def get_messages(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
         """
         Return all new messages for specific user.
         """

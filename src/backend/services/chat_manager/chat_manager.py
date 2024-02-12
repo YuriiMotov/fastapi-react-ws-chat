@@ -63,3 +63,10 @@ class ChatManager:
         await self.message_broker.post_message(
             channel=channel, message=message_in_db.model_dump_json()
         )
+
+    async def get_new_messages_str(
+        self, current_user_id: uuid.UUID, limit: int = 20
+    ) -> list[str]:
+        return await self.message_broker.get_messages(
+            user_id=current_user_id, limit=limit
+        )
