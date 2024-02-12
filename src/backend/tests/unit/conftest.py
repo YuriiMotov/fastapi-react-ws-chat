@@ -11,7 +11,6 @@ from services.message_broker.in_memory_message_broker import InMemoryMessageBrok
 from services.uow.sqla_uow import SQLAlchemyUnitOfWork
 
 from models.base import BaseModel
-from models.user import User
 
 
 @pytest.fixture(scope="session")

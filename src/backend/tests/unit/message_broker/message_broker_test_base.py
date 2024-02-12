@@ -9,7 +9,7 @@ class MessageBrokerTestBase:
         user_id = uuid.uuid4()
         channel = f"chat_{uuid.uuid4()}"
         await self.message_broker.subscribe(channel=channel, user_id=user_id)
-        assert (await self._check_subscribed(user_id=user_id, channel=channel)) == True
+        assert (await self._check_subscribed(user_id=user_id, channel=channel)) is True
 
     async def test_subscribe_several_users(self):
         user_id_1 = uuid.uuid4()
@@ -20,10 +20,10 @@ class MessageBrokerTestBase:
 
         assert (
             await self._check_subscribed(user_id=user_id_1, channel=channel)
-        ) == True
+        ) is True
         assert (
             await self._check_subscribed(user_id=user_id_2, channel=channel)
-        ) == True
+        ) is True
 
     async def test_subscribe_list(self):
         user_id = uuid.uuid4()
@@ -34,10 +34,10 @@ class MessageBrokerTestBase:
         )
         assert (
             await self._check_subscribed(user_id=user_id, channel=channel_1)
-        ) == True
+        ) is True
         assert (
             await self._check_subscribed(user_id=user_id, channel=channel_2)
-        ) == True
+        ) is True
 
     async def test_unsubscribe(self):
         user_id = uuid.uuid4()
@@ -50,10 +50,10 @@ class MessageBrokerTestBase:
 
         assert (
             await self._check_subscribed(user_id=user_id, channel=channel_1)
-        ) == False
+        ) is False
         assert (
             await self._check_subscribed(user_id=user_id, channel=channel_2)
-        ) == False
+        ) is False
 
     async def test_post_message(self):
         user_id_1 = uuid.uuid4()

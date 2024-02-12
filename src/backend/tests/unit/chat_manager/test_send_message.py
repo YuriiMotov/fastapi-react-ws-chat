@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from schemas.chat_message import ChatUserMessageCreateSchema
 from models.chat_message import ChatUserMessage
 from services.chat_manager.chat_manager_exc import (
-    ChatManagerException,
     UnauthorizedAction,
 )
 from models.chat import Chat

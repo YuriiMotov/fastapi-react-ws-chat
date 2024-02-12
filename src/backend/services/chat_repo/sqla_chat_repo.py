@@ -11,7 +11,6 @@ from schemas.chat_message import (
     ChatUserMessageSchema,
 )
 from services.chat_repo.abstract_chat_repo import (
-    PAGE_LIMIT_DEFAULT,
     AbstractChatRepo,
     ChatRepoException,
 )

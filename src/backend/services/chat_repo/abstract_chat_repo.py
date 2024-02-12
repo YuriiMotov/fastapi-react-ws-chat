@@ -2,15 +2,12 @@ from abc import ABC, abstractmethod
 import uuid
 from schemas.chat import ChatSchema
 
-from models.chat_message import ChatUserMessage, ChatNotification
 from schemas.chat_message import (
     ChatNotificationSchema,
     ChatUserMessageCreateSchema,
     ChatNotificationCreateSchema,
     ChatUserMessageSchema,
 )
-
-PAGE_LIMIT_DEFAULT = 20
 
 
 class ChatRepoException(Exception):
