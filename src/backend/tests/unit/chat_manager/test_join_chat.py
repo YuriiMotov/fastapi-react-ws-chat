@@ -1,11 +1,9 @@
 import uuid
-import pytest
 from sqlalchemy import select
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from schemas.chat_message import ChatNotificationSchema
 from models.chat_message import ChatNotification
-from services.chat_manager.chat_manager_exc import ChatManagerException
 from models.chat import Chat
 from models.user import User
 from models.user_chat_link import UserChatLink
@@ -72,6 +70,7 @@ async def test_join_chat_notification_posted_to_mb(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
     user_id = uuid.uuid4()
+    other_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
     session: AsyncSession
     async with async_session_maker() as session:
@@ -79,12 +78,17 @@ async def test_join_chat_notification_posted_to_mb(
         user = User(id=user_id, name="")
         session.add_all((user, chat))
         await session.commit()
+    await chat_manager.message_broker.subscribe(
+        channel=f"chat_{chat_id}", user_id=other_user_id
+    )
 
     await chat_manager.join_chat(
         current_user_id=user_id, user_id=user_id, chat_id=chat_id
     )
 
-    chat_messages = await chat_manager.message_broker.get_messages(user_id=user_id)
+    chat_messages = await chat_manager.message_broker.get_messages(
+        user_id=other_user_id
+    )
     assert len(chat_messages) == 1
     notification = ChatNotificationSchema.model_validate_json(chat_messages[0])
 

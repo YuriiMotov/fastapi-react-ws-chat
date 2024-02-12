@@ -4,7 +4,6 @@ from services.chat_manager.chat_manager_exc import UnauthorizedAction
 from services.uow.abstract_uow import AbstractUnitOfWork
 from schemas.chat_message import (
     ChatNotificationCreateSchema,
-    ChatNotificationSchema,
     ChatUserMessageCreateSchema,
 )
 
@@ -39,7 +38,7 @@ class ChatManager:
                 notification_create
             )
             await self.uow.commit()
-        channel = f"channel_{str(chat_id)}"
+        channel = f"chat_{str(chat_id)}"
         await self.message_broker.post_message(
             channel=channel, message=notification.model_dump_json()
         )
@@ -50,7 +49,7 @@ class ChatManager:
     ):
         if message.sender_id != current_user_id:
             raise UnauthorizedAction(
-                detail=f"Can't send message on behalf of another user"
+                detail="Can't send message on behalf of another user"
             )
         # TODO: check if user is allowed to send message to this chat
         async with self.uow:
