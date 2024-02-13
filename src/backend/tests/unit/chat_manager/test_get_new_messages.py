@@ -1,18 +1,18 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
+
 import pytest
-
-from services.message_broker.abstract_message_broker import UserNotSubscribed
 from schemas.chat_message import ChatUserMessageSchema
-
 from services.chat_manager.chat_manager import ChatManager
+from services.chat_manager.utils import channel_code
+from services.message_broker.abstract_message_broker import UserNotSubscribed
 
 
 async def test_get_new_messages(chat_manager: ChatManager):
     user_id = uuid.uuid4()
     another_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    channel = f"chat_{chat_id}"
+    channel = channel_code("chat", chat_id)
 
     message = ChatUserMessageSchema(
         id=1,
@@ -35,7 +35,7 @@ async def test_get_new_messages(chat_manager: ChatManager):
 async def test_get_new_messages_empty(chat_manager: ChatManager):
     user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    channel = f"chat_{chat_id}"
+    channel = channel_code("chat", chat_id)
 
     await chat_manager.message_broker.subscribe(channel=channel, user_id=user_id)
 

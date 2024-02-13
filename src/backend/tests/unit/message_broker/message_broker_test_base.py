@@ -1,4 +1,5 @@
 import uuid
+from services.chat_manager.utils import channel_code
 from services.message_broker.abstract_message_broker import AbstractMessageBroker
 
 
@@ -7,14 +8,14 @@ class MessageBrokerTestBase:
 
     async def test_subscribe(self):
         user_id = uuid.uuid4()
-        channel = f"chat_{uuid.uuid4()}"
+        channel = channel_code("chat", uuid.uuid4())
         await self.message_broker.subscribe(channel=channel, user_id=user_id)
         assert (await self._check_subscribed(user_id=user_id, channel=channel)) is True
 
     async def test_subscribe_several_users(self):
         user_id_1 = uuid.uuid4()
         user_id_2 = uuid.uuid4()
-        channel = f"chat_{uuid.uuid4()}"
+        channel = channel_code("chat", uuid.uuid4())
         await self.message_broker.subscribe(channel=channel, user_id=user_id_1)
         await self.message_broker.subscribe(channel=channel, user_id=user_id_2)
 
@@ -27,8 +28,8 @@ class MessageBrokerTestBase:
 
     async def test_subscribe_list(self):
         user_id = uuid.uuid4()
-        channel_1 = f"chat_{uuid.uuid4()}"
-        channel_2 = f"chat_{uuid.uuid4()}"
+        channel_1 = channel_code("chat", uuid.uuid4())
+        channel_2 = channel_code("chat", uuid.uuid4())
         await self.message_broker.subscribe_list(
             channels=[channel_1, channel_2], user_id=user_id
         )
@@ -41,8 +42,8 @@ class MessageBrokerTestBase:
 
     async def test_unsubscribe(self):
         user_id = uuid.uuid4()
-        channel_1 = f"chat_{uuid.uuid4()}"
-        channel_2 = f"chat_{uuid.uuid4()}"
+        channel_1 = channel_code("chat", uuid.uuid4())
+        channel_2 = channel_code("chat", uuid.uuid4())
         await self.message_broker.subscribe_list(
             channels=[channel_1, channel_2], user_id=user_id
         )
@@ -58,7 +59,7 @@ class MessageBrokerTestBase:
     async def test_post_message(self):
         user_id_1 = uuid.uuid4()
         user_id_2 = uuid.uuid4()
-        channel = f"chat_{uuid.uuid4()}"
+        channel = channel_code("chat", uuid.uuid4())
         message = "my message"
         await self.message_broker.subscribe(channel=channel, user_id=user_id_1)
         await self.message_broker.subscribe(channel=channel, user_id=user_id_2)
@@ -74,7 +75,7 @@ class MessageBrokerTestBase:
 
     async def test_post_message_unsubscribed(self):
         user_id = uuid.uuid4()
-        channel = f"chat_{uuid.uuid4()}"
+        channel = channel_code("chat", uuid.uuid4())
         message = "my message"
         await self.message_broker.subscribe(channel=channel, user_id=user_id)
         await self.message_broker.unsubscribe(user_id=user_id)
@@ -86,7 +87,7 @@ class MessageBrokerTestBase:
 
     async def test_post_message_before_subscription(self):
         user_id = uuid.uuid4()
-        channel = f"chat_{uuid.uuid4()}"
+        channel = channel_code("chat", uuid.uuid4())
         message = "my message"
         await self.message_broker.post_message(channel=channel, message=message)
         await self.message_broker.subscribe(channel=channel, user_id=user_id)
@@ -95,7 +96,7 @@ class MessageBrokerTestBase:
 
     async def test_get_messages_one(self):
         user_id = uuid.uuid4()
-        channel = f"chat_{uuid.uuid4()}"
+        channel = channel_code("chat", uuid.uuid4())
         message = "my message"
         await self.message_broker.subscribe(channel=channel, user_id=user_id)
         await self.message_broker.post_message(channel=channel, message=message)
@@ -105,8 +106,8 @@ class MessageBrokerTestBase:
 
     async def test_get_messages_several_channels_fifo(self):
         user_id = uuid.uuid4()
-        channel_1 = f"chat_{uuid.uuid4()}"
-        channel_2 = f"chat_{uuid.uuid4()}"
+        channel_1 = channel_code("chat", uuid.uuid4())
+        channel_2 = channel_code("chat", uuid.uuid4())
         message_1 = "my message 1"
         message_2 = "my message 2"
         await self.message_broker.subscribe_list(

@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import select
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from services.chat_manager.utils import channel_code
 from schemas.chat_message import ChatNotificationSchema
 from models.chat_message import ChatNotification
 from models.chat import Chat
@@ -79,7 +80,7 @@ async def test_join_chat_notification_posted_to_mb(
         session.add_all((user, chat))
         await session.commit()
     await chat_manager.message_broker.subscribe(
-        channel=f"chat_{chat_id}", user_id=other_user_id
+        channel=channel_code("chat", chat_id), user_id=other_user_id
     )
 
     await chat_manager.join_chat(
