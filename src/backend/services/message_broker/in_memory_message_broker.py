@@ -1,10 +1,10 @@
-from collections import defaultdict, deque
 import uuid
+from collections import defaultdict, deque
 
-from services.message_broker.abstract_message_broker import (
+from backend.services.message_broker.abstract_message_broker import (
     AbstractMessageBroker,
 )
-from services.message_broker.message_broker_exc import (
+from backend.services.message_broker.message_broker_exc import (
     MessageBrokerUserNotSubscribedError,
 )
 

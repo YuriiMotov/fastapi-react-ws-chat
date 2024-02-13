@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from services.chat_repo.abstract_chat_repo import AbstractChatRepo
+from backend.services.chat_repo.abstract_chat_repo import AbstractChatRepo
 
 
 class AbstractUnitOfWork(ABC):

@@ -1,6 +1,9 @@
 import uuid
-from services.chat_manager.utils import channel_code
-from services.message_broker.abstract_message_broker import AbstractMessageBroker
+
+from backend.services.chat_manager.utils import channel_code
+from backend.services.message_broker.abstract_message_broker import (
+    AbstractMessageBroker,
+)
 
 
 class MessageBrokerTestBase:

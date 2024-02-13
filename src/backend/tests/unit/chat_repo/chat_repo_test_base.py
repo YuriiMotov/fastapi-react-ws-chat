@@ -1,10 +1,11 @@
 import uuid
-from schemas.chat import ChatSchema
-from services.chat_repo.abstract_chat_repo import AbstractChatRepo
-from schemas.chat_message import (
+
+from backend.schemas.chat import ChatSchema
+from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
 )
+from backend.services.chat_repo.abstract_chat_repo import AbstractChatRepo
 
 
 class ChatRepoTestBase:

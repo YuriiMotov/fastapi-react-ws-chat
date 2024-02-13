@@ -9,16 +9,16 @@ Here is a list of tests that check whether it works as expected.
 
 """
 
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 from pydantic import TypeAdapter
 
-from schemas.chat_message import (
+from backend.schemas.chat_message import (
+    AnnotatedChatMessageAny,
+    ChatMessageAny,
     ChatNotificationSchema,
     ChatUserMessageSchema,
-    ChatMessageAny,
-    AnnotatedChatMessageAny,
 )
 
 

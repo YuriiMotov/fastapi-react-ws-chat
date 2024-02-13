@@ -1,8 +1,8 @@
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
-from services.uow.abstract_uow import AbstractUnitOfWork
-from services.uow.uow_exc import UnitOfWorkException
+from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
+from backend.services.uow.abstract_uow import AbstractUnitOfWork
+from backend.services.uow.uow_exc import UnitOfWorkException
 
 
 class SQLAlchemyUnitOfWork(AbstractUnitOfWork):

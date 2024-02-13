@@ -2,10 +2,11 @@ import uuid
 from datetime import datetime
 
 import pytest
-from schemas.chat_message import ChatUserMessageSchema
-from services.chat_manager.chat_manager import ChatManager
-from services.chat_manager.utils import channel_code
-from services.message_broker.message_broker_exc import (
+
+from backend.schemas.chat_message import ChatUserMessageSchema
+from backend.services.chat_manager.chat_manager import ChatManager
+from backend.services.chat_manager.utils import channel_code
+from backend.services.message_broker.message_broker_exc import (
     MessageBrokerUserNotSubscribedError,
 )
 

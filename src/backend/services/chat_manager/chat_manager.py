@@ -1,12 +1,15 @@
 import uuid
-from services.chat_manager.utils import channel_code
-from services.message_broker.abstract_message_broker import AbstractMessageBroker
-from services.chat_manager.chat_manager_exc import UnauthorizedAction
-from services.uow.abstract_uow import AbstractUnitOfWork
-from schemas.chat_message import (
+
+from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
 )
+from backend.services.chat_manager.chat_manager_exc import UnauthorizedAction
+from backend.services.chat_manager.utils import channel_code
+from backend.services.message_broker.abstract_message_broker import (
+    AbstractMessageBroker,
+)
+from backend.services.uow.abstract_uow import AbstractUnitOfWork
 
 USER_JOINED_CHAT_NOTIFICATION = "USER_JOINED_CHAT_MSG"
 

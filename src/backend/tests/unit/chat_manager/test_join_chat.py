@@ -1,18 +1,18 @@
 import uuid
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from services.chat_manager.utils import channel_code
-from schemas.chat_message import ChatNotificationSchema
-from models.chat_message import ChatNotification
-from models.chat import Chat
-from models.user import User
-from models.user_chat_link import UserChatLink
-
-from services.chat_manager.chat_manager import (
+from backend.models.chat import Chat
+from backend.models.chat_message import ChatNotification
+from backend.models.user import User
+from backend.models.user_chat_link import UserChatLink
+from backend.schemas.chat_message import ChatNotificationSchema
+from backend.services.chat_manager.chat_manager import (
     USER_JOINED_CHAT_NOTIFICATION,
     ChatManager,
 )
+from backend.services.chat_manager.utils import channel_code
 
 
 async def test_join_chat_success(

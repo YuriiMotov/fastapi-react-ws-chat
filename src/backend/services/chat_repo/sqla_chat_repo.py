@@ -1,19 +1,20 @@
 import uuid
 
-from models.chat import Chat
-from models.chat_message import ChatNotification, ChatUserMessage
-from models.user_chat_link import UserChatLink
-from schemas.chat import ChatSchema
-from schemas.chat_message import (
+from sqlalchemy import insert, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.models.chat import Chat
+from backend.models.chat_message import ChatNotification, ChatUserMessage
+from backend.models.user_chat_link import UserChatLink
+from backend.schemas.chat import ChatSchema
+from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatNotificationSchema,
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
-from services.chat_repo.abstract_chat_repo import AbstractChatRepo
-from services.chat_repo.chat_repo_exc import ChatRepoException
-from sqlalchemy import insert, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from backend.services.chat_repo.abstract_chat_repo import AbstractChatRepo
+from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 
 
 class SQLAlchemyChatRepo(AbstractChatRepo):

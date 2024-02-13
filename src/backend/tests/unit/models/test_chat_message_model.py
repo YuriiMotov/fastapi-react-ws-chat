@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.chat_message import ChatMessage, ChatNotification, ChatUserMessage
+from backend.models.chat_message import ChatMessage, ChatNotification, ChatUserMessage
 
 
 async def test_insert_user_message(async_session: AsyncSession):

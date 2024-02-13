@@ -4,4 +4,4 @@ set -o errexit
 
 cd "$(dirname "$0")"
 
-MYPYPATH=src/backend ./.venv/bin/mypy ./src/backend
+MYPYPATH=src/ ./.venv/bin/mypy ./src/

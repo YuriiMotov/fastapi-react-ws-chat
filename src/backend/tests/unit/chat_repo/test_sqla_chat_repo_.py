@@ -1,14 +1,14 @@
 import uuid
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from models.user_chat_link import UserChatLink
-from models.chat_message import ChatMessage
-from models.chat import Chat
 
-from services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
-
-from tests.unit.chat_repo.chat_repo_test_base import ChatRepoTestBase
+from backend.models.chat import Chat
+from backend.models.chat_message import ChatMessage
+from backend.models.user_chat_link import UserChatLink
+from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
+from backend.tests.unit.chat_repo.chat_repo_test_base import ChatRepoTestBase
 
 
 class TestChatRepoMemory(ChatRepoTestBase):

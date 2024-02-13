@@ -3,8 +3,12 @@ from typing import cast
 
 import pytest
 
-from services.message_broker.in_memory_message_broker import InMemoryMessageBroker
-from tests.unit.message_broker.message_broker_test_base import MessageBrokerTestBase
+from backend.services.message_broker.in_memory_message_broker import (
+    InMemoryMessageBroker,
+)
+from backend.tests.unit.message_broker.message_broker_test_base import (
+    MessageBrokerTestBase,
+)
 
 
 class TestInMemoryMessageBroker(MessageBrokerTestBase):

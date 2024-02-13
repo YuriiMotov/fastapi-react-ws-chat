@@ -1,18 +1,16 @@
 import uuid
+
 import pytest
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from schemas.chat_message import ChatUserMessageCreateSchema
-from models.chat_message import ChatUserMessage
-from services.chat_manager.chat_manager_exc import (
-    UnauthorizedAction,
-)
-from models.chat import Chat
-from models.user import User
-from models.user_chat_link import UserChatLink
-
-from services.chat_manager.chat_manager import ChatManager
+from backend.models.chat import Chat
+from backend.models.chat_message import ChatUserMessage
+from backend.models.user import User
+from backend.models.user_chat_link import UserChatLink
+from backend.schemas.chat_message import ChatUserMessageCreateSchema
+from backend.services.chat_manager.chat_manager import ChatManager
+from backend.services.chat_manager.chat_manager_exc import UnauthorizedAction
 
 
 async def test_send_message_success(

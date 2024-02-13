@@ -1,16 +1,19 @@
 from typing import AsyncGenerator, Generator
+
 import pytest
 from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    create_async_engine,
-    async_sessionmaker,
     AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
 )
-from services.chat_manager.chat_manager import ChatManager
-from services.message_broker.in_memory_message_broker import InMemoryMessageBroker
-from services.uow.sqla_uow import SQLAlchemyUnitOfWork
 
-from models.base import BaseModel
+from backend.models.base import BaseModel
+from backend.services.chat_manager.chat_manager import ChatManager
+from backend.services.message_broker.in_memory_message_broker import (
+    InMemoryMessageBroker,
+)
+from backend.services.uow.sqla_uow import SQLAlchemyUnitOfWork
 
 
 @pytest.fixture(scope="session")

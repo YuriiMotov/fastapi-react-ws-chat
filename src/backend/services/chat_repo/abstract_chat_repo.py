@@ -1,11 +1,11 @@
-from abc import ABC, abstractmethod
 import uuid
-from schemas.chat import ChatSchema
+from abc import ABC, abstractmethod
 
-from schemas.chat_message import (
+from backend.schemas.chat import ChatSchema
+from backend.schemas.chat_message import (
+    ChatNotificationCreateSchema,
     ChatNotificationSchema,
     ChatUserMessageCreateSchema,
-    ChatNotificationCreateSchema,
     ChatUserMessageSchema,
 )
 

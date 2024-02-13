@@ -1,11 +1,12 @@
-from typing import cast
 import uuid
+from typing import cast
 
 import pytest
-from services.uow.uow_exc import UnitOfWorkException
-from models.chat import Chat
-from services.uow.sqla_uow import SQLAlchemyUnitOfWork
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from backend.models.chat import Chat
+from backend.services.uow.sqla_uow import SQLAlchemyUnitOfWork
+from backend.services.uow.uow_exc import UnitOfWorkException
 
 
 class TestSQLAlchemyUOW:
