@@ -31,3 +31,12 @@ repos:
         types: [python]
         require_serial: true
         verbose: true
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: "./.venv/bin/pytest ./src/backend/tests"
+        language: system
+        types: [python]
+        pass_filenames: false
