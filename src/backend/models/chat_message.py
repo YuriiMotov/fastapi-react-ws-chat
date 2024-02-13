@@ -16,7 +16,7 @@ class ChatMessage(BaseModel):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     is_notification: Mapped[bool]
-    chat_id: Mapped[uuid.UUID]
+    chat_id: Mapped[uuid.UUID] = mapped_column(index=True)
     text: Mapped[str]
     dt: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

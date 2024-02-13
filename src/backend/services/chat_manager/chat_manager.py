@@ -31,14 +31,25 @@ class ChatManager:
     async def join_chat(
         self, current_user_id: uuid.UUID, user_id: uuid.UUID, chat_id: uuid.UUID
     ):
+        """
+        Add user to chat.
+        That will add User-Chat link to the DB and subscribe user to chat's events.
+        In case of success, the notification will be created in DB and added to
+        message broker.
+
+        Raises:
+         - UnauthorizedAction if current user unathorized to add users to that chat
+         - BadRequest if user_id or chat_id is wrong
+        """
         async with self.uow:
             # TODO: check if chat exists
             # TODO: check if user exists
             # TODO: check if user can join this chat (current_user is chat's owner?)
+
+            await self.uow.chat_repo.add_user_to_chat(chat_id=chat_id, user_id=user_id)
             notification_create = ChatNotificationCreateSchema(
                 chat_id=chat_id, text=USER_JOINED_CHAT_NOTIFICATION, params=str(user_id)
             )
-            await self.uow.chat_repo.add_user_to_chat(chat_id=chat_id, user_id=user_id)
             notification = await self.uow.chat_repo.add_notification(
                 notification_create
             )
@@ -52,10 +63,22 @@ class ChatManager:
     async def send_message(
         self, current_user_id: uuid.UUID, message: ChatUserMessageCreateSchema
     ):
+        """
+        Send message to chat.
+        That will add message to the DB and to the message broker.
+
+        Raises:
+         - UnauthorizedAction if current user unathorized to send msg to that chat or if
+           user_id is not equal to current_user_id (attempt to send message on behalf of
+           another user)
+         - BadRequest if user_id or chat_id is wrong
+        """
         if message.sender_id != current_user_id:
             raise UnauthorizedAction(
                 detail="Can't send message on behalf of another user"
             )
+        # TODO: check if chat exists
+        # TODO: check if user exists
         # TODO: check if user is allowed to send message to this chat
         async with self.uow:
             message_in_db = await self.uow.chat_repo.add_message(message)
@@ -69,6 +92,12 @@ class ChatManager:
     async def get_new_messages_str(
         self, current_user_id: uuid.UUID, limit: int = 20
     ) -> list[str]:
+        """
+        Get messages from user's message broker queue.
+
+        Raises:
+         - UserNotSubscribedMBE(MessageBrokerException) if user is not subscribed.
+        """
         return await self.message_broker.get_messages(
             user_id=current_user_id, limit=limit
         )

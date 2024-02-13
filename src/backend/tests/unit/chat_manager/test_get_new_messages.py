@@ -5,7 +5,9 @@ import pytest
 from schemas.chat_message import ChatUserMessageSchema
 from services.chat_manager.chat_manager import ChatManager
 from services.chat_manager.utils import channel_code
-from services.message_broker.abstract_message_broker import UserNotSubscribed
+from services.message_broker.message_broker_exc import (
+    MessageBrokerUserNotSubscribedError,
+)
 
 
 async def test_get_new_messages(chat_manager: ChatManager):
@@ -47,5 +49,5 @@ async def test_get_new_messages_empty(chat_manager: ChatManager):
 async def test_get_new_messages_not_subscribed(chat_manager: ChatManager):
     user_id = uuid.uuid4()
 
-    with pytest.raises(UserNotSubscribed):
+    with pytest.raises(MessageBrokerUserNotSubscribedError):
         await chat_manager.get_new_messages_str(current_user_id=user_id)

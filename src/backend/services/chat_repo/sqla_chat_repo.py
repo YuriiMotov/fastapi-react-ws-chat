@@ -10,10 +10,8 @@ from schemas.chat_message import (
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
-from services.chat_repo.abstract_chat_repo import (
-    AbstractChatRepo,
-    ChatRepoException,
-)
+from services.chat_repo.abstract_chat_repo import AbstractChatRepo
+from services.chat_repo.chat_repo_exc import ChatRepoException
 from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

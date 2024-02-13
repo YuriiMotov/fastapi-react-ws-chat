@@ -12,3 +12,15 @@ class ChatManagerException(Exception):
 
 class UnauthorizedAction(ChatManagerException):
     error_code: str = "UNAUTHORIZED_ACTION"
+
+
+class RepositoryError(ChatManagerException):
+    error_code: str = "REPOSITORY_ERROR"
+
+
+class MessageBrokerError(ChatManagerException):
+    error_code: str = "MESSAGE_BROKER_ERROR"
+
+
+class BadRequest(ChatManagerException):
+    error_code: str = "BAD_REQUEST"

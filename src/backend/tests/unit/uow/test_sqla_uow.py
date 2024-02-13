@@ -2,7 +2,7 @@ from typing import cast
 import uuid
 
 import pytest
-from services.uow.abstract_uow import UnitOfWorkException
+from services.uow.uow_exc import UnitOfWorkException
 from models.chat import Chat
 from services.uow.sqla_uow import SQLAlchemyUnitOfWork
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
