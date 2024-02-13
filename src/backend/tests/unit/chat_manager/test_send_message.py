@@ -18,6 +18,11 @@ from services.chat_manager.chat_manager import ChatManager
 async def test_send_message_success(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
+    """
+    Successful execution of send_message() creates a ChatUserMessage
+    record in the DB.
+    """
+    # Create User, Chat, UserChatLink
     user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
     session: AsyncSession
@@ -28,11 +33,13 @@ async def test_send_message_success(
         session.add_all((user, chat, user_chat_link))
         await session.commit()
 
+    # Call chat_manager.send_message()
     message = ChatUserMessageCreateSchema(
         chat_id=chat_id, text="my message", sender_id=user_id
     )
     await chat_manager.send_message(current_user_id=user_id, message=message)
 
+    # Check that ChatUserMessage record was added to the DB
     async with async_session_maker() as session:
         res = await session.scalars(
             select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)
@@ -45,8 +52,12 @@ async def test_send_message_success(
 async def test_send_message_wrong_sender(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
+    """
+    Calling send_message() with wrong sender_id raises UnauthorizedAction
+    """
+    # Create User, Chat, UserChatLink
     user_id = uuid.uuid4()
-    another_user_id = uuid.uuid4()
+    wrong_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
     session: AsyncSession
     async with async_session_maker() as session:
@@ -56,12 +67,15 @@ async def test_send_message_wrong_sender(
         session.add_all((user, chat, user_chat_link))
         await session.commit()
 
+    # Call chat_manager.send_message() with wrong sender_id and check that exception
+    # is raised
     message = ChatUserMessageCreateSchema(
-        chat_id=chat_id, text="my message", sender_id=another_user_id
+        chat_id=chat_id, text="my message", sender_id=wrong_user_id
     )
     with pytest.raises(UnauthorizedAction):
         await chat_manager.send_message(current_user_id=user_id, message=message)
 
+    # Check that ChatUserMessage wasn't added to the DB
     async with async_session_maker() as session:
         res = await session.scalars(
             select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)

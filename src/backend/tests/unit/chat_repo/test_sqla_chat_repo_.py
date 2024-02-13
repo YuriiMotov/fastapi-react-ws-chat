@@ -12,6 +12,12 @@ from tests.unit.chat_repo.chat_repo_test_base import ChatRepoTestBase
 
 
 class TestChatRepoMemory(ChatRepoTestBase):
+    """
+    Test class for SQLAlchemyChatRepo
+    (concrete implementation of AbstractChatRepo interface).
+
+    Test methods are implemented in the base test class (ChatRepoTestBase).
+    """
 
     @pytest.fixture(autouse=True)
     def _create_repo(self, async_session: AsyncSession):

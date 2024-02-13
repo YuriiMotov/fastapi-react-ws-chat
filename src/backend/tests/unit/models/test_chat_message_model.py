@@ -1,13 +1,28 @@
+"""
+ChatUserMessage and ChatNotification models are implemented using Concrete Table
+Inheritance.
+https://docs.sqlalchemy.org/en/20/orm/inheritance.html#concrete-table-inheritance
+
+They are both inherited from ChatMessage model.
+
+Here is a list of tests that check whether it works as expected.
+
+"""
+
 import uuid
+
 import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.chat_message import ChatMessage, ChatNotification, ChatUserMessage
 
 
 async def test_insert_user_message(async_session: AsyncSession):
+    """
+    Add ChatUserMessage instance to the DB
+    """
     um = ChatUserMessage(
         chat_id=uuid.uuid4(),
         text="my message",
@@ -23,6 +38,10 @@ async def test_insert_user_message(async_session: AsyncSession):
 
 
 async def test_insert_user_message_null_sender(async_session: AsyncSession):
+    """
+    Attempt to add ChatUserMessage instance to the DB with wrong sender_id (None)
+    raises SQLAlchemyError
+    """
     um = ChatUserMessage(
         chat_id=uuid.uuid4(),
         text="my message",
@@ -34,6 +53,9 @@ async def test_insert_user_message_null_sender(async_session: AsyncSession):
 
 
 async def test_insert_notification(async_session: AsyncSession):
+    """
+    Add ChatNotification instance to the DB
+    """
     notification = ChatNotification(
         chat_id=uuid.uuid4(),
         text="my notification",
@@ -51,6 +73,11 @@ async def test_insert_notification(async_session: AsyncSession):
 
 
 async def test_query_different_types(async_session: AsyncSession):
+    """
+    Querying ChatUserMessage and ChatNotification objects from DB in one query
+    """
+
+    # Add user message and notification to the DB
     notification = ChatNotification(
         chat_id=uuid.uuid4(),
         text="my notification",
@@ -67,6 +94,7 @@ async def test_query_different_types(async_session: AsyncSession):
     await async_session.refresh(notification)
     await async_session.refresh(um)
 
+    # Query user message and notification in one query, check types
     messages = (await async_session.scalars(select(ChatMessage))).all()
     assert len(messages) == 2
     if messages[0].id == notification.id:
@@ -78,6 +106,12 @@ async def test_query_different_types(async_session: AsyncSession):
 
 
 async def test_query_specific_fields_loaded(async_session: AsyncSession):
+    """
+    Querying ChatNotification object from DB in one query and
+    check that specific fields (specific for ChatNotification model) are loaded.
+    """
+
+    # Add notification to the DB
     notification = ChatNotification(
         chat_id=uuid.uuid4(),
         text="my notification",
@@ -86,6 +120,8 @@ async def test_query_specific_fields_loaded(async_session: AsyncSession):
     async_session.add(notification)
     await async_session.commit()
 
+    # Query notification object and check that the
+    # field `params` (cpecific for ChatNotification model) is loaded
     messages = (await async_session.scalars(select(ChatMessage))).all()
     assert len(messages) == 1
     message = messages[0]

@@ -8,6 +8,12 @@ from tests.unit.message_broker.message_broker_test_base import MessageBrokerTest
 
 
 class TestInMemoryMessageBroker(MessageBrokerTestBase):
+    """
+    Test class for InMemoryMessageBroker
+    (concrete implementation of AbstractMessageBroker interface).
+
+    Test methods are implemented in the base test class (MessageBrokerTestBase).
+    """
 
     @pytest.fixture(autouse=True)
     def _create_message_broker(self):

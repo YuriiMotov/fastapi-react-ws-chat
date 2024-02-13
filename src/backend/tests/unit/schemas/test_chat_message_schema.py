@@ -1,3 +1,14 @@
+"""
+ChatUserMessageSchema and ChatNotificationSchema models are implemented using
+disciminated unions.
+(docs.pydantic.dev/latest/concepts/unions/#discriminated-unions-with-str-discriminators)
+
+This allows you to automatically recognize the model during model validation.
+
+Here is a list of tests that check whether it works as expected.
+
+"""
+
 from datetime import datetime
 import uuid
 
@@ -12,6 +23,9 @@ from schemas.chat_message import (
 
 
 def test_validate_user_message():
+    """
+    Validate data that is ChatUserMessageSchema object (is_notification=False)
+    """
     json_data = {
         "id": 1,
         "chat_id": uuid.uuid4(),
@@ -33,6 +47,9 @@ def test_validate_user_message():
 
 
 def test_validate_notification():
+    """
+    Validate data that is ChatNotificationSchema object (is_notification=True)
+    """
     json_data = {
         "id": 1,
         "chat_id": uuid.uuid4(),

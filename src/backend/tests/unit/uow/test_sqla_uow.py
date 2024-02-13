@@ -17,31 +17,34 @@ class TestSQLAlchemyUOW:
         self.uow = SQLAlchemyUnitOfWork(async_session_maker)
         yield
 
-    async def test_commit(self):
+    async def test_commit(self, async_session: AsyncSession):
+        """
+        Calling the commit() method saves changes made with the session
+        """
         async with self.uow:
             chat = Chat(id=uuid.uuid4(), title="", owner_id=uuid.uuid4())
             cast(AsyncSession, self.uow._session).add(chat)
             await self.uow.commit()
 
-        async with self.uow:
-            chat_from_db = await cast(AsyncSession, self.uow._session).get(
-                Chat, chat.id
-            )
-            assert chat_from_db is not None
+        chat_from_db = await async_session.get(Chat, chat.id)
+        assert chat_from_db is not None
 
-    async def test_rollback(self):
+    async def test_rollback(self, async_session: AsyncSession):
+        """
+        Changes are cancelled if commit() wasn't called
+        """
         async with self.uow:
             chat = Chat(id=uuid.uuid4(), title="", owner_id=uuid.uuid4())
             cast(AsyncSession, self.uow._session).add(chat)
             # Do not call `self.uow.commit()`
 
-        async with self.uow:
-            chat_from_db = await cast(AsyncSession, self.uow._session).get(
-                Chat, chat.id
-            )
-            assert chat_from_db is None
+        chat_from_db = await async_session.get(Chat, chat.id)
+        assert chat_from_db is None
 
     async def test_session_close_on_exit(self):
+        """
+        UOW's session is no longer active after the exit from the `with` statement
+        """
         async with self.uow:
             pass
         with pytest.raises(UnitOfWorkException):
