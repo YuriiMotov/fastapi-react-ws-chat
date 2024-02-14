@@ -1,11 +1,14 @@
 import uuid
+from typing import cast
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import insert, select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.chat import Chat
 from backend.models.chat_message import ChatMessage
+from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
 from backend.tests.unit.chat_repo.chat_repo_test_base import ChatRepoTestBase
@@ -42,3 +45,21 @@ class TestChatRepoMemory(ChatRepoTestBase):
             .where(UserChatLink.user_id == user_id)
         )
         return user_chat_link is not None
+
+    async def _create_user(self, user_id: uuid.UUID) -> User:
+        user = await self._session.scalar(
+            insert(User).returning(User),
+            {"id": user_id, "name": "user"},
+        )
+        if user is None:
+            raise Exception()
+        return user
+
+    async def _break_connection(self):
+        async def raise_error(*args, **kwargs):
+            raise OperationalError("", "", Exception())
+
+        sqla_repo = cast(SQLAlchemyChatRepo, self.repo)
+        sqla_repo._session.execute = raise_error  # type: ignore
+        sqla_repo._session.scalar = raise_error  # type: ignore
+        sqla_repo._session.scalars = raise_error  # type: ignore

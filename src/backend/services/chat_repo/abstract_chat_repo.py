@@ -18,7 +18,7 @@ class AbstractChatRepo(ABC):
         Add chat record to the DB.
 
         Raises:
-         - ChatRepoRequestError (duplicated chat id, wrong owner id)
+         - ChatRepoRequestError (duplicated chat id, ...)
          - ChatRepoDatabaseError if the database fails
         """
         raise NotImplementedError()
@@ -53,7 +53,7 @@ class AbstractChatRepo(ABC):
         Add user-chat link record to the DB.
 
         Raises:
-         - ChatRepoRequestError (wrong chat id, user-chat link already exists)
+         - ChatRepoRequestError (user-chat link already exists)
          - ChatRepoDatabaseError if the database fails
         """
         raise NotImplementedError()
@@ -66,7 +66,6 @@ class AbstractChatRepo(ABC):
         Add message record to the DB.
 
         Raises:
-         - ChatRepoRequestError (wrong chat id, wrong sender id)
          - ChatRepoDatabaseError if the database fails
         """
         raise NotImplementedError()
@@ -79,7 +78,6 @@ class AbstractChatRepo(ABC):
         Add notification record to the DB.
 
         Raises:
-         - ChatRepoRequestError (wrong chat id)
          - ChatRepoDatabaseError if the database fails
         """
         raise NotImplementedError()
