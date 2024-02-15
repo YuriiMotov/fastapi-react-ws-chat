@@ -9,13 +9,17 @@ from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.chat_message import ChatUserMessageCreateSchema
+from backend.schemas.chat_message import (
+    ChatUserMessageCreateSchema,
+    ChatUserMessageSchema,
+)
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     MessageBrokerError,
     RepositoryError,
     UnauthorizedAction,
 )
+from backend.services.chat_manager.utils import channel_code
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
 from backend.services.message_broker.in_memory_message_broker import (
@@ -56,6 +60,42 @@ async def test_send_message_success(
         messages = res.all()
     assert len(messages) == 1
     assert messages[0].text == message.text
+
+
+async def test_send_message_success_added_to_message_queue(
+    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+):
+    """
+    Successful execution of send_message() adds a message to the message broker's queue
+    """
+    # Create User, Chat, UserChatLink
+    user_id = uuid.uuid4()
+    other_user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+    session: AsyncSession
+    async with async_session_maker() as session:
+        chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
+        user = User(id=user_id, name="")
+        user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
+        session.add_all((user, chat, user_chat_link))
+        await session.commit()
+
+    # Subscribe other_user to channel of the same chat
+    await chat_manager.message_broker.subscribe(
+        channel=channel_code("chat", chat_id), user_id=other_user_id
+    )
+
+    # Call chat_manager.send_message()
+    message = ChatUserMessageCreateSchema(
+        chat_id=chat_id, text="my message", sender_id=user_id
+    )
+    await chat_manager.send_message(current_user_id=user_id, message=message)
+
+    # Check that other_user receives message via message broker
+    messages = await chat_manager.message_broker.get_messages(user_id=other_user_id)
+    assert len(messages) == 1
+    user_message = ChatUserMessageSchema.model_validate_json(messages[0])
+    assert user_message.text == message.text
 
 
 async def test_send_message_wrong_sender(
