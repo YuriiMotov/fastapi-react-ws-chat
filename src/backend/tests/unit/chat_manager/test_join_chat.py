@@ -1,5 +1,7 @@
 import uuid
+from unittest.mock import Mock, patch
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -12,7 +14,17 @@ from backend.services.chat_manager.chat_manager import (
     USER_JOINED_CHAT_NOTIFICATION,
     ChatManager,
 )
+from backend.services.chat_manager.chat_manager_exc import (
+    MessageBrokerError,
+    RepositoryError,
+)
 from backend.services.chat_manager.utils import channel_code
+from backend.services.chat_repo.chat_repo_exc import ChatRepoException
+from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
+from backend.services.message_broker.in_memory_message_broker import (
+    InMemoryMessageBroker,
+)
+from backend.services.message_broker.message_broker_exc import MessageBrokerException
 
 
 async def test_join_chat_success(
@@ -114,3 +126,49 @@ async def test_join_chat_notification_posted_to_mb(
     notification = ChatNotificationSchema.model_validate_json(chat_messages[0])
     assert notification.text == USER_JOINED_CHAT_NOTIFICATION
     assert notification.params == str(user_id)
+
+
+@pytest.mark.parametrize("failure_method", ("add_user_to_chat", "add_notification"))
+async def test_join_chat_repo_failure(chat_manager: ChatManager, failure_method: str):
+    """
+    join_chat() raises RepositoryError in case of repository failure
+    """
+    user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+
+    # Patch SQLAlchemyChatRepo.{failure_method} method so that it always raises
+    # ChatRepoException
+    with patch.object(
+        SQLAlchemyChatRepo,
+        failure_method,
+        new=Mock(side_effect=ChatRepoException()),
+    ):
+        # Call join_chat() and check that it raises RepositoryError
+        with pytest.raises(RepositoryError):
+            await chat_manager.join_chat(
+                current_user_id=user_id, user_id=user_id, chat_id=chat_id
+            )
+
+
+@pytest.mark.parametrize("failure_method", ("post_message", "subscribe"))
+async def test_join_chat_message_broker_failure(
+    chat_manager: ChatManager, failure_method: str
+):
+    """
+    join_chat() raises MessageBrokerError if MessageBroker raises error
+    """
+    user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+
+    # Patch InMemoryMessageBroker.{failure_method} method so that it always raises
+    # MessageBrokerException
+    with patch.object(
+        InMemoryMessageBroker,
+        failure_method,
+        new=Mock(side_effect=MessageBrokerException()),
+    ):
+        # Call join_chat() and check that it raises MessageBrokerError
+        with pytest.raises(MessageBrokerError):
+            await chat_manager.join_chat(
+                current_user_id=user_id, user_id=user_id, chat_id=chat_id
+            )

@@ -22,5 +22,9 @@ class MessageBrokerError(ChatManagerException):
     error_code: str = "MESSAGE_BROKER_ERROR"
 
 
+class NotSubscribedError(ChatManagerException):
+    error_code: str = "USER_NOT_SUBSCRIBED"
+
+
 class BadRequest(ChatManagerException):
     error_code: str = "BAD_REQUEST"
