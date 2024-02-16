@@ -6,6 +6,7 @@ from backend.schemas.chat_message import (
     ChatUserMessageCreateSchema,
 )
 from backend.services.chat_manager.chat_manager_exc import (
+    BadRequest,
     MessageBrokerError,
     NotSubscribedError,
     RepositoryError,
@@ -80,9 +81,17 @@ class ChatManager:
         """
         with process_exceptions():
             async with self.uow:
-                # TODO: check if chat exists
-                # TODO: check if user can join this chat (current_user is chat's owner?)
-
+                # Check request (chat exists, current_user is authorized to add users
+                # to the chat)
+                chat = await self.uow.chat_repo.get_chat(chat_id=chat_id)
+                if chat is None:
+                    raise BadRequest(detail=f"Chat with ID={chat_id} doesn't exist")
+                if chat.owner_id != current_user_id:
+                    raise UnauthorizedAction(
+                        detail=f"User ({current_user_id} unauthorized to add users to"
+                        f"chat ({chat_id}))"
+                    )
+                # Make changes in DB and add notification to DB
                 await self.uow.chat_repo.add_user_to_chat(
                     chat_id=chat_id, user_id=user_id
                 )
@@ -95,6 +104,7 @@ class ChatManager:
                     notification_create
                 )
                 await self.uow.commit()
+            # Post notification to the message broker's queue, subscribe to notif-s
             channel = channel_code("chat", chat_id)
             # TODO: catch exceptions during post_message() and retry or log
             await self.message_broker.post_message(
