@@ -74,14 +74,13 @@ class ChatManager:
 
         Raises:
          - UnauthorizedAction if current user unathorized to add users to that chat
-         - BadRequest if user_id or chat_id is wrong
+         - BadRequest if chat_id is wrong
          - RepositoryError on repository failure
          - MessageBrokerError on message broker failure
         """
         with process_exceptions():
             async with self.uow:
                 # TODO: check if chat exists
-                # TODO: check if user exists
                 # TODO: check if user can join this chat (current_user is chat's owner?)
 
                 await self.uow.chat_repo.add_user_to_chat(

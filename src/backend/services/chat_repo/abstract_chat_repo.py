@@ -24,6 +24,16 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    async def get_chat(self, chat_id: uuid.UUID) -> ChatSchema | None:
+        """
+        Get chat by id. Returns None if chat with this ID doesn't exist.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     async def get_owned_chats(
         self, owner_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[ChatSchema]:

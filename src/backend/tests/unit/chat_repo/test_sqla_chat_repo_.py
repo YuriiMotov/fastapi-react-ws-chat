@@ -63,3 +63,4 @@ class TestChatRepoMemory(ChatRepoTestBase):
         sqla_repo._session.execute = raise_error  # type: ignore
         sqla_repo._session.scalar = raise_error  # type: ignore
         sqla_repo._session.scalars = raise_error  # type: ignore
+        sqla_repo._session.get = raise_error  # type: ignore

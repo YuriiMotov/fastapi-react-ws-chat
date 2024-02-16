@@ -49,6 +49,13 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
             )
         return ChatSchema.model_validate(chat_db)
 
+    async def get_chat(self, chat_id: uuid.UUID) -> ChatSchema | None:
+        with sqla_exceptions_to_repo_exc():
+            chat = await self._session.get(Chat, chat_id)
+            if chat is not None:
+                return ChatSchema.model_validate(chat)
+            return None
+
     async def get_owned_chats(
         self, owner_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[ChatSchema]:

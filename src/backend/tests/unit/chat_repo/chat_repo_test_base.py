@@ -88,6 +88,50 @@ class ChatRepoTestBase:
             )
 
     # ---------------------------------------------------------------------------------
+    # Tests for get_chat() method
+
+    async def test_get_chat(self):
+        """
+        get_chat() returns Chat record.
+        """
+        # Prepare data, create chat
+        chat_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        chat_before = ChatSchema(id=chat_id, title="my chat", owner_id=user_id)
+        await self.repo.add_chat(chat_before)
+        assert (await self._check_if_chat_has_persisted(chat_id)) is True
+
+        # Request chat from repo by ID
+        chat_from_db = await self.repo.get_chat(chat_id)
+        assert chat_from_db is not None
+        assert chat_from_db.id == chat_before.id
+        assert chat_from_db.title == chat_before.title
+        assert chat_from_db.owner_id == chat_before.owner_id
+
+    async def test_get_chat_not_exist(self):
+        """
+        get_chat() returns None if chat with this ID doesn't exist.
+        """
+        chat_id = uuid.uuid4()
+
+        # Request chat from repo by ID
+        chat_from_db = await self.repo.get_chat(chat_id)
+        assert chat_from_db is None
+
+    async def test_get_chat_database_failure(self):
+        """
+        get_chat() raises ChatRepoDatabaseError in case of DB failure.
+        """
+        chat_id = uuid.uuid4()
+
+        # Mock DB connection to make it always return error
+        await self._break_connection()
+
+        # Attempt to create chat with no DB connection
+        with pytest.raises(ChatRepoDatabaseError):
+            await self.repo.get_chat(chat_id=chat_id)
+
+    # ---------------------------------------------------------------------------------
     # Tests for add_message() method
 
     async def test_add_message(self):
