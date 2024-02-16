@@ -120,25 +120,31 @@ class ChatManager:
         That will add message to the DB and to the message broker.
 
         Raises:
-         - UnauthorizedAction if current user unathorized to send msg to that chat or if
+         - UnauthorizedAction if current user is not a member of that chat or if
            user_id is not equal to current_user_id (attempt to send message on behalf of
            another user)
-         - BadRequest if user_id or chat_id is wrong
          - RepositoryError on repository failure
          - MessageBrokerError on message broker failure
         """
         with process_exceptions():
+            # Check that user is authorized to send message to this chat
             if message.sender_id != current_user_id:
                 raise UnauthorizedAction(
                     detail="Can't send message on behalf of another user"
                 )
-            # TODO: check if chat exists
-            # TODO: check if user exists
-            # TODO: check if user is allowed to send message to this chat
+            async with self.uow:
+                user_chats = await self.uow.chat_repo.get_joined_chat_ids(
+                    user_id=current_user_id
+                )  # TODO: Add user_chats caching
+            chat_id = message.chat_id
+            if chat_id not in user_chats:
+                raise UnauthorizedAction(
+                    detail=f"User {current_user_id} is not a member of chat {chat_id}"
+                )
+            # Add message to the DB and to message broker's queue
             async with self.uow:
                 message_in_db = await self.uow.chat_repo.add_message(message)
                 await self.uow.commit()
-
             channel = channel_code("chat", message.chat_id)
             await self.message_broker.post_message(
                 channel=channel, message=message_in_db.model_dump_json()
