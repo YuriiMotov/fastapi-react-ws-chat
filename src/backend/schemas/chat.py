@@ -11,3 +11,9 @@ class ChatSchema(BaseSchema):
 
 class ChatSchemaCreate(ChatSchema):
     pass
+
+
+class ChatExtSchema(ChatSchema):
+    # last_message_text: str
+    members_count: int
+    pass

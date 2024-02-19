@@ -377,6 +377,31 @@ class ChatRepoTestBase:
             await self.repo.get_joined_chat_ids(user_1_id)
 
     # ---------------------------------------------------------------------------------
+    # Tests for get_joined_chat_ext_info() method
+
+    async def test_get_joined_chat_ext_info(self):
+        """
+        get_joined_chat_ids() method returns the list of chats owned by user with
+        specific user_id
+        """
+        chat_id = uuid.uuid4()
+        user_1_id = uuid.uuid4()
+        user_2_id = uuid.uuid4()
+        # Create chat and add users to the chat
+        await self.repo.add_chat(
+            ChatSchema(id=chat_id, title="my_chat", owner_id=user_1_id)
+        )
+        await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_1_id)
+        # Add user_2 to their chats
+        await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_2_id)
+
+        # Request and check the list of chats of user_1
+        chats = await self.repo.get_joined_chat_ext_info(user_id=user_1_id)
+        assert chats is not None
+        assert len(chats) == 1
+        assert chats[0].members_count == 2
+
+    # ---------------------------------------------------------------------------------
     # Methods below should be implemented in the descendant class
 
     async def _check_if_chat_has_persisted(self, chat_id: uuid.UUID) -> bool:

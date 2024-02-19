@@ -5,10 +5,10 @@ from sqlalchemy import insert, select
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models.chat import Chat
+from backend.models.chat import Chat, ChatExt
 from backend.models.chat_message import ChatNotification, ChatUserMessage
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.chat import ChatSchema
+from backend.schemas.chat import ChatExtSchema, ChatSchema
 from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatNotificationSchema,
@@ -79,6 +79,22 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         with sqla_exceptions_to_repo_exc():
             res = await self._session.scalars(st)
         return list(res)
+
+    async def get_joined_chat_ext_info(
+        self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
+    ) -> list[ChatExtSchema]:
+        chat_ids_st = (
+            select(UserChatLink.chat_id)
+            .where(UserChatLink.user_id == user_id)
+            .offset(offset)
+        )
+        if limit is not None:
+            chat_ids_st = chat_ids_st.limit(limit)
+
+        chats_st = select(ChatExt).where(ChatExt.id.in_(chat_ids_st))
+        chats = await self._session.scalars(chats_st)
+
+        return [ChatExtSchema.model_validate(chat) for chat in chats]
 
     async def add_user_to_chat(self, chat_id: uuid.UUID, user_id: uuid.UUID) -> None:
         with sqla_exceptions_to_repo_exc():

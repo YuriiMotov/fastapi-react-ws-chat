@@ -1,7 +1,7 @@
 import uuid
 from abc import ABC, abstractmethod
 
-from backend.schemas.chat import ChatSchema
+from backend.schemas.chat import ChatExtSchema, ChatSchema
 from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatNotificationSchema,
@@ -49,6 +49,18 @@ class AbstractChatRepo(ABC):
     async def get_joined_chat_ids(
         self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[uuid.UUID]:
+        """
+        Get list of joined chat ids by user id.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get_joined_chat_ext_info(
+        self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
+    ) -> list[ChatExtSchema]:
         """
         Get chat list by user id.
 
