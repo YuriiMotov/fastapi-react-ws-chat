@@ -381,25 +381,66 @@ class ChatRepoTestBase:
 
     async def test_get_joined_chat_ext_info(self):
         """
-        get_joined_chat_ids() method returns the list of chats owned by user with
-        specific user_id
+        test_get_joined_chat_ext_info() method returns the list of chats (extended info)
+        owned by user with specific user_id
         """
         chat_id = uuid.uuid4()
         user_1_id = uuid.uuid4()
         user_2_id = uuid.uuid4()
-        # Create chat and add users to the chat
+        # Create chat, add users to the chat, add message to the chat
         await self.repo.add_chat(
             ChatSchema(id=chat_id, title="my_chat", owner_id=user_1_id)
         )
         await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_1_id)
-        # Add user_2 to their chats
         await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_2_id)
+        await self.repo.add_message(
+            ChatUserMessageCreateSchema(
+                chat_id=chat_id, text="my message", sender_id=user_2_id
+            )
+        )
 
         # Request and check the list of chats of user_1
         chats = await self.repo.get_joined_chat_ext_info(user_id=user_1_id)
         assert chats is not None
         assert len(chats) == 1
         assert chats[0].members_count == 2
+        assert chats[0].last_message_text == "my message"
+
+    async def test_get_joined_chat_ext_info_no_messages(self):
+        """
+        test_get_joined_chat_ext_info() method returns the list of chats (extended info)
+        owned by user with specific user_id.
+        Field last_message_text is None when there are no messages in the chat
+        """
+        chat_id = uuid.uuid4()
+        user_1_id = uuid.uuid4()
+        user_2_id = uuid.uuid4()
+        # Create chat, add users to the chat
+        await self.repo.add_chat(
+            ChatSchema(id=chat_id, title="my_chat", owner_id=user_1_id)
+        )
+        await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_1_id)
+        await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_2_id)
+
+        # Request and check the list of chats of user_1
+        chats = await self.repo.get_joined_chat_ext_info(user_id=user_1_id)
+        assert chats is not None
+        assert len(chats) == 1
+        assert chats[0].last_message_text is None
+
+    async def test_get_joined_chat_ext_info_database_failure(self):
+        """
+        test_get_joined_chat_ext_info() raises ChatRepoDatabaseError in case of
+        DB failure.
+        """
+        user_1_id = uuid.uuid4()
+
+        # Mock DB connection to make it always return error
+        await self._break_connection()
+
+        # Attempt to add message with no DB connection
+        with pytest.raises(ChatRepoDatabaseError):
+            await self.repo.get_joined_chat_ext_info(user_1_id)
 
     # ---------------------------------------------------------------------------------
     # Methods below should be implemented in the descendant class

@@ -92,7 +92,8 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
             chat_ids_st = chat_ids_st.limit(limit)
 
         chats_st = select(ChatExt).where(ChatExt.id.in_(chat_ids_st))
-        chats = await self._session.scalars(chats_st)
+        with sqla_exceptions_to_repo_exc():
+            chats = await self._session.scalars(chats_st)
 
         return [ChatExtSchema.model_validate(chat) for chat in chats]
 
