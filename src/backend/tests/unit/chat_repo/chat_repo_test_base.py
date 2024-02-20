@@ -7,6 +7,7 @@ from backend.schemas.chat import ChatSchema
 from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
+    ChatUserMessageSchema,
 )
 from backend.services.chat_repo.abstract_chat_repo import AbstractChatRepo
 from backend.services.chat_repo.chat_repo_exc import (
@@ -443,6 +444,91 @@ class ChatRepoTestBase:
             await self.repo.get_joined_chat_ext_info(user_1_id)
 
     # ---------------------------------------------------------------------------------
+    # Tests for get_message_list() method
+
+    async def test_get_message_list_successful(self):
+        """
+        get_message_list() method returns list of chat's messages.
+        Message list contains user messages and notifications.
+        There are also messages in the another chat.
+        """
+        first_chat_id = uuid.uuid4()
+        another_chat_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        messages = {
+            first_chat_id: [f"message {uuid.uuid4()}" for _ in range(3)],
+            another_chat_id: [f"message {uuid.uuid4()}" for _ in range(3)],
+        }
+        notifications = {
+            first_chat_id: [f"notification {uuid.uuid4()}" for _ in range(3)],
+            another_chat_id: [f"notification {uuid.uuid4()}" for _ in range(3)],
+        }
+        first_chat_all_messages = set(messages[first_chat_id]) | set(
+            notifications[first_chat_id]
+        )
+        # Create chats, add messages and notifications to these chats
+        await self.repo.add_chat(
+            ChatSchema(id=first_chat_id, title="my_chat", owner_id=user_id)
+        )
+        for chat_id, chat_messages in messages.items():
+            for chat_message in chat_messages:
+                await self.repo.add_message(
+                    ChatUserMessageCreateSchema(
+                        chat_id=chat_id, text=chat_message, sender_id=user_id
+                    )
+                )
+        for chat_id, chat_notification in notifications.items():
+            for chat_message in chat_notification:
+                await self.repo.add_notification(
+                    ChatNotificationCreateSchema(
+                        chat_id=chat_id, text=chat_message, params=str(uuid.uuid4())
+                    )
+                )
+
+        # Request messages from first_chat, check them
+        messages_res = await self.repo.get_message_list(chat_id=first_chat_id)
+        assert len(messages_res) == len(first_chat_all_messages)
+        assert {msg.text for msg in messages_res} == set(first_chat_all_messages)
+
+    @pytest.mark.parametrize("order_desc", (True, False))
+    @pytest.mark.parametrize("start_index", (None, 1, 2))
+    @pytest.mark.parametrize("limit", (100, 1))
+    async def test_get_message_list_order_and_filter(
+        self, order_desc: bool, start_index: int | None, limit: int
+    ):
+        """
+        get_message_list() method returns list of messages filtered by start_id,
+        ordered and limited.
+        """
+        chat_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        messages = [f"message {uuid.uuid4()}" for _ in range(3)]
+        # Create chats, add messages and notifications to these chats
+        await self.repo.add_chat(
+            ChatSchema(id=chat_id, title="my_chat", owner_id=user_id)
+        )
+        messages_db: list[ChatUserMessageSchema] = []
+        for chat_message in messages:
+            msg = await self.repo.add_message(
+                ChatUserMessageCreateSchema(
+                    chat_id=chat_id, text=chat_message, sender_id=user_id
+                )
+            )
+            messages_db.append(msg)
+        start_id = messages_db[start_index].id if (start_index is not None) else -1
+        expected_ids = filter_and_sort_messages(
+            messages_db, order_desc=order_desc, start_id=start_id, limit=limit
+        )
+
+        # Request messages from first_chat, check them
+        messages_res = await self.repo.get_message_list(
+            chat_id=chat_id, start_id=start_id, order_desc=order_desc, limit=limit
+        )
+        message_ids_res = [msg.id for msg in messages_res]
+        assert len(expected_ids) == len(message_ids_res)
+        assert message_ids_res == expected_ids
+
+    # ---------------------------------------------------------------------------------
     # Methods below should be implemented in the descendant class
 
     async def _check_if_chat_has_persisted(self, chat_id: uuid.UUID) -> bool:
@@ -461,3 +547,27 @@ class ChatRepoTestBase:
 
     async def _break_connection(self):
         raise NotImplementedError()
+
+
+# ---------------------------------------------------------------------------------
+# Helpers
+
+
+def filter_and_sort_messages(
+    messages: list[ChatUserMessageSchema],
+    order_desc: bool,
+    start_id: int,
+    limit: int,
+):
+    if start_id >= 0:
+        messages_res = list(
+            filter(
+                lambda x: ((x.id < start_id) if order_desc else (x.id > start_id)),
+                messages,
+            )
+        )
+    else:
+        messages_res = list(messages)
+    messages_res.sort(key=lambda x: x.id, reverse=order_desc)
+    messages_res = messages_res[:limit]
+    return [msg.id for msg in messages_res]

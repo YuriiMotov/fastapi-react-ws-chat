@@ -1,21 +1,27 @@
 import uuid
 from contextlib import contextmanager
 
+from pydantic import TypeAdapter
 from sqlalchemy import insert, select
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.chat import Chat, ChatExt
-from backend.models.chat_message import ChatNotification, ChatUserMessage
+from backend.models.chat_message import ChatMessage, ChatNotification, ChatUserMessage
 from backend.models.user_chat_link import UserChatLink
 from backend.schemas.chat import ChatExtSchema, ChatSchema
 from backend.schemas.chat_message import (
+    AnnotatedChatMessageAny,
+    ChatMessageAny,
     ChatNotificationCreateSchema,
     ChatNotificationSchema,
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
-from backend.services.chat_repo.abstract_chat_repo import AbstractChatRepo
+from backend.services.chat_repo.abstract_chat_repo import (
+    MAX_MESSAGE_COUNT_PER_PAGE,
+    AbstractChatRepo,
+)
 from backend.services.chat_repo.chat_repo_exc import (
     ChatRepoDatabaseError,
     ChatRepoException,
@@ -128,3 +134,28 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
             return ChatNotificationSchema.model_validate(notification_in_db)
         else:
             raise ChatRepoException()
+
+    async def get_message_list(
+        self,
+        chat_id: uuid.UUID,
+        start_id: int = -1,
+        order_desc: bool = True,
+        limit: int = MAX_MESSAGE_COUNT_PER_PAGE,
+    ) -> list[ChatMessageAny]:
+        with sqla_exceptions_to_repo_exc():
+            st = select(ChatMessage).where(ChatMessage.chat_id == chat_id)
+            if order_desc:
+                if start_id > 0:
+                    st = st.where(ChatMessage.id < start_id)
+                st = st.order_by(ChatMessage.id.desc())
+            else:
+                if start_id > 0:
+                    st = st.where(ChatMessage.id > start_id)
+                st = st.order_by(ChatMessage.id)
+            st = st.limit(limit)
+            res = await self._session.scalars(st)
+            message_adapter: TypeAdapter[ChatMessageAny] = TypeAdapter(
+                AnnotatedChatMessageAny  # type: ignore
+            )
+
+            return [message_adapter.validate_python(message) for message in res]

@@ -3,11 +3,14 @@ from abc import ABC, abstractmethod
 
 from backend.schemas.chat import ChatExtSchema, ChatSchema
 from backend.schemas.chat_message import (
+    ChatMessageAny,
     ChatNotificationCreateSchema,
     ChatNotificationSchema,
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
+
+MAX_MESSAGE_COUNT_PER_PAGE: int = 50
 
 
 class AbstractChatRepo(ABC):
@@ -98,6 +101,26 @@ class AbstractChatRepo(ABC):
     ) -> ChatNotificationSchema:
         """
         Add notification record to the DB.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get_message_list(
+        self,
+        chat_id: uuid.UUID,
+        start_id: int = -1,
+        order_desc: bool = True,
+        limit: int = MAX_MESSAGE_COUNT_PER_PAGE,
+    ) -> list[ChatMessageAny]:
+        """
+        Get list of chat's messages by filter (start_id).
+        Note: message with id=start_id is not included int the results.
+
+        Returns list of pydantic objects, each of those is either ChatUserMessageSchema
+        or ChatNotificationSchema objects.
 
         Raises:
          - ChatRepoDatabaseError if the database fails
