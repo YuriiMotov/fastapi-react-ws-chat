@@ -16,4 +16,3 @@ class ChatSchemaCreate(ChatSchema):
 class ChatExtSchema(ChatSchema):
     last_message_text: str | None
     members_count: int
-    pass

@@ -2,6 +2,7 @@ import uuid
 from contextlib import contextmanager
 
 from backend.schemas.chat_message import (
+    ChatMessageAny,
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
 )
@@ -13,6 +14,7 @@ from backend.services.chat_manager.chat_manager_exc import (
     UnauthorizedAction,
 )
 from backend.services.chat_manager.utils import channel_code
+from backend.services.chat_repo.abstract_chat_repo import MAX_MESSAGE_COUNT_PER_PAGE
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 from backend.services.message_broker.abstract_message_broker import (
     AbstractMessageBroker,
@@ -168,3 +170,23 @@ class ChatManager:
                 )
             except MessageBrokerUserNotSubscribedError as exc:
                 raise NotSubscribedError(detail=str(exc))
+
+    async def get_chat_message_list(
+        self,
+        chat_id: uuid.UUID,
+        start_id: int = -1,
+        order_desc: bool = True,
+        limit: int = MAX_MESSAGE_COUNT_PER_PAGE,
+    ) -> list[ChatMessageAny]:
+        """
+        TODO: add description, error handling, tests
+        """
+
+        with process_exceptions():
+            async with self.uow:
+                return await self.uow.chat_repo.get_message_list(
+                    chat_id=chat_id,
+                    start_id=start_id,
+                    order_desc=order_desc,
+                    limit=limit,
+                )
