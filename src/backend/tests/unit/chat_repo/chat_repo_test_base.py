@@ -503,7 +503,7 @@ class ChatRepoTestBase:
         chat_id = uuid.uuid4()
         user_id = uuid.uuid4()
         messages = [f"message {uuid.uuid4()}" for _ in range(3)]
-        # Create chats, add messages and notifications to these chats
+        # Create chat, add messages thшы chat
         await self.repo.add_chat(
             ChatSchema(id=chat_id, title="my_chat", owner_id=user_id)
         )

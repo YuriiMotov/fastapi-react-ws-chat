@@ -190,7 +190,11 @@ class ChatManager:
         limit: int = MAX_MESSAGE_COUNT_PER_PAGE,
     ) -> list[ChatMessageAny]:
         """
-        TODO: add description, error handling, tests
+        Get list of chat's messages by filter (start_id).
+        Note: message with id=start_id is not included int the results.
+
+        Raises:
+         - RepositoryError on repository failure
         """
 
         with process_exceptions():
