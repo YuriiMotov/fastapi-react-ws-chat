@@ -27,8 +27,9 @@ async def process_client_request_packet(
 
     try:
         if isinstance(packet.data, CMDGetChats):
-            # chats = await chat_manager.get_user_chats()
-            chats = []
+            chats = await chat_manager.get_user_chat_list(
+                current_user_id=current_user_id
+            )
             response_data = ServerResponseGetChatList(chats=chats)
         elif isinstance(packet.data, CMDAddUserToChat):
             await chat_manager.join_chat(

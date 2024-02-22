@@ -1,6 +1,7 @@
 import uuid
 from contextlib import contextmanager
 
+from backend.schemas.chat import ChatExtSchema
 from backend.schemas.chat_message import (
     ChatMessageAny,
     ChatNotificationCreateSchema,
@@ -65,6 +66,16 @@ class ChatManager:
             )
             # TODO: subscribe user to other notifications
             # (new chat, error notification, ..)
+
+    async def get_user_chat_list(
+        self, current_user_id: uuid.UUID
+    ) -> list[ChatExtSchema]:
+        """ """
+        with process_exceptions():
+            async with self.uow:
+                return await self.uow.chat_repo.get_joined_chat_ext_info(
+                    current_user_id
+                )
 
     async def join_chat(
         self, current_user_id: uuid.UUID, user_id: uuid.UUID, chat_id: uuid.UUID
