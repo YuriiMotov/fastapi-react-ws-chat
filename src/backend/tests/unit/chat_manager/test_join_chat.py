@@ -29,11 +29,11 @@ from backend.services.message_broker.in_memory_message_broker import (
 from backend.services.message_broker.message_broker_exc import MessageBrokerException
 
 
-async def test_join_chat_success(
+async def test_add_user_to_chat_success(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
     """
-    Successful execution of join_chat() creates a user-chat
+    Successful execution of add_user_to_chat() creates a user-chat
     association record in the database.
     """
     # Create User and Chat
@@ -47,8 +47,8 @@ async def test_join_chat_success(
         session.add_all((user, chat))
         await session.commit()
 
-    # Call chat_manager.join_chat()
-    await chat_manager.join_chat(
+    # Call chat_manager.add_user_to_chat()
+    await chat_manager.add_user_to_chat(
         current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
     )
 
@@ -62,11 +62,11 @@ async def test_join_chat_success(
         assert user_chat_link is not None
 
 
-async def test_join_chat_notification_added_to_db(
+async def test_add_user_to_chat_notification_added_to_db(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
     """
-    Successful execution of join_chat() creates a notification
+    Successful execution of add_user_to_chat() creates a notification
     record in the database.
     """
     # Create User and Chat
@@ -80,8 +80,8 @@ async def test_join_chat_notification_added_to_db(
         session.add_all((user, chat))
         await session.commit()
 
-    # Call chat_manager.join_chat()
-    await chat_manager.join_chat(
+    # Call chat_manager.add_user_to_chat()
+    await chat_manager.add_user_to_chat(
         current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
     )
 
@@ -96,11 +96,11 @@ async def test_join_chat_notification_added_to_db(
     assert notifications[0].params == str(user_id)
 
 
-async def test_join_chat_notification_posted_to_mb(
+async def test_add_user_to_chat_notification_posted_to_mb(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
     """
-    Successful execution of join_chat() posts a notification
+    Successful execution of add_user_to_chat() posts a notification
     record to the message broker.
     """
     # Create User and Chat, subscribe user for updates
@@ -118,8 +118,8 @@ async def test_join_chat_notification_posted_to_mb(
         channel=channel_code("chat", chat_id), user_id=other_user_id
     )
 
-    # Call chat_manager.join_chat()
-    await chat_manager.join_chat(
+    # Call chat_manager.add_user_to_chat()
+    await chat_manager.add_user_to_chat(
         current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
     )
 
@@ -133,11 +133,11 @@ async def test_join_chat_notification_posted_to_mb(
     assert notification.params == str(user_id)
 
 
-async def test_join_chat_wrong_chat_id(
+async def test_add_user_to_chat_wrong_chat_id(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
     """
-    Attempt to call join_chat() with wrong chat_id (chat doesn't exist) raises
+    Attempt to call add_user_to_chat() with wrong chat_id (chat doesn't exist) raises
     BadRequest error
     """
     # Create User
@@ -149,9 +149,9 @@ async def test_join_chat_wrong_chat_id(
         session.add(user)
         await session.commit()
 
-    # Call chat_manager.join_chat()
+    # Call chat_manager.add_user_to_chat()
     with pytest.raises(BadRequest):
-        await chat_manager.join_chat(
+        await chat_manager.add_user_to_chat(
             current_user_id=user_id, user_id=user_id, chat_id=chat_id
         )
 
@@ -165,11 +165,11 @@ async def test_join_chat_wrong_chat_id(
         assert user_chat_link is None
 
 
-async def test_join_chat_user_unauthorized(
+async def test_add_user_to_chat_user_unauthorized(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
     """
-    Attempt to call join_chat() without authorization to add users to this
+    Attempt to call add_user_to_chat() without authorization to add users to this
     chat (current_user is not a chat owner) raises UnauthorizedAction
     """
     # Create User
@@ -183,9 +183,9 @@ async def test_join_chat_user_unauthorized(
         session.add_all((user, chat))
         await session.commit()
 
-    # Call chat_manager.join_chat()
+    # Call chat_manager.add_user_to_chat()
     with pytest.raises(UnauthorizedAction):
-        await chat_manager.join_chat(
+        await chat_manager.add_user_to_chat(
             current_user_id=user_id,  # user_id is not an owner of this chat
             user_id=user_id,
             chat_id=chat_id,
@@ -202,13 +202,13 @@ async def test_join_chat_user_unauthorized(
 
 
 @pytest.mark.parametrize("failure_method", ("add_user_to_chat", "add_notification"))
-async def test_join_chat_repo_failure(
+async def test_add_user_to_chat_repo_failure(
     async_session_maker: async_sessionmaker,
     chat_manager: ChatManager,
     failure_method: str,
 ):
     """
-    join_chat() raises RepositoryError in case of repository failure
+    add_user_to_chat() raises RepositoryError in case of repository failure
     """
     # Create User and Chat
     chat_owner_id = uuid.uuid4()
@@ -227,21 +227,21 @@ async def test_join_chat_repo_failure(
         failure_method,
         new=Mock(side_effect=ChatRepoException()),
     ):
-        # Call join_chat() and check that it raises RepositoryError
+        # Call add_user_to_chat() and check that it raises RepositoryError
         with pytest.raises(RepositoryError):
-            await chat_manager.join_chat(
+            await chat_manager.add_user_to_chat(
                 current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
             )
 
 
 @pytest.mark.parametrize("failure_method", ("post_message", "subscribe"))
-async def test_join_chat_message_broker_failure(
+async def test_add_user_to_chat_message_broker_failure(
     async_session_maker: async_sessionmaker,
     chat_manager: ChatManager,
     failure_method: str,
 ):
     """
-    join_chat() raises MessageBrokerError if MessageBroker raises error
+    add_user_to_chat() raises MessageBrokerError if MessageBroker raises error
     """
     # Create User and Chat
     chat_owner_id = uuid.uuid4()
@@ -260,8 +260,8 @@ async def test_join_chat_message_broker_failure(
         failure_method,
         new=Mock(side_effect=MessageBrokerException()),
     ):
-        # Call join_chat() and check that it raises MessageBrokerError
+        # Call add_user_to_chat() and check that it raises MessageBrokerError
         with pytest.raises(MessageBrokerError):
-            await chat_manager.join_chat(
+            await chat_manager.add_user_to_chat(
                 current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
             )

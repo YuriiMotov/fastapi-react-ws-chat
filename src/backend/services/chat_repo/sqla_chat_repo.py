@@ -86,7 +86,7 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
             res = await self._session.scalars(st)
         return list(res)
 
-    async def get_joined_chat_ext_info(
+    async def get_joined_chat_list(
         self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[ChatExtSchema]:
         chat_ids_st = (

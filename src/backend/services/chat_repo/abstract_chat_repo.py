@@ -61,7 +61,7 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_joined_chat_ext_info(
+    async def get_joined_chat_list(
         self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[ChatExtSchema]:
         """

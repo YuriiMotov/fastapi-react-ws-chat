@@ -17,7 +17,7 @@ from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_server import process_client_request_packet
 
 
-async def test_process_client_request_get_chat_list(
+async def test_process_client_request_get_joined_chats(
     chat_manager: ChatManager, async_session: AsyncSession
 ):
     user_id = uuid.uuid4()
@@ -32,15 +32,15 @@ async def test_process_client_request_get_chat_list(
 
     request = cli_p.ClientPacket(
         id=random.randint(1, 10000),
-        data=cli_p.CMDGetChats(),
+        data=cli_p.CMDGetJoinedChats(),
     )
 
     response = await process_client_request_packet(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
-    assert isinstance(response.data, srv_p.ServerResponseGetChatList) is True
-    if isinstance(response.data, srv_p.ServerResponseGetChatList):
+    assert isinstance(response.data, srv_p.SrvRespGetJoinedChatList) is True
+    if isinstance(response.data, srv_p.SrvRespGetJoinedChatList):
         assert len(response.data.chats) == len(chat_ids)
         for chat in response.data.chats:
             assert chat.id in chat_ids
@@ -66,7 +66,7 @@ async def test_process_client_request_add_user_to_chat(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
-    assert isinstance(response.data, srv_p.ServerResponseSucessNoBody) is True
+    assert isinstance(response.data, srv_p.SrvRespSucessNoBody) is True
     user_chat_link = await async_session.scalar(
         select(UserChatLink)
         .where(UserChatLink.chat_id == chat_id)
@@ -105,8 +105,8 @@ async def test_process_client_request_get_messages(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
-    assert isinstance(response.data, srv_p.ServerResponseGetMessages) is True
-    if isinstance(response.data, srv_p.ServerResponseGetMessages):
+    assert isinstance(response.data, srv_p.SrvRespGetMessages) is True
+    if isinstance(response.data, srv_p.SrvRespGetMessages):
         resp_messages = response.data.messages
     assert len(resp_messages) == len(messages)
     expected_message_texts = {msg.text for msg in messages}
@@ -137,7 +137,7 @@ async def test_process_client_request_send_message(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
-    assert isinstance(response.data, srv_p.ServerResponseSucessNoBody) is True
+    assert isinstance(response.data, srv_p.SrvRespSucessNoBody) is True
     message_in_db = await async_session.scalar(
         select(ChatUserMessage)
         .where(ChatUserMessage.chat_id == chat_id)

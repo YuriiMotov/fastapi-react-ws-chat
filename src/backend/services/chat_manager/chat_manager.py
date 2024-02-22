@@ -67,17 +67,17 @@ class ChatManager:
             # TODO: subscribe user to other notifications
             # (new chat, error notification, ..)
 
-    async def get_user_chat_list(
+    async def get_joined_chat_list(
         self, current_user_id: uuid.UUID
     ) -> list[ChatExtSchema]:
-        """ """
+        """
+        TODO: add description, error handling, tests
+        """
         with process_exceptions():
             async with self.uow:
-                return await self.uow.chat_repo.get_joined_chat_ext_info(
-                    current_user_id
-                )
+                return await self.uow.chat_repo.get_joined_chat_list(current_user_id)
 
-    async def join_chat(
+    async def add_user_to_chat(
         self, current_user_id: uuid.UUID, user_id: uuid.UUID, chat_id: uuid.UUID
     ):
         """
@@ -182,7 +182,7 @@ class ChatManager:
             except MessageBrokerUserNotSubscribedError as exc:
                 raise NotSubscribedError(detail=str(exc))
 
-    async def get_chat_message_list(
+    async def get_message_list(
         self,
         chat_id: uuid.UUID,
         start_id: int = -1,

@@ -8,10 +8,10 @@ from backend.services.chat_manager.chat_manager_exc import ChatManagerException
 from .base import BaseSchema
 
 ServerPacketData: TypeAlias = Union[
-    "ServerResponseError",
-    "ServerResponseSucessNoBody",
-    "ServerResponseGetChatList",
-    "ServerResponseGetMessages",
+    "SrvRespError",
+    "SrvRespSucessNoBody",
+    "SrvRespGetJoinedChatList",
+    "SrvRespGetMessages",
 ]
 
 
@@ -28,7 +28,7 @@ class ServerPacket(BaseSchema):
 # Responses
 
 
-class ServerResponseError(BaseSchema):
+class SrvRespError(BaseSchema):
     """
     Unseccessful response (error)
     """
@@ -38,7 +38,7 @@ class ServerResponseError(BaseSchema):
     error_data: ChatManagerException
 
 
-class ServerResponseSuccess(BaseSchema):
+class SrvRespSuccess(BaseSchema):
     """
     Common base for all successful responses
     """
@@ -46,7 +46,7 @@ class ServerResponseSuccess(BaseSchema):
     success: Literal[True] = True
 
 
-class ServerResponseSucessNoBody(ServerResponseSuccess):
+class SrvRespSucessNoBody(SrvRespSuccess):
     """
     Schema for all successful responses without body (there is no need to send any data)
     """
@@ -54,17 +54,17 @@ class ServerResponseSucessNoBody(ServerResponseSuccess):
     packet_type: Literal["RespSuccessNoBody"] = "RespSuccessNoBody"
 
 
-class ServerResponseGetChatList(ServerResponseSuccess):
+class SrvRespGetJoinedChatList(SrvRespSuccess):
     """
     Response for CMDGetChats command.
     Contains list of user's chats
     """
 
-    packet_type: Literal["RespGetChatList"] = "RespGetChatList"
+    packet_type: Literal["RespGetJoinedChatList"] = "RespGetJoinedChatList"
     chats: list[ChatExtSchema]
 
 
-class ServerResponseGetMessages(ServerResponseSuccess):
+class SrvRespGetMessages(SrvRespSuccess):
     """
     Response for CMDGetMessages command.
 
@@ -73,10 +73,3 @@ class ServerResponseGetMessages(ServerResponseSuccess):
 
     packet_type: Literal["RespGetMessages"] = "RespGetMessages"
     messages: list[str]
-
-
-# Event notifications
-
-
-class ServerNotification(BaseSchema):
-    pass

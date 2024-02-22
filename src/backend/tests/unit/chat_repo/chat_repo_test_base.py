@@ -338,7 +338,7 @@ class ChatRepoTestBase:
 
     async def test_get_joined_chat_ids(self):
         """
-        get_joined_chat_ids() method returns the list of chats owned by user with
+        get_joined_chat_ids() method returns the list of chats joined by user with
         specific user_id
         """
         user_1_id = uuid.uuid4()
@@ -378,12 +378,12 @@ class ChatRepoTestBase:
             await self.repo.get_joined_chat_ids(user_1_id)
 
     # ---------------------------------------------------------------------------------
-    # Tests for get_joined_chat_ext_info() method
+    # Tests for get_joined_chat_list() method
 
-    async def test_get_joined_chat_ext_info(self):
+    async def test_get_joined_chat_list(self):
         """
-        test_get_joined_chat_ext_info() method returns the list of chats (extended info)
-        owned by user with specific user_id
+        get_joined_chat_list() method returns the list of chats (extended info)
+        joined by user with specific user_id
         """
         chat_id = uuid.uuid4()
         user_1_id = uuid.uuid4()
@@ -401,16 +401,16 @@ class ChatRepoTestBase:
         )
 
         # Request and check the list of chats of user_1
-        chats = await self.repo.get_joined_chat_ext_info(user_id=user_1_id)
+        chats = await self.repo.get_joined_chat_list(user_id=user_1_id)
         assert chats is not None
         assert len(chats) == 1
         assert chats[0].members_count == 2
         assert chats[0].last_message_text == "my message"
 
-    async def test_get_joined_chat_ext_info_no_messages(self):
+    async def test_get_joined_chat_list_no_messages(self):
         """
-        test_get_joined_chat_ext_info() method returns the list of chats (extended info)
-        owned by user with specific user_id.
+        get_joined_chat_list() method returns the list of chats (extended info)
+        joined by user with specific user_id.
         Field last_message_text is None when there are no messages in the chat
         """
         chat_id = uuid.uuid4()
@@ -424,14 +424,14 @@ class ChatRepoTestBase:
         await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_2_id)
 
         # Request and check the list of chats of user_1
-        chats = await self.repo.get_joined_chat_ext_info(user_id=user_1_id)
+        chats = await self.repo.get_joined_chat_list(user_id=user_1_id)
         assert chats is not None
         assert len(chats) == 1
         assert chats[0].last_message_text is None
 
-    async def test_get_joined_chat_ext_info_database_failure(self):
+    async def test_get_joined_chat_list_database_failure(self):
         """
-        test_get_joined_chat_ext_info() raises ChatRepoDatabaseError in case of
+        get_joined_chat_list() raises ChatRepoDatabaseError in case of
         DB failure.
         """
         user_1_id = uuid.uuid4()
@@ -441,7 +441,7 @@ class ChatRepoTestBase:
 
         # Attempt to add message with no DB connection
         with pytest.raises(ChatRepoDatabaseError):
-            await self.repo.get_joined_chat_ext_info(user_1_id)
+            await self.repo.get_joined_chat_list(user_1_id)
 
     # ---------------------------------------------------------------------------------
     # Tests for get_message_list() method
