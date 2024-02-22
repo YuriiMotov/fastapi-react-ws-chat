@@ -65,7 +65,7 @@ class AbstractChatRepo(ABC):
         self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
     ) -> list[ChatExtSchema]:
         """
-        Get chat list by user id.
+        Get the list of chats where user is a member.
 
         Raises:
          - ChatRepoDatabaseError if the database fails

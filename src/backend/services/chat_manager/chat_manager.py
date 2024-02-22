@@ -71,7 +71,10 @@ class ChatManager:
         self, current_user_id: uuid.UUID
     ) -> list[ChatExtSchema]:
         """
-        TODO: add description, error handling, tests
+        Get the list of chats where user is a member.
+
+        Raises:
+         - RepositoryError on repository failure
         """
         with process_exceptions():
             async with self.uow:
