@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import Depends
@@ -34,3 +35,7 @@ def chat_manager_dep(
     message_broker: Annotated[AbstractMessageBroker, Depends(message_broker_dep)],
 ) -> ChatManager:
     return ChatManager(uow=uow, message_broker=message_broker)
+
+
+def get_current_user(user_id: uuid.UUID):
+    return user_id

@@ -1,8 +1,12 @@
+import asyncio
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, WebSocket
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
-from backend.dependencies import chat_manager_dep
+from backend.dependencies import chat_manager_dep, get_current_user
+from backend.schemas.client_packet import ClientPacket
+from backend.services import chat_server
 from backend.services.chat_manager.chat_manager import ChatManager
 
 ws_chat_router = APIRouter(prefix="/ws", tags=["websocket"])
@@ -12,8 +16,23 @@ ws_chat_router = APIRouter(prefix="/ws", tags=["websocket"])
 async def ws_chat(
     websocket: WebSocket,
     chat_manager: Annotated[ChatManager, Depends(chat_manager_dep)],
+    current_user_id: Annotated[uuid.UUID, Depends(get_current_user)],
 ):
     await websocket.accept()
     while True:
-        await websocket.send_text("Hello, world!")
-        await websocket.receive_text()
+        try:
+            client_packet_json = await asyncio.wait_for(
+                websocket.receive_json(), timeout=0.1
+            )
+        except TimeoutError:
+            pass
+        except WebSocketDisconnect:
+            return
+        else:
+            client_packet = ClientPacket.model_validate(client_packet_json)
+            server_resp = await chat_server.process_client_request_packet(
+                chat_manager=chat_manager,
+                packet=client_packet,
+                current_user_id=current_user_id,
+            )
+            await websocket.send_json(server_resp.model_dump())

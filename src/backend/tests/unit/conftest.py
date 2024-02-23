@@ -1,6 +1,7 @@
 from typing import AsyncGenerator, Generator
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -8,6 +9,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from backend.dependencies import sqla_sessionmaker_dep
+from backend.main import app
 from backend.models.base import BaseModel
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.message_broker.in_memory_message_broker import (
@@ -54,3 +57,16 @@ def chat_manager(async_session_maker: async_sessionmaker):
         message_broker=InMemoryMessageBroker(),
     )
     yield chat_manager
+
+
+@pytest.fixture(name="client")
+def get_test_client(async_session_maker: async_sessionmaker):
+    def get_sessionmaker():
+        return async_session_maker
+
+    app.dependency_overrides[sqla_sessionmaker_dep] = get_sessionmaker
+    client = TestClient(app)
+
+    yield client
+
+    app.dependency_overrides.pop(sqla_sessionmaker_dep)
