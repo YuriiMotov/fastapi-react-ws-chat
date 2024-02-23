@@ -1,6 +1,6 @@
 from typing import Literal, TypeAlias, Union
 
-from sqlmodel import Field
+from pydantic import Field
 
 from backend.schemas.chat import ChatExtSchema
 from backend.services.chat_manager.chat_manager_exc import ChatManagerException
