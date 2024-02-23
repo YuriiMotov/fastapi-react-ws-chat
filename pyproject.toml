@@ -10,6 +10,7 @@ python = "^3.10"
 fastapi = "0.109.2"
 pydantic = "2.6.1"
 SQLAlchemy = "2.0.27"
+uvicorn = {extras = ["standard"], version = "^0.27.1"}
 
 
 [tool.poetry.group.dev.dependencies]
