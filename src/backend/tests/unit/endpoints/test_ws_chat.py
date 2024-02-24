@@ -9,17 +9,22 @@ from starlette.testclient import TestClient, WebSocketTestSession
 from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.chat_message import ChatUserMessageCreateSchema
+from backend.schemas.chat_message import (
+    ChatUserMessageCreateSchema,
+    ChatUserMessageSchema,
+)
 from backend.schemas.client_packet import (
     ClientPacket,
     CMDAddUserToChat,
     CMDGetJoinedChats,
+    CMDGetMessages,
     CMDSendMessage,
 )
 from backend.schemas.server_packet import (
     ServerPacket,
     SrvRespError,
     SrvRespGetJoinedChatList,
+    SrvRespGetMessages,
     SrvRespSucessNoBody,
 )
 from backend.services.chat_manager.chat_manager import ChatManager
@@ -298,3 +303,87 @@ async def test_ws_chat_send_message__unauthorized_not_chat_member_error(
         .where(ChatUserMessage.sender_id == current_user_id)
     )
     assert message_db is None
+
+
+# ---------------------------------------------------------------------------------
+# Tests for CMDGetMessages command
+
+
+async def test_ws_chat_get_messages__success(
+    client: TestClient, async_session: AsyncSession
+):
+    current_user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+    # Create messages
+    messages = [
+        ChatUserMessage(
+            chat_id=chat_id, text=f"message {uuid.uuid4()}", sender_id=current_user_id
+        )
+        for _ in range(3)
+    ]
+    async_session.add_all(messages)
+    await async_session.commit()
+
+    expected_messages = list(reversed(messages))
+    cmd = CMDGetMessages(chat_id=chat_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    websocket: WebSocketTestSession
+    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
+        websocket.send_text(client_packet.model_dump_json())
+        resp_str = websocket.receive_text()
+
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert srv_packet.request_packet_id == client_packet.id
+        assert isinstance(srv_packet.data, SrvRespGetMessages)
+        if isinstance(srv_packet.data, SrvRespGetMessages):
+            assert len(srv_packet.data.messages) == len(messages)
+            for i in range(len(messages)):
+                msg_obj = ChatUserMessageSchema.model_validate_json(
+                    srv_packet.data.messages[i]
+                )
+                assert msg_obj.text == expected_messages[i].text
+
+
+async def test_ws_chat_get_messages__success_empty_list(client: TestClient):
+    current_user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+
+    cmd = CMDGetMessages(chat_id=chat_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    websocket: WebSocketTestSession
+    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
+        websocket.send_text(client_packet.model_dump_json())
+        resp_str = websocket.receive_text()
+
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert srv_packet.request_packet_id == client_packet.id
+        assert isinstance(srv_packet.data, SrvRespGetMessages)
+        if isinstance(srv_packet.data, SrvRespGetMessages):
+            assert len(srv_packet.data.messages) == 0
+
+
+def test_ws_chat_get_messages__error(client: TestClient):
+    current_user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+    cmd = CMDGetMessages(chat_id=chat_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    websocket: WebSocketTestSession
+
+    raise_error = RepositoryError(detail="repo error")
+    with patch.object(
+        ChatManager,
+        "get_message_list",
+        new=Mock(side_effect=raise_error),
+    ):
+        with client.websocket_connect(
+            f"/ws/chat?user_id={current_user_id}"
+        ) as websocket:
+            websocket.send_text(client_packet.model_dump_json())
+            resp_str = websocket.receive_text()
+
+            srv_packet = ServerPacket.model_validate_json(resp_str)
+            assert srv_packet.request_packet_id == client_packet.id
+            assert isinstance(srv_packet.data, SrvRespError)
+            if isinstance(srv_packet.data, SrvRespError):
+                assert srv_packet.data.error_data.error_code == raise_error.error_code
+                assert srv_packet.data.error_data.detail == raise_error.detail
