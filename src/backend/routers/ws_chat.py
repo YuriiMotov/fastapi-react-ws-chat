@@ -21,18 +21,18 @@ async def ws_chat(
     await websocket.accept()
     while True:
         try:
-            client_packet_json = await asyncio.wait_for(
-                websocket.receive_json(), timeout=0.1
+            client_packet_str = await asyncio.wait_for(
+                websocket.receive_text(), timeout=0.1
             )
         except TimeoutError:
             pass
         except WebSocketDisconnect:
             return
         else:
-            client_packet = ClientPacket.model_validate(client_packet_json)
+            client_packet = ClientPacket.model_validate_json(client_packet_str)
             server_resp = await chat_server.process_client_request_packet(
                 chat_manager=chat_manager,
                 packet=client_packet,
                 current_user_id=current_user_id,
             )
-            await websocket.send_json(server_resp.model_dump())
+            await websocket.send_text(server_resp.model_dump_json())
