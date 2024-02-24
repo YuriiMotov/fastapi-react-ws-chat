@@ -7,11 +7,16 @@ from starlette.testclient import TestClient, WebSocketTestSession
 
 from backend.models.chat import Chat
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.client_packet import ClientPacket, CMDGetJoinedChats
+from backend.schemas.client_packet import (
+    ClientPacket,
+    CMDAddUserToChat,
+    CMDGetJoinedChats,
+)
 from backend.schemas.server_packet import (
     ServerPacket,
     SrvRespError,
     SrvRespGetJoinedChatList,
+    SrvRespSucessNoBody,
 )
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import RepositoryError
@@ -98,3 +103,81 @@ def test_ws_chat_get_joined_chats__error(client: TestClient):
             if isinstance(srv_packet.data, SrvRespError):
                 assert srv_packet.data.error_data.error_code == raise_error.error_code
                 assert srv_packet.data.error_data.detail == raise_error.detail
+
+
+# ---------------------------------------------------------------------------------
+# Tests for CMDAddUserToChat command
+
+
+async def test_ws_chat_add_user_to_chat__success(
+    client: TestClient, async_session: AsyncSession
+):
+    current_user_id = uuid.uuid4()
+    owner_id = current_user_id
+    another_user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+    # Create chat
+    async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
+    await async_session.commit()
+
+    cmd = CMDAddUserToChat(chat_id=chat_id, user_id=another_user_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    websocket: WebSocketTestSession
+    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
+        websocket.send_text(client_packet.model_dump_json())
+        resp_str = websocket.receive_text()
+
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert srv_packet.request_packet_id == client_packet.id
+        assert isinstance(srv_packet.data, SrvRespSucessNoBody)
+
+
+def test_ws_chat_add_user_to_chat__chat_doesnt_exist_error(client: TestClient):
+    current_user_id = uuid.uuid4()
+    another_user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+
+    cmd = CMDAddUserToChat(chat_id=chat_id, user_id=another_user_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    websocket: WebSocketTestSession
+
+    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
+        websocket.send_text(client_packet.model_dump_json())
+        resp_str = websocket.receive_text()
+
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert srv_packet.request_packet_id == client_packet.id
+        assert isinstance(srv_packet.data, SrvRespError)
+        if isinstance(srv_packet.data, SrvRespError):
+            assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+            assert (
+                srv_packet.data.error_data.detail
+                == f"Chat with ID={chat_id} doesn't exist"
+            )
+
+
+async def test_ws_chat_add_user_to_chat__unauthorized_error(
+    client: TestClient, async_session: AsyncSession
+):
+    current_user_id = uuid.uuid4()
+    owner_id = uuid.uuid4()
+    another_user_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+    # Create chat
+    async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
+    await async_session.commit()
+
+    cmd = CMDAddUserToChat(chat_id=chat_id, user_id=another_user_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    websocket: WebSocketTestSession
+
+    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
+        websocket.send_text(client_packet.model_dump_json())
+        resp_str = websocket.receive_text()
+
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert srv_packet.request_packet_id == client_packet.id
+        assert isinstance(srv_packet.data, SrvRespError)
+        if isinstance(srv_packet.data, SrvRespError):
+            assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+            assert "unauthorized to add users to" in srv_packet.data.error_data.detail
