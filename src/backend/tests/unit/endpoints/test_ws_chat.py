@@ -33,19 +33,19 @@ def test_ws_chat_connect(client: TestClient):
 async def test_ws_chat_get_joined_chats__success(
     client: TestClient, async_session: AsyncSession
 ):
-    user_id = uuid.uuid4()
+    current_user_id = uuid.uuid4()
     owner_id = uuid.uuid4()
     # Create chats, add user to chats
     chat_ids = [uuid.uuid4() for _ in range(3)]
     for chat_id in chat_ids:
         async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
-        async_session.add(UserChatLink(chat_id=chat_id, user_id=user_id))
+        async_session.add(UserChatLink(chat_id=chat_id, user_id=current_user_id))
     await async_session.commit()
 
     cmd = CMDGetJoinedChats()
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
     websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={user_id}") as websocket:
+    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
         websocket.send_text(client_packet.model_dump_json())
 
         resp_str = websocket.receive_text()
@@ -58,11 +58,11 @@ async def test_ws_chat_get_joined_chats__success(
 
 
 def test_ws_chat_get_joined_chats__empty_list(client: TestClient):
-    user_id = uuid.uuid4()
+    current_user_id = uuid.uuid4()
     cmd = CMDGetJoinedChats()
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
     websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={user_id}") as websocket:
+    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
         websocket.send_text(client_packet.model_dump_json())
 
         resp_str = websocket.receive_text()
@@ -75,7 +75,7 @@ def test_ws_chat_get_joined_chats__empty_list(client: TestClient):
 
 
 def test_ws_chat_get_joined_chats__error(client: TestClient):
-    user_id = uuid.uuid4()
+    current_user_id = uuid.uuid4()
     cmd = CMDGetJoinedChats()
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
     websocket: WebSocketTestSession
@@ -86,7 +86,9 @@ def test_ws_chat_get_joined_chats__error(client: TestClient):
         "get_joined_chat_list",
         new=Mock(side_effect=raise_error),
     ):
-        with client.websocket_connect(f"/ws/chat?user_id={user_id}") as websocket:
+        with client.websocket_connect(
+            f"/ws/chat?user_id={current_user_id}"
+        ) as websocket:
             websocket.send_text(client_packet.model_dump_json())
             resp_str = websocket.receive_text()
 
