@@ -30,7 +30,10 @@ from backend.schemas.server_packet import (
     SrvRespGetMessages,
     SrvRespSucessNoBody,
 )
-from backend.services.chat_manager.chat_manager import ChatManager
+from backend.services.chat_manager.chat_manager import (
+    USER_JOINED_CHAT_NOTIFICATION,
+    ChatManager,
+)
 from backend.services.chat_manager.chat_manager_exc import RepositoryError
 from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 
@@ -481,3 +484,37 @@ async def test_ws_chat_receive_events__user_message(
                 assert isinstance(event, ChatMessageEvent)
                 if isinstance(event, ChatMessageEvent):
                     assert event.message.text == message.text
+
+
+async def test_ws_chat_receive_events__user_added_to_chat(
+    client: TestClient, async_session: AsyncSession
+):
+    user1_id = uuid.uuid4()
+    user2_id = uuid.uuid4()
+    owner_id = user1_id
+    chat_id = uuid.uuid4()
+    async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
+    async_session.add(UserChatLink(chat_id=chat_id, user_id=user1_id))
+    await async_session.commit()
+
+    cmd = CMDAddUserToChat(chat_id=chat_id, user_id=user2_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    user1_websocket: WebSocketTestSession
+    with client.websocket_connect(f"/ws/chat?user_id={user1_id}") as user1_websocket:
+        user1_websocket.send_text(client_packet.model_dump_json())
+        resp_str = user1_websocket.receive_text()
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # User was added
+
+        await asleep(0.1)
+
+        # Receive user1's events
+        resp_str = user1_websocket.receive_text()
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert isinstance(srv_packet.data, SrvEventList)
+        if isinstance(srv_packet.data, SrvEventList):
+            assert len(srv_packet.data.events) == 1
+            event = srv_packet.data.events[0]
+            assert isinstance(event, ChatMessageEvent)
+            if isinstance(event, ChatMessageEvent):
+                assert event.message.text == USER_JOINED_CHAT_NOTIFICATION
