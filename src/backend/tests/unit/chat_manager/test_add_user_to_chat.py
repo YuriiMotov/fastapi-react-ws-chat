@@ -15,17 +15,15 @@ from backend.services.chat_manager.chat_manager import (
 )
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
-    MessageBrokerError,
+    EventBrokerError,
     RepositoryError,
     UnauthorizedAction,
 )
 from backend.services.chat_manager.utils import channel_code
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
-from backend.services.message_broker.in_memory_message_broker import (
-    InMemoryMessageBroker,
-)
-from backend.services.message_broker.message_broker_exc import MessageBrokerException
+from backend.services.event_broker.event_broker_exc import EventBrokerException
+from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 
 
 async def test_add_user_to_chat_success(
@@ -100,7 +98,7 @@ async def test_add_user_to_chat_notification_posted_to_mb(
 ):
     """
     Successful execution of add_user_to_chat() posts a notification
-    record to the message broker.
+    record to the Event broker.
     """
     # Create User and Chat, subscribe user for updates
     chat_owner_id = uuid.uuid4()
@@ -113,7 +111,7 @@ async def test_add_user_to_chat_notification_posted_to_mb(
         user = User(id=user_id, name="")
         session.add_all((user, chat))
         await session.commit()
-    await chat_manager.message_broker.subscribe(
+    await chat_manager.event_broker.subscribe(
         channel=channel_code("chat", chat_id), user_id=other_user_id
     )
 
@@ -122,8 +120,8 @@ async def test_add_user_to_chat_notification_posted_to_mb(
         current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
     )
 
-    # Check that notification message was posted
-    events = await chat_manager.message_broker.get_messages(user_id=other_user_id)
+    # Check that notification event was posted
+    events = await chat_manager.event_broker.get_events(user_id=other_user_id)
     assert len(events) == 1
     event_json = events[0]
     assert USER_JOINED_CHAT_NOTIFICATION in event_json
@@ -231,14 +229,14 @@ async def test_add_user_to_chat_repo_failure(
             )
 
 
-@pytest.mark.parametrize("failure_method", ("post_message", "subscribe"))
-async def test_add_user_to_chat_message_broker_failure(
+@pytest.mark.parametrize("failure_method", ("post_event", "subscribe"))
+async def test_add_user_to_chat_event_broker_failure(
     async_session_maker: async_sessionmaker,
     chat_manager: ChatManager,
     failure_method: str,
 ):
     """
-    add_user_to_chat() raises MessageBrokerError if MessageBroker raises error
+    add_user_to_chat() raises EventBrokerError if EventBroker raises error
     """
     # Create User and Chat
     chat_owner_id = uuid.uuid4()
@@ -250,15 +248,15 @@ async def test_add_user_to_chat_message_broker_failure(
         session.add_all((user, chat))
         await session.commit()
 
-    # Patch InMemoryMessageBroker.{failure_method} method so that it always raises
-    # MessageBrokerException
+    # Patch InMemoryEventBroker.{failure_method} method so that it always raises
+    # EventBrokerException
     with patch.object(
-        InMemoryMessageBroker,
+        InMemoryEventBroker,
         failure_method,
-        new=Mock(side_effect=MessageBrokerException()),
+        new=Mock(side_effect=EventBrokerException()),
     ):
-        # Call add_user_to_chat() and check that it raises MessageBrokerError
-        with pytest.raises(MessageBrokerError):
+        # Call add_user_to_chat() and check that it raises EventBrokerError
+        with pytest.raises(EventBrokerError):
             await chat_manager.add_user_to_chat(
                 current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
             )

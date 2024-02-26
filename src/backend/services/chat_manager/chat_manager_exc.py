@@ -18,8 +18,8 @@ class RepositoryError(ChatManagerException):
     error_code: str = "REPOSITORY_ERROR"
 
 
-class MessageBrokerError(ChatManagerException):
-    error_code: str = "MESSAGE_BROKER_ERROR"
+class EventBrokerError(ChatManagerException):
+    error_code: str = "EVENT_BROKER_ERROR"
 
 
 class NotSubscribedError(ChatManagerException):

@@ -12,17 +12,15 @@ from backend.models.user_chat_link import UserChatLink
 from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
-    MessageBrokerError,
+    EventBrokerError,
     RepositoryError,
     UnauthorizedAction,
 )
 from backend.services.chat_manager.utils import channel_code
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
-from backend.services.message_broker.in_memory_message_broker import (
-    InMemoryMessageBroker,
-)
-from backend.services.message_broker.message_broker_exc import MessageBrokerException
+from backend.services.event_broker.event_broker_exc import EventBrokerException
+from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 
 
 async def test_send_message_success(
@@ -59,11 +57,11 @@ async def test_send_message_success(
     assert messages[0].text == message.text
 
 
-async def test_send_message_success_added_to_message_queue(
+async def test_send_message_success_added_to_event_broker_queue(
     async_session_maker: async_sessionmaker, chat_manager: ChatManager
 ):
     """
-    Successful execution of send_message() adds a message to the message broker's queue
+    Successful execution of send_message() adds an event to the Event broker's queue
     """
     # Create User, Chat, UserChatLink
     user_id = uuid.uuid4()
@@ -78,7 +76,7 @@ async def test_send_message_success_added_to_message_queue(
         await session.commit()
 
     # Subscribe other_user to channel of the same chat
-    await chat_manager.message_broker.subscribe(
+    await chat_manager.event_broker.subscribe(
         channel=channel_code("chat", chat_id), user_id=other_user_id
     )
 
@@ -88,8 +86,8 @@ async def test_send_message_success_added_to_message_queue(
     )
     await chat_manager.send_message(current_user_id=user_id, message=message)
 
-    # Check that other_user receives message via message broker
-    events = await chat_manager.message_broker.get_messages(user_id=other_user_id)
+    # Check that other_user receives event via Event broker
+    events = await chat_manager.event_broker.get_events(user_id=other_user_id)
     assert len(events) == 1
     assert message.text in events[0]
 
@@ -199,14 +197,14 @@ async def test_send_message_repo_failure(
             await chat_manager.send_message(current_user_id=user_id, message=message)
 
 
-@pytest.mark.parametrize("failure_method", ("post_message",))
-async def test_send_message_message_broker_failure(
+@pytest.mark.parametrize("failure_method", ("post_event",))
+async def test_send_message_event_broker_failure(
     async_session_maker: async_sessionmaker,
     chat_manager: ChatManager,
     failure_method: str,
 ):
     """
-    send_message() raises MessageBrokerError in case of message broker failure
+    send_message() raises EventBrokerError in case of Event broker failure
     """
     # Create User and Chat, add User to Chat
     user_id = uuid.uuid4()
@@ -222,13 +220,13 @@ async def test_send_message_message_broker_failure(
         chat_id=chat_id, text="my message", sender_id=user_id
     )
 
-    # Patch InMemoryMessageBroker.{failure_method} method so that it always raises
-    # MessageBrokerException
+    # Patch InMemoryEventBroker.{failure_method} method so that it always raises
+    # EventBrokerException
     with patch.object(
-        InMemoryMessageBroker,
+        InMemoryEventBroker,
         failure_method,
-        new=Mock(side_effect=MessageBrokerException()),
+        new=Mock(side_effect=EventBrokerException()),
     ):
-        # Call join_chat() and check that it raises MessageBrokerError
-        with pytest.raises(MessageBrokerError):
+        # Call join_chat() and check that it raises EventBrokerError
+        with pytest.raises(EventBrokerError):
             await chat_manager.send_message(current_user_id=user_id, message=message)

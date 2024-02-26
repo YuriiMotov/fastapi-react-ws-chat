@@ -88,7 +88,7 @@ async def send_events_to_ws_client(
     chat_manager: ChatManager, current_user_id: uuid.UUID, websocket: WebSocket
 ):
     while True:
-        events = await chat_manager.get_new_messages_str(
+        events = await chat_manager.get_events_str(
             current_user_id=current_user_id, limit=1
         )
         if not events:

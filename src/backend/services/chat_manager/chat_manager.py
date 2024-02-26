@@ -10,7 +10,7 @@ from backend.schemas.chat_message import (
 from backend.schemas.event import ChatMessageEvent
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
-    MessageBrokerError,
+    EventBrokerError,
     NotSubscribedError,
     RepositoryError,
     UnauthorizedAction,
@@ -18,12 +18,10 @@ from backend.services.chat_manager.chat_manager_exc import (
 from backend.services.chat_manager.utils import channel_code
 from backend.services.chat_repo.abstract_chat_repo import MAX_MESSAGE_COUNT_PER_PAGE
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
-from backend.services.message_broker.abstract_message_broker import (
-    AbstractMessageBroker,
-)
-from backend.services.message_broker.message_broker_exc import (
-    MessageBrokerException,
-    MessageBrokerUserNotSubscribedError,
+from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
+from backend.services.event_broker.event_broker_exc import (
+    EventBrokerException,
+    EventBrokerUserNotSubscribedError,
 )
 from backend.services.uow.abstract_uow import AbstractUnitOfWork
 
@@ -33,20 +31,20 @@ USER_JOINED_CHAT_NOTIFICATION = "USER_JOINED_CHAT_MSG"
 @contextmanager
 def process_exceptions(*args, **kwds):
     """
-    Intercept ChatRepo's and MessageBroker's exceptions and raise ChatManagerException
+    Intercept ChatRepo's and EventBroker's exceptions and raise ChatManagerException
     """
     try:
         yield
     except (ChatRepoException,) as exc:
         raise RepositoryError(detail=str(exc))
-    except MessageBrokerException as exc:
-        raise MessageBrokerError(detail=str(exc))
+    except EventBrokerException as exc:
+        raise EventBrokerError(detail=str(exc))
 
 
 class ChatManager:
-    def __init__(self, uow: AbstractUnitOfWork, message_broker: AbstractMessageBroker):
+    def __init__(self, uow: AbstractUnitOfWork, event_broker: AbstractEventBroker):
         self.uow = uow
-        self.message_broker = message_broker
+        self.event_broker = event_broker
 
     async def subscribe_for_updates(self, current_user_id: uuid.UUID):
         """
@@ -54,7 +52,7 @@ class ChatManager:
 
         Raises:
          - RepositoryError on repository failure
-         - MessageBrokerError on message broker failure
+         - EventBrokerError on event broker failure
         """
         with process_exceptions():
             async with self.uow:
@@ -62,7 +60,7 @@ class ChatManager:
                     current_user_id
                 )
                 channel_list = [channel_code("chat", chat_id) for chat_id in chat_list]
-            await self.message_broker.subscribe_list(
+            await self.event_broker.subscribe_list(
                 channels=channel_list, user_id=current_user_id
             )
             # TODO: subscribe user to other notifications
@@ -73,10 +71,10 @@ class ChatManager:
         Unsubscribe user from all events.
 
         Raises:
-         - MessageBrokerError on message broker failure
+         - EventBrokerError on Event broker failure
         """
         with process_exceptions():
-            await self.message_broker.unsubscribe(user_id=current_user_id)
+            await self.event_broker.unsubscribe(user_id=current_user_id)
 
     async def get_joined_chat_list(
         self, current_user_id: uuid.UUID
@@ -98,13 +96,13 @@ class ChatManager:
         Add user to chat.
         That will add User-Chat link to the DB and subscribe user to chat's events.
         In case of success, the notification will be created in DB and added to
-        message broker.
+        Event broker.
 
         Raises:
          - UnauthorizedAction if current user unathorized to add users to that chat
          - BadRequest if chat_id is wrong
          - RepositoryError on repository failure
-         - MessageBrokerError on message broker failure
+         - EventBrokerError on Event broker failure
         """
         with process_exceptions():
             async with self.uow:
@@ -131,28 +129,28 @@ class ChatManager:
                     notification_create
                 )
                 await self.uow.commit()
-            # Post notification to the message broker's queue, subscribe to notif-s
+            # Post notification to the Event broker's queue, subscribe to notif-s
             channel = channel_code("chat", chat_id)
-            # TODO: catch exceptions during post_message() and retry or log
-            await self.message_broker.post_message(
+            # TODO: catch exceptions during post_event() and retry or log
+            await self.event_broker.post_event(
                 channel=channel,
-                message=ChatMessageEvent(message=notification).model_dump_json(),
+                event=ChatMessageEvent(message=notification).model_dump_json(),
             )
-            await self.message_broker.subscribe(channel=channel, user_id=user_id)
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
 
     async def send_message(
         self, current_user_id: uuid.UUID, message: ChatUserMessageCreateSchema
     ):
         """
         Send message to chat.
-        That will add message to the DB and to the message broker.
+        That will add message to the DB and event to the Event broker.
 
         Raises:
          - UnauthorizedAction if current user is not a member of that chat or if
            user_id is not equal to current_user_id (attempt to send message on behalf of
            another user)
          - RepositoryError on repository failure
-         - MessageBrokerError on message broker failure
+         - EventBrokerError on Event broker failure
         """
         with process_exceptions():
             # Check that user is authorized to send message to this chat
@@ -169,33 +167,33 @@ class ChatManager:
                 raise UnauthorizedAction(
                     detail=f"User {current_user_id} is not a member of chat {chat_id}"
                 )
-            # Add message to the DB and to message broker's queue
+            # Add event to the DB and to Event broker's queue
             async with self.uow:
                 message_in_db = await self.uow.chat_repo.add_message(message)
                 await self.uow.commit()
             channel = channel_code("chat", message.chat_id)
-            await self.message_broker.post_message(
+            await self.event_broker.post_event(
                 channel=channel,
-                message=ChatMessageEvent(message=message_in_db).model_dump_json(),
+                event=ChatMessageEvent(message=message_in_db).model_dump_json(),
             )
 
-    async def get_new_messages_str(
+    async def get_events_str(
         self, current_user_id: uuid.UUID, limit: int = 20
     ) -> list[str]:
         """
-        Get messages from user's message broker queue.
+        Get events from user's Event broker queue.
 
         Raises:
-         - UserNotSubscribedMBE(MessageBrokerException) if user is not subscribed.
+         - UserNotSubscribedMBE(EventBrokerException) if user is not subscribed.
          - RepositoryError on repository failure
-         - MessageBrokerError on message broker failure
+         - EventBrokerError on Event broker failure
         """
         with process_exceptions():
             try:
-                return await self.message_broker.get_messages(
+                return await self.event_broker.get_events(
                     user_id=current_user_id, limit=limit
                 )
-            except MessageBrokerUserNotSubscribedError as exc:
+            except EventBrokerUserNotSubscribedError as exc:
                 raise NotSubscribedError(detail=str(exc))
 
     async def get_message_list(

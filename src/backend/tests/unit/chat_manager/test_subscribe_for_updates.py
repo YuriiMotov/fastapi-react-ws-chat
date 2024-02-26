@@ -10,16 +10,14 @@ from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
-    MessageBrokerError,
+    EventBrokerError,
     RepositoryError,
 )
 from backend.services.chat_manager.utils import channel_code
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
-from backend.services.message_broker.in_memory_message_broker import (
-    InMemoryMessageBroker,
-)
-from backend.services.message_broker.message_broker_exc import MessageBrokerException
+from backend.services.event_broker.event_broker_exc import EventBrokerException
+from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 
 
 async def test_subscribe_for_updates(
@@ -46,12 +44,12 @@ async def test_subscribe_for_updates(
     # Check that user was subscribed for events in all their chats
     for chat_id in chat_id_list:
         # Post one message to every chat
-        await chat_manager.message_broker.post_message(
+        await chat_manager.event_broker.post_event(
             channel_code("chat", chat_id), str(chat_id)
         )
-    messages = await chat_manager.message_broker.get_messages(user_id=user_id)
-    assert len(messages) == len(chat_id_list)
-    assert set(messages) == set(map(str, chat_id_list))
+    events = await chat_manager.event_broker.get_events(user_id=user_id)
+    assert len(events) == len(chat_id_list)
+    assert set(events) == set(map(str, chat_id_list))
 
 
 @pytest.mark.parametrize("failure_method", ("get_joined_chat_ids",))
@@ -76,21 +74,21 @@ async def test_subscribe_for_updates_repo_failure(
 
 
 @pytest.mark.parametrize("failure_method", ("subscribe_list",))
-async def test_subscribe_for_updates_message_broker_failure(
+async def test_subscribe_for_updates_event_broker_failure(
     chat_manager: ChatManager, failure_method: str
 ):
     """
-    subscribe_for_updates() raises MessageBrokerError if MessageBroker raises error
+    subscribe_for_updates() raises EventBrokerError if EventBroker raises error
     """
     user_id = uuid.uuid4()
 
-    # Patch InMemoryMessageBroker.{failure_method} method so that it always raises
-    # MessageBrokerException
+    # Patch InMemoryEventBroker.{failure_method} method so that it always raises
+    # EventBrokerException
     with patch.object(
-        InMemoryMessageBroker,
+        InMemoryEventBroker,
         failure_method,
-        new=Mock(side_effect=MessageBrokerException()),
+        new=Mock(side_effect=EventBrokerException()),
     ):
-        # Call subscribe_for_updates() and check that it raises MessageBrokerError
-        with pytest.raises(MessageBrokerError):
+        # Call subscribe_for_updates() and check that it raises EventBrokerError
+        with pytest.raises(EventBrokerError):
             await chat_manager.subscribe_for_updates(current_user_id=user_id)

@@ -9,13 +9,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from backend.dependencies import message_broker_dep, sqla_sessionmaker_dep
+from backend.dependencies import event_broker_dep, sqla_sessionmaker_dep
 from backend.main import app
 from backend.models.base import BaseModel
 from backend.services.chat_manager.chat_manager import ChatManager
-from backend.services.message_broker.in_memory_message_broker import (
-    InMemoryMessageBroker,
-)
+from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 from backend.services.uow.sqla_uow import SQLAlchemyUnitOfWork
 
 
@@ -54,31 +52,31 @@ async def async_session(
 def chat_manager(async_session_maker: async_sessionmaker):
     chat_manager = ChatManager(
         uow=SQLAlchemyUnitOfWork(async_session_maker),
-        message_broker=InMemoryMessageBroker(),
+        event_broker=InMemoryEventBroker(),
     )
     yield chat_manager
 
 
 @pytest.fixture()
-def message_broker():
-    return InMemoryMessageBroker()
+def event_broker():
+    return InMemoryEventBroker()
 
 
 @pytest.fixture(name="client")
 def get_test_client(
-    async_session_maker: async_sessionmaker, message_broker: InMemoryMessageBroker
+    async_session_maker: async_sessionmaker, event_broker: InMemoryEventBroker
 ):
     def get_sessionmaker():
         return async_session_maker
 
-    def get_message_broker():
-        return message_broker
+    def get_event_broker():
+        return event_broker
 
     app.dependency_overrides[sqla_sessionmaker_dep] = get_sessionmaker
-    app.dependency_overrides[message_broker_dep] = get_message_broker
+    app.dependency_overrides[event_broker_dep] = get_event_broker
     client = TestClient(app)
 
     yield client
 
     app.dependency_overrides.pop(sqla_sessionmaker_dep)
-    app.dependency_overrides.pop(message_broker_dep)
+    app.dependency_overrides.pop(event_broker_dep)

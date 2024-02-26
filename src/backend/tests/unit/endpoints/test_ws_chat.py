@@ -32,9 +32,7 @@ from backend.schemas.server_packet import (
 )
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import RepositoryError
-from backend.services.message_broker.in_memory_message_broker import (
-    InMemoryMessageBroker,
-)
+from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 
 # ---------------------------------------------------------------------------------
 # Tests for websocket connect\disconnect
@@ -50,17 +48,17 @@ async def test_ws_chat_connect(client: TestClient):
 
 
 async def test_ws_chat_subscribe_on_connect(
-    client: TestClient, message_broker: InMemoryMessageBroker
+    client: TestClient, event_broker: InMemoryEventBroker
 ):
     user_id = uuid.uuid4()
     websocket: WebSocketTestSession
-    mocked_subscribe = AsyncMock(wraps=message_broker.subscribe_list)
-    with patch.object(InMemoryMessageBroker, "subscribe_list", new=mocked_subscribe):
+    mocked_subscribe = AsyncMock(wraps=event_broker.subscribe_list)
+    with patch.object(InMemoryEventBroker, "subscribe_list", new=mocked_subscribe):
         with client.websocket_connect(
             f"/ws/chat?user_id={user_id}"
         ) as websocket:  # noqa: F841
             await asleep(0.1)
-            # Check that chat_manager.message_broker.subscribe_list() was called
+            # Check that chat_manager.event_broker.subscribe_list() was called
             mocked_subscribe.assert_awaited_with(user_id=user_id, channels=[])
 
 
@@ -68,12 +66,12 @@ async def test_ws_chat_unsubscribe_on_connection_close(client: TestClient):
     user_id = uuid.uuid4()
     websocket: WebSocketTestSession
     mocked_unsubscribe = AsyncMock()
-    with patch.object(InMemoryMessageBroker, "unsubscribe", new=mocked_unsubscribe):
+    with patch.object(InMemoryEventBroker, "unsubscribe", new=mocked_unsubscribe):
         with client.websocket_connect(
             f"/ws/chat?user_id={user_id}"
         ) as websocket:  # noqa: F841
             await asleep(0.1)
-        # Check that chat_manager.message_broker.unsubscribe() was called
+        # Check that chat_manager.event_broker.unsubscribe() was called
         mocked_unsubscribe.assert_awaited_with(user_id=user_id)
 
 
@@ -443,7 +441,7 @@ async def test_ws_chat_receive_events__user_message(
     async_session.add(UserChatLink(chat_id=chat_id, user_id=user2_id))
     await async_session.commit()
 
-    # Send message from user1 to chat. Check that both users receive message
+    # Send message from user1 to chat. Check that both users receive events
     message = ChatUserMessageCreateSchema(
         chat_id=chat_id, text=f"my message {uuid.uuid4()}", sender_id=user1_id
     )
