@@ -19,20 +19,25 @@ async def ws_chat(
     current_user_id: Annotated[uuid.UUID, Depends(get_current_user)],
 ):
     await websocket.accept()
-    while True:
-        try:
-            client_packet_str = await asyncio.wait_for(
-                websocket.receive_text(), timeout=0.1
-            )
-        except TimeoutError:
-            pass
-        except WebSocketDisconnect:
-            return
-        else:
-            client_packet = ClientPacket.model_validate_json(client_packet_str)
-            server_resp = await chat_server.process_client_request_packet(
-                chat_manager=chat_manager,
-                packet=client_packet,
-                current_user_id=current_user_id,
-            )
-            await websocket.send_text(server_resp.model_dump_json())
+    await chat_manager.subscribe_for_updates(current_user_id=current_user_id)
+    try:
+        while True:
+            # Receive packet from websocket and process it
+            try:
+                client_packet_str = await asyncio.wait_for(
+                    websocket.receive_text(), timeout=0.1
+                )
+            except TimeoutError:  # Nothing to recieive
+                pass
+            else:
+                client_packet = ClientPacket.model_validate_json(client_packet_str)
+                server_resp = await chat_server.process_client_request_packet(
+                    chat_manager=chat_manager,
+                    packet=client_packet,
+                    current_user_id=current_user_id,
+                )
+                await websocket.send_text(server_resp.model_dump_json())
+            # Check for new events and send via websocket
+
+    except WebSocketDisconnect:
+        await chat_manager.unsubscribe_from_updates(current_user_id=current_user_id)
