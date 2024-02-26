@@ -21,6 +21,7 @@ from backend.schemas.client_packet import (
     CMDGetMessages,
     CMDSendMessage,
 )
+from backend.schemas.event import ChatMessageEvent
 from backend.schemas.server_packet import (
     ServerPacket,
     SrvEventList,
@@ -467,10 +468,10 @@ async def test_ws_chat_receive_events__user_message(
             assert isinstance(srv_packet.data, SrvEventList)
             if isinstance(srv_packet.data, SrvEventList):
                 assert len(srv_packet.data.events) == 1
-                received_msg = ChatUserMessageSchema.model_validate_json(
-                    srv_packet.data.events[0]
-                )
-                assert received_msg.text == message.text
+                event = srv_packet.data.events[0]
+                assert isinstance(event, ChatMessageEvent)
+                if isinstance(event, ChatMessageEvent):
+                    assert event.message.text == message.text
 
             # Receive user2's events
             resp_str = user2_websocket.receive_text()
@@ -478,7 +479,7 @@ async def test_ws_chat_receive_events__user_message(
             assert isinstance(srv_packet.data, SrvEventList)
             if isinstance(srv_packet.data, SrvEventList):
                 assert len(srv_packet.data.events) == 1
-                received_msg = ChatUserMessageSchema.model_validate_json(
-                    srv_packet.data.events[0]
-                )
-                assert received_msg.text == message.text
+                event = srv_packet.data.events[0]
+                assert isinstance(event, ChatMessageEvent)
+                if isinstance(event, ChatMessageEvent):
+                    assert event.message.text == message.text

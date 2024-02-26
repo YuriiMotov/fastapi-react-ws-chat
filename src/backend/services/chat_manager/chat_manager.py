@@ -7,6 +7,7 @@ from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
 )
+from backend.schemas.event import ChatMessageEvent
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
     MessageBrokerError,
@@ -134,7 +135,8 @@ class ChatManager:
             channel = channel_code("chat", chat_id)
             # TODO: catch exceptions during post_message() and retry or log
             await self.message_broker.post_message(
-                channel=channel, message=notification.model_dump_json()
+                channel=channel,
+                message=ChatMessageEvent(message=notification).model_dump_json(),
             )
             await self.message_broker.subscribe(channel=channel, user_id=user_id)
 
@@ -173,7 +175,8 @@ class ChatManager:
                 await self.uow.commit()
             channel = channel_code("chat", message.chat_id)
             await self.message_broker.post_message(
-                channel=channel, message=message_in_db.model_dump_json()
+                channel=channel,
+                message=ChatMessageEvent(message=message_in_db).model_dump_json(),
             )
 
     async def get_new_messages_str(

@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from backend.schemas.chat_message import ChatUserMessageSchema
+from backend.schemas.event import ChatMessageEvent
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     MessageBrokerError,
@@ -39,14 +40,14 @@ async def test_get_new_messages_str(chat_manager: ChatManager, count: int):
         )
         messages.append(message)
         await chat_manager.message_broker.post_message(
-            channel=channel, message=message.model_dump_json()
+            channel=channel, message=ChatMessageEvent(message=message).model_dump_json()
         )
 
     # Call chat_manager.get_new_messages_str() and check the results
     messages_res = await chat_manager.get_new_messages_str(current_user_id=user_id)
     assert len(messages_res) == count
     for i in range(count):
-        assert messages_res[i] == messages[i].model_dump_json()
+        assert messages[i].model_dump_json() in messages_res[i]
 
 
 async def test_get_new_messages_str_not_subscribed(chat_manager: ChatManager):

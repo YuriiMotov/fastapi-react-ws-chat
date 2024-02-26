@@ -2,6 +2,7 @@ import asyncio
 import uuid
 
 from fastapi import WebSocket
+from pydantic import TypeAdapter
 
 from backend.schemas.client_packet import (
     ClientPacket,
@@ -10,6 +11,7 @@ from backend.schemas.client_packet import (
     CMDGetMessages,
     CMDSendMessage,
 )
+from backend.schemas.event import AnyEvent
 from backend.schemas.server_packet import (
     ServerPacket,
     ServerPacketData,
@@ -91,7 +93,10 @@ async def send_events_to_ws_client(
         )
         if not events:
             break
+        event_adapter: TypeAdapter[AnyEvent] = TypeAdapter(AnyEvent)
+        events_validated = [event_adapter.validate_json(event) for event in events]
+
         srv_packet = ServerPacket(
-            request_packet_id=None, data=SrvEventList(events=events)
+            request_packet_id=None, data=SrvEventList(events=events_validated)
         )
         await websocket.send_text(srv_packet.model_dump_json())

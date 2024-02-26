@@ -9,10 +9,7 @@ from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.chat_message import (
-    ChatUserMessageCreateSchema,
-    ChatUserMessageSchema,
-)
+from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     MessageBrokerError,
@@ -87,15 +84,14 @@ async def test_send_message_success_added_to_message_queue(
 
     # Call chat_manager.send_message()
     message = ChatUserMessageCreateSchema(
-        chat_id=chat_id, text="my message", sender_id=user_id
+        chat_id=chat_id, text=f"message {uuid.uuid4()}", sender_id=user_id
     )
     await chat_manager.send_message(current_user_id=user_id, message=message)
 
     # Check that other_user receives message via message broker
-    messages = await chat_manager.message_broker.get_messages(user_id=other_user_id)
-    assert len(messages) == 1
-    user_message = ChatUserMessageSchema.model_validate_json(messages[0])
-    assert user_message.text == message.text
+    events = await chat_manager.message_broker.get_messages(user_id=other_user_id)
+    assert len(events) == 1
+    assert message.text in events[0]
 
 
 async def test_send_message_wrong_sender(

@@ -20,12 +20,6 @@ class ChatMessagePersistedSchema(BaseSchema):
     dt: datetime
 
 
-ChatMessageAny: TypeAlias = Union["ChatUserMessageSchema", "ChatNotificationSchema"]
-AnnotatedChatMessageAny: TypeAlias = Annotated[
-    ChatMessageAny, Field(discriminator="is_notification")
-]
-
-
 # User message
 
 
@@ -64,3 +58,11 @@ class ChatNotificationSchema(ChatNotificationCreateSchema, ChatMessagePersistedS
     """
 
     pass
+
+
+# Discriminated union type
+
+ChatMessageAny: TypeAlias = Union[ChatUserMessageSchema, ChatNotificationSchema]
+AnnotatedChatMessageAny: TypeAlias = Annotated[
+    ChatMessageAny, Field(discriminator="is_notification")
+]

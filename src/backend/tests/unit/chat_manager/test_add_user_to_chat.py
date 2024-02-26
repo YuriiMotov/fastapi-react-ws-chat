@@ -9,7 +9,6 @@ from backend.models.chat import Chat
 from backend.models.chat_message import ChatNotification
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.chat_message import ChatNotificationSchema
 from backend.services.chat_manager.chat_manager import (
     USER_JOINED_CHAT_NOTIFICATION,
     ChatManager,
@@ -124,13 +123,11 @@ async def test_add_user_to_chat_notification_posted_to_mb(
     )
 
     # Check that notification message was posted
-    chat_messages = await chat_manager.message_broker.get_messages(
-        user_id=other_user_id
-    )
-    assert len(chat_messages) == 1
-    notification = ChatNotificationSchema.model_validate_json(chat_messages[0])
-    assert notification.text == USER_JOINED_CHAT_NOTIFICATION
-    assert notification.params == str(user_id)
+    events = await chat_manager.message_broker.get_messages(user_id=other_user_id)
+    assert len(events) == 1
+    event_json = events[0]
+    assert USER_JOINED_CHAT_NOTIFICATION in event_json
+    assert str(user_id) in event_json
 
 
 async def test_add_user_to_chat_wrong_chat_id(
