@@ -12,6 +12,7 @@ ServerPacketData: TypeAlias = Union[
     "SrvRespSucessNoBody",
     "SrvRespGetJoinedChatList",
     "SrvRespGetMessages",
+    "SrvEventList",
 ]
 
 
@@ -73,3 +74,11 @@ class SrvRespGetMessages(SrvRespSuccess):
 
     packet_type: Literal["RespGetMessages"] = "RespGetMessages"
     messages: list[str]
+
+
+# Events
+
+
+class SrvEventList(BaseSchema):
+    packet_type: Literal["SrvEventList"] = "SrvEventList"
+    events: list[str]

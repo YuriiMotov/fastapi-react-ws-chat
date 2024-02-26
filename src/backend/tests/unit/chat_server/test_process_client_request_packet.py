@@ -14,10 +14,10 @@ from backend.schemas.chat_message import (
     ChatUserMessageSchema,
 )
 from backend.services.chat_manager.chat_manager import ChatManager
-from backend.services.chat_server import process_client_request_packet
+from backend.services.ws_chat_server import _process_ws_client_request_packet
 
 
-async def test_process_client_request_get_joined_chats(
+async def test_process_ws_client_request_get_joined_chats(
     chat_manager: ChatManager, async_session: AsyncSession
 ):
     user_id = uuid.uuid4()
@@ -35,7 +35,7 @@ async def test_process_client_request_get_joined_chats(
         data=cli_p.CMDGetJoinedChats(),
     )
 
-    response = await process_client_request_packet(
+    response = await _process_ws_client_request_packet(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
@@ -46,7 +46,7 @@ async def test_process_client_request_get_joined_chats(
             assert chat.id in chat_ids
 
 
-async def test_process_client_request_add_user_to_chat(
+async def test_process_ws_client_request_add_user_to_chat(
     chat_manager: ChatManager, async_session: AsyncSession
 ):
 
@@ -62,7 +62,7 @@ async def test_process_client_request_add_user_to_chat(
         data=cli_p.CMDAddUserToChat(chat_id=chat_id, user_id=user_id),
     )
 
-    response = await process_client_request_packet(
+    response = await _process_ws_client_request_packet(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
@@ -76,7 +76,7 @@ async def test_process_client_request_add_user_to_chat(
     assert isinstance(user_chat_link, UserChatLink)
 
 
-async def test_process_client_request_get_messages(
+async def test_process_ws_client_request_get_messages(
     chat_manager: ChatManager, async_session: AsyncSession
 ):
 
@@ -101,7 +101,7 @@ async def test_process_client_request_get_messages(
         id=random.randint(1, 10000), data=cli_p.CMDGetMessages(chat_id=chat_id)
     )
 
-    response = await process_client_request_packet(
+    response = await _process_ws_client_request_packet(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
@@ -115,7 +115,7 @@ async def test_process_client_request_get_messages(
         assert resp_msg_obj.text in expected_message_texts
 
 
-async def test_process_client_request_send_message(
+async def test_process_ws_client_request_send_message(
     chat_manager: ChatManager, async_session: AsyncSession
 ):
     user_id = uuid.uuid4()
@@ -133,7 +133,7 @@ async def test_process_client_request_send_message(
         id=random.randint(1, 10000), data=cli_p.CMDSendMessage(message=message)
     )
 
-    response = await process_client_request_packet(
+    response = await _process_ws_client_request_packet(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 

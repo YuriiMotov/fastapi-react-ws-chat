@@ -23,6 +23,7 @@ from backend.schemas.client_packet import (
 )
 from backend.schemas.server_packet import (
     ServerPacket,
+    SrvEventList,
     SrvRespError,
     SrvRespGetJoinedChatList,
     SrvRespGetMessages,
@@ -47,10 +48,12 @@ async def test_ws_chat_connect(client: TestClient):
         await asleep(0.1)
 
 
-async def test_ws_chat_subscribe_on_connect(client: TestClient):
+async def test_ws_chat_subscribe_on_connect(
+    client: TestClient, message_broker: InMemoryMessageBroker
+):
     user_id = uuid.uuid4()
     websocket: WebSocketTestSession
-    mocked_subscribe = AsyncMock()
+    mocked_subscribe = AsyncMock(wraps=message_broker.subscribe_list)
     with patch.object(InMemoryMessageBroker, "subscribe_list", new=mocked_subscribe):
         with client.websocket_connect(
             f"/ws/chat?user_id={user_id}"
@@ -420,3 +423,62 @@ def test_ws_chat_get_messages__error(client: TestClient):
             if isinstance(srv_packet.data, SrvRespError):
                 assert srv_packet.data.error_data.error_code == raise_error.error_code
                 assert srv_packet.data.error_data.detail == raise_error.detail
+
+
+# ---------------------------------------------------------------------------------
+# Test receiving events
+
+
+async def test_ws_chat_receive_events__user_message(
+    client: TestClient, async_session: AsyncSession
+):
+    # Add user1 and user2 to chat
+    owner_id = uuid.uuid4()
+    user1_id = uuid.uuid4()
+    user2_id = uuid.uuid4()
+    chat_id = uuid.uuid4()
+    async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
+    async_session.add(UserChatLink(chat_id=chat_id, user_id=user1_id))
+    async_session.add(UserChatLink(chat_id=chat_id, user_id=user2_id))
+    await async_session.commit()
+
+    # Send message from user1 to chat. Check that both users receive message
+    message = ChatUserMessageCreateSchema(
+        chat_id=chat_id, text=f"my message {uuid.uuid4()}", sender_id=user1_id
+    )
+    cmd = CMDSendMessage(message=message)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    user1_websocket: WebSocketTestSession
+    user2_websocket: WebSocketTestSession
+    with client.websocket_connect(f"/ws/chat?user_id={user1_id}") as user1_websocket:
+        with client.websocket_connect(
+            f"/ws/chat?user_id={user2_id}"
+        ) as user2_websocket:
+            user1_websocket.send_text(client_packet.model_dump_json())
+            resp_str = user1_websocket.receive_text()
+            srv_packet = ServerPacket.model_validate_json(resp_str)
+            assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # Msg was sent
+
+            await asleep(0.1)
+
+            # Receive user1's events
+            resp_str = user1_websocket.receive_text()
+            srv_packet = ServerPacket.model_validate_json(resp_str)
+            assert isinstance(srv_packet.data, SrvEventList)
+            if isinstance(srv_packet.data, SrvEventList):
+                assert len(srv_packet.data.events) == 1
+                received_msg = ChatUserMessageSchema.model_validate_json(
+                    srv_packet.data.events[0]
+                )
+                assert received_msg.text == message.text
+
+            # Receive user2's events
+            resp_str = user2_websocket.receive_text()
+            srv_packet = ServerPacket.model_validate_json(resp_str)
+            assert isinstance(srv_packet.data, SrvEventList)
+            if isinstance(srv_packet.data, SrvEventList):
+                assert len(srv_packet.data.events) == 1
+                received_msg = ChatUserMessageSchema.model_validate_json(
+                    srv_packet.data.events[0]
+                )
+                assert received_msg.text == message.text

@@ -1,12 +1,10 @@
-import asyncio
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend.dependencies import chat_manager_dep, get_current_user
-from backend.schemas.client_packet import ClientPacket
-from backend.services import chat_server
+from backend.services import ws_chat_server
 from backend.services.chat_manager.chat_manager import ChatManager
 
 ws_chat_router = APIRouter(prefix="/ws", tags=["websocket"])
@@ -23,21 +21,18 @@ async def ws_chat(
     try:
         while True:
             # Receive packet from websocket and process it
-            try:
-                client_packet_str = await asyncio.wait_for(
-                    websocket.receive_text(), timeout=0.1
-                )
-            except TimeoutError:  # Nothing to recieive
-                pass
-            else:
-                client_packet = ClientPacket.model_validate_json(client_packet_str)
-                server_resp = await chat_server.process_client_request_packet(
-                    chat_manager=chat_manager,
-                    packet=client_packet,
-                    current_user_id=current_user_id,
-                )
-                await websocket.send_text(server_resp.model_dump_json())
+            await ws_chat_server.process_ws_client_packets(
+                chat_manager=chat_manager,
+                current_user_id=current_user_id,
+                websocket=websocket,
+            )
+
             # Check for new events and send via websocket
+            await ws_chat_server.send_events_to_ws_client(
+                chat_manager=chat_manager,
+                current_user_id=current_user_id,
+                websocket=websocket,
+            )
 
     except WebSocketDisconnect:
         await chat_manager.unsubscribe_from_updates(current_user_id=current_user_id)

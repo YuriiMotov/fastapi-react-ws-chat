@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from backend.dependencies import sqla_sessionmaker_dep
+from backend.dependencies import message_broker_dep, sqla_sessionmaker_dep
 from backend.main import app
 from backend.models.base import BaseModel
 from backend.services.chat_manager.chat_manager import ChatManager
@@ -59,14 +59,26 @@ def chat_manager(async_session_maker: async_sessionmaker):
     yield chat_manager
 
 
+@pytest.fixture()
+def message_broker():
+    return InMemoryMessageBroker()
+
+
 @pytest.fixture(name="client")
-def get_test_client(async_session_maker: async_sessionmaker):
+def get_test_client(
+    async_session_maker: async_sessionmaker, message_broker: InMemoryMessageBroker
+):
     def get_sessionmaker():
         return async_session_maker
 
+    def get_message_broker():
+        return message_broker
+
     app.dependency_overrides[sqla_sessionmaker_dep] = get_sessionmaker
+    app.dependency_overrides[message_broker_dep] = get_message_broker
     client = TestClient(app)
 
     yield client
 
     app.dependency_overrides.pop(sqla_sessionmaker_dep)
+    app.dependency_overrides.pop(message_broker_dep)

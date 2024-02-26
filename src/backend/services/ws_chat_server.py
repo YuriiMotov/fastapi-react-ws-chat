@@ -1,4 +1,7 @@
+import asyncio
 import uuid
+
+from fastapi import WebSocket
 
 from backend.schemas.client_packet import (
     ClientPacket,
@@ -10,6 +13,7 @@ from backend.schemas.client_packet import (
 from backend.schemas.server_packet import (
     ServerPacket,
     ServerPacketData,
+    SrvEventList,
     SrvRespError,
     SrvRespGetJoinedChatList,
     SrvRespGetMessages,
@@ -19,7 +23,7 @@ from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import ChatManagerException
 
 
-async def process_client_request_packet(
+async def _process_ws_client_request_packet(
     chat_manager: ChatManager, packet: ClientPacket, current_user_id: uuid.UUID
 ) -> ServerPacket:
 
@@ -56,3 +60,38 @@ async def process_client_request_packet(
         return ServerPacket(request_packet_id=packet.id, data=response_data)
     else:
         raise Exception()
+
+
+async def process_ws_client_packets(
+    chat_manager: ChatManager, current_user_id: uuid.UUID, websocket: WebSocket
+):
+    while True:
+        try:
+            client_packet_str = await asyncio.wait_for(
+                websocket.receive_text(), timeout=0.1
+            )
+        except TimeoutError:  # Nothing to recieive
+            break
+        else:
+            client_packet = ClientPacket.model_validate_json(client_packet_str)
+            server_resp = await _process_ws_client_request_packet(
+                chat_manager=chat_manager,
+                packet=client_packet,
+                current_user_id=current_user_id,
+            )
+            await websocket.send_text(server_resp.model_dump_json())
+
+
+async def send_events_to_ws_client(
+    chat_manager: ChatManager, current_user_id: uuid.UUID, websocket: WebSocket
+):
+    while True:
+        events = await chat_manager.get_new_messages_str(
+            current_user_id=current_user_id, limit=1
+        )
+        if not events:
+            break
+        srv_packet = ServerPacket(
+            request_packet_id=None, data=SrvEventList(events=events)
+        )
+        await websocket.send_text(srv_packet.model_dump_json())
