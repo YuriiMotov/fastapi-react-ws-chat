@@ -130,37 +130,74 @@ class EventBrokerTestBase:
         assert len(events_res) == len(events)
         assert events_res == events
 
-    # async def test_get_events_several_channels_fifo(self):
-    #     """
-    #     get_events() method returns events from user's queue.
+    async def test_get_events__several_channels_fifo(self):
+        """
+        get_events() method returns events from user's queue.
 
-    #     User subscribed to several channels and events were posted to different
-    #     channels
-    #     """
-    #     user_id = uuid.uuid4()
-    #     channel_1 = channel_code("chat", uuid.uuid4())
-    #     channel_2 = channel_code("chat", uuid.uuid4())
-    #     channel_3 = channel_code("chat", uuid.uuid4())
-    #     event_1 = "my event 1"
-    #     event_2 = "my event 2"
-    #     event_3 = "my event 3"
+        User subscribed to several channels and events were posted to different
+        channels
+        """
+        user_1_event_broker = await self._create_event_broker()
+        user_id = uuid.uuid4()
+        channel_1 = channel_code("chat", uuid.uuid4())
+        channel_2 = channel_code("chat", uuid.uuid4())
+        channel_3 = channel_code("chat", uuid.uuid4())
+        event_1 = "my event 1"
+        event_2 = "my event 2"
+        event_3 = "my event 3"
 
-    #     # Subscribe user to channels 1 and 2. Don't subscribe them to channel 3!
-    #     await self.event_broker.subscribe_list(
-    #         channels=[channel_1, channel_2], user_id=user_id
-    #     )
+        # Subscribe user to channels 1 and 2. Don't subscribe them to channel 3!
+        await user_1_event_broker.subscribe_list(
+            channels=[channel_1, channel_2], user_id=user_id
+        )
 
-    #     # Post event to all 3 channels
-    #     await self.event_broker.post_event(channel=channel_1, event=event_1)
-    #     await self.event_broker.post_event(channel=channel_2, event=event_2)
-    #     await self.event_broker.post_event(channel=channel_3, event=event_3)
+        # Post event to all 3 channels
+        await self._post_message(routing_key=channel_1, message=event_1)
+        await self._post_message(routing_key=channel_2, message=event_2)
+        await self._post_message(routing_key=channel_3, message=event_3)
 
-    #     # Check that get_events() returns all events from channels
-    #     # user subscribed to
-    #     events = await self.event_broker.get_events(user_id)
-    #     assert len(events) == 2
-    #     assert events[0] == event_1
-    #     assert events[1] == event_2
+        # Check that get_events() returns all events from channels
+        # user subscribed to
+        events = await user_1_event_broker.get_events(user_id)
+        assert len(events) == 2
+        assert events[0] == event_1
+        assert events[1] == event_2
+
+    async def test_post_event__several_subscribers(self):
+        """
+        post_event() method posts message to subscribed user's queue
+        """
+        event = "my event"
+        user_1_event_broker = await self._create_event_broker()
+        user_2_event_broker = await self._create_event_broker()
+        user_3_event_broker = await self._create_event_broker()
+        user_id_1 = uuid.uuid4()
+        user_id_2 = uuid.uuid4()
+        user_id_3 = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+        another_channel = channel_code("chat", uuid.uuid4())
+
+        # Subscribe user_1 and user_2 to the channel. Don't subscribe user_3!
+        await user_1_event_broker.subscribe(channel=channel, user_id=user_id_1)
+        await user_2_event_broker.subscribe(channel=channel, user_id=user_id_2)
+
+        # Subscribe user_3 to another channel
+        await user_3_event_broker.subscribe(channel=another_channel, user_id=user_id_3)
+
+        # Post event to the channel
+        await user_1_event_broker.post_event(channel=channel, event=event)
+
+        # Check that get_events() returns posted event for user_1 and user_2
+        events_res_1 = await user_1_event_broker.get_events(user_id_1)
+        assert len(events_res_1) == 1
+        assert events_res_1[0] == event
+        events_res_2 = await user_2_event_broker.get_events(user_id_2)
+        assert len(events_res_2) == 1
+        assert events_res_2[0] == event
+
+        # Check that get_event() returns empty list for user_3
+        events_res_3 = await user_3_event_broker.get_events(user_id_3)
+        assert len(events_res_3) == 0
 
     # Methods below should be implemented in the descendant class
 
