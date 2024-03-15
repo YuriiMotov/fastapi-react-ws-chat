@@ -52,12 +52,13 @@ class RabbitEventBroker(AbstractEventBroker):
     async def get_events(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
         assert self._initialized, "supposed that subscribe* is called first"
         events: list[str] = []
-        async with self._queue.iterator() as queue_iter:
-            async for message in queue_iter:
-                async with message.process():
-                    events.append(str(message.body))
-                    if limit and (len(events) >= limit):
-                        break
+        count = limit if (limit > -1) else 1_000_000
+        for _ in range(count):
+            message = await self._queue.get(fail=False)
+            if message:
+                events.append(message.body.decode())
+            else:
+                break
         return events
 
     async def post_event(self, channel: str, event: str):

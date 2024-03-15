@@ -1,14 +1,11 @@
-import uuid
-from typing import cast
-
 import aio_pika
 import pytest
 
+from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
 from backend.services.event_broker.rabbit_event_broker import RabbitEventBroker
 from backend.tests.unit.event_broker.event_broker_test_base import EventBrokerTestBase
 
 
-@pytest.mark.xfail
 class TestRabbitEventBroker(EventBrokerTestBase):
     """
     Test class for RabbitEventBroker
@@ -18,14 +15,19 @@ class TestRabbitEventBroker(EventBrokerTestBase):
     """
 
     @pytest.fixture(autouse=True)
-    async def _create_event_broker(self):
-        connection = await aio_pika.connect_robust("amqp://guest:guest@127.0.0.1/")
-        self.event_broker = RabbitEventBroker(connection=connection)
+    async def _init(self):
+        self._connection = await aio_pika.connect_robust(
+            "amqp://guest:guest@127.0.0.1/"
+        )
+        self._channel = await self._connection.channel()
+        self._exchange = await self._channel.declare_exchange(
+            "direct", auto_delete=True
+        )
+        yield
+        await self._connection.close()
 
-    async def _check_subscribed(self, user_id: uuid.UUID, channel: str) -> bool:
-        # event_broker = cast(RabbitEventBroker, self.event_broker)
-        return True
+    async def _create_event_broker(self) -> AbstractEventBroker:
+        return RabbitEventBroker(connection=self._connection)
 
-    async def _get_events(self, user_id: uuid.UUID) -> list[str]:
-        event_broker = cast(RabbitEventBroker, self.event_broker)
-        return list(await event_broker.get_events(user_id=user_id))
+    async def _post_message(self, routing_key: str, message: str):
+        await self._exchange.publish(aio_pika.Message(message.encode()), routing_key)
