@@ -36,6 +36,8 @@ class InMemoryEventBroker(AbstractEventBroker):
                 channel_subscribers.remove(user_id_str)
         if user_id_str in self._subscribers:
             self._subscribers.remove(user_id_str)
+        if user_id_str in self._event_queue:
+            self._event_queue.pop(user_id_str)
 
     async def get_events(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
         user_id_str = str(user_id)
