@@ -185,7 +185,9 @@ class EventBrokerTestBase:
         await user_3_event_broker.subscribe(channel=another_channel, user_id=user_id_3)
 
         # Post event to the channel
-        await user_1_event_broker.post_event(channel=channel, event=event)
+        await user_1_event_broker.post_event(
+            channel=channel, user_id=user_id_1, event=event
+        )
 
         # Check that get_events() returns posted event for user_1 and user_2
         events_res_1 = await user_1_event_broker.get_events(user_id_1)

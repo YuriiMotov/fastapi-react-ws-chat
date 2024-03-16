@@ -23,11 +23,12 @@ class TestRabbitEventBroker(EventBrokerTestBase):
         self._exchange = await self._channel.declare_exchange(
             "direct", auto_delete=True
         )
+        self._event_broker = RabbitEventBroker(connection=self._connection)
         yield
         await self._connection.close()
 
     async def _create_event_broker(self) -> AbstractEventBroker:
-        return RabbitEventBroker(connection=self._connection)
+        return self._event_broker
 
     async def _post_message(self, routing_key: str, message: str):
         await self._exchange.publish(aio_pika.Message(message.encode()), routing_key)

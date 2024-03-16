@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 
 from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
@@ -21,4 +23,6 @@ class TestInMemoryEventBroker(EventBrokerTestBase):
         return self._event_broker
 
     async def _post_message(self, routing_key: str, message: str):
-        await self._event_broker.post_event(channel=routing_key, event=message)
+        await self._event_broker.post_event(
+            channel=routing_key, user_id=uuid.uuid4(), event=message
+        )

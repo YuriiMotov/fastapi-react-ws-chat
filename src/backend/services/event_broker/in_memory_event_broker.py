@@ -48,7 +48,7 @@ class InMemoryEventBroker(AbstractEventBroker):
             limit = len(events)
         return [events.popleft() for _ in range(min(len(events), limit))]
 
-    async def post_event(self, channel: str, event: str):
+    async def post_event(self, channel: str, user_id: uuid.UUID, event: str):
         channel_subscribers = self._subscribtions[channel]
         for user_id_str in channel_subscribers:
             self._event_queue[user_id_str].append(event)
