@@ -31,7 +31,6 @@ class InMemoryEventBroker(AbstractEventBroker):
 
     async def subscribe_list(self, channels: list[str], user_id: uuid.UUID):
         cls = InMemoryEventBroker
-
         user_id_str = str(user_id)
         for channel in channels:
             cls._subscribtions[channel].add(user_id_str)
@@ -39,7 +38,6 @@ class InMemoryEventBroker(AbstractEventBroker):
 
     async def unsubscribe(self, user_id: uuid.UUID):
         cls = InMemoryEventBroker
-
         user_id_str = str(user_id)
         for channel_subscribers in cls._subscribtions.values():
             if user_id_str in channel_subscribers:
@@ -51,7 +49,6 @@ class InMemoryEventBroker(AbstractEventBroker):
 
     async def get_events(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
         cls = InMemoryEventBroker
-
         user_id_str = str(user_id)
         if user_id_str not in cls._subscribers:
             raise EventBrokerUserNotSubscribedError()
@@ -62,7 +59,6 @@ class InMemoryEventBroker(AbstractEventBroker):
 
     async def post_event(self, channel: str, user_id: uuid.UUID, event: str):
         cls = InMemoryEventBroker
-
         channel_subscribers = cls._subscribtions[channel]
         for user_id_str in channel_subscribers:
             cls._event_queue[user_id_str].append(event)
