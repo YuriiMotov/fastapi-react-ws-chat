@@ -14,6 +14,7 @@ class EventBrokerTestBase:
     """
 
     event_broker: AbstractEventBroker
+    event_broker_instance_2: AbstractEventBroker
 
     async def test_get_events__subscribe_post_receive__success(self):
         """
@@ -193,6 +194,35 @@ class EventBrokerTestBase:
         # Check that get_event() returns empty list for user_3
         events_res_3 = await self.event_broker.get_events(user_id_3)
         assert len(events_res_3) == 0
+
+    async def test_different_instances_work_together(self):
+        """
+        Post the event using instance #1 of EventBroker, and receive that event using
+        instance #2
+        """
+        event = "my event"
+        user_id_1 = uuid.uuid4()
+        user_id_2 = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        # Subscribe user_1 and user_2 to the channel.
+        # user_1 uses instance #1, user_2 uses instance #2 of EventBroker
+        await self.event_broker.subscribe(channel=channel, user_id=user_id_1)
+        await self.event_broker_instance_2.subscribe(channel=channel, user_id=user_id_2)
+
+        # Post event to the channel using instance #1 of EventBroker
+        await self.event_broker.post_event(
+            channel=channel, user_id=user_id_1, event=event
+        )
+
+        # Check that get_events() returns posted event for user_1 (instance #1 of
+        # EventBroker) and user_2 (instance #2 of EventBroker)
+        events_res_1 = await self.event_broker.get_events(user_id_1)
+        assert len(events_res_1) == 1
+        assert events_res_1[0] == event
+        events_res_2 = await self.event_broker_instance_2.get_events(user_id_2)
+        assert len(events_res_2) == 1
+        assert events_res_2[0] == event
 
     # Methods below should be implemented in the descendant class
 

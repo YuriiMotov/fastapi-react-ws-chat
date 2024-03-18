@@ -23,8 +23,14 @@ class TestRabbitEventBroker(EventBrokerTestBase):
             "direct", auto_delete=True
         )
         self.event_broker = RabbitEventBroker(connection=self._connection)
+        self._connection_2 = await aio_pika.connect_robust(
+            "amqp://guest:guest@127.0.0.1/"
+        )
+        self.event_broker_instance_2 = RabbitEventBroker(connection=self._connection_2)
+
         yield
         await self._connection.close()
+        await self._connection_2.close()
 
     async def _post_message(self, routing_key: str, message: str):
         await self._exchange.publish(aio_pika.Message(message.encode()), routing_key)

@@ -17,6 +17,7 @@ class TestInMemoryEventBroker(EventBrokerTestBase):
     @pytest.fixture(autouse=True)
     def _init(self):
         self.event_broker = InMemoryEventBroker()
+        self.event_broker_instance_2 = InMemoryEventBroker()
 
     async def _post_message(self, routing_key: str, message: str):
         await self.event_broker.post_event(
