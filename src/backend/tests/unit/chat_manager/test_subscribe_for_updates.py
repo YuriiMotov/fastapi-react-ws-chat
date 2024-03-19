@@ -21,15 +21,17 @@ from backend.services.event_broker.in_memory_event_broker import InMemoryEventBr
 
 
 async def test_subscribe_for_updates(
-    chat_manager: ChatManager, async_session: AsyncSession
+    chat_manager: ChatManager,
+    async_session: AsyncSession,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
     """
     subscribe_for_updates() subscribes user to events in all their chats
     """
     # Create user, chats and add user to these chats
-    user_id = uuid.uuid4()
+    user_id = event_broker_user_id_list[0]
     async_session.add(User(id=user_id, name="User"))
-    chat_owner_id = uuid.uuid4()
+    chat_owner_id = event_broker_user_id_list[1]
     chat_id_list = [uuid.uuid4() for _ in range(3)]
     objects: list[Any] = []
     for chat_id in chat_id_list:

@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -22,8 +22,16 @@ def uow_dep(
     return SQLAlchemyUnitOfWork(async_session_maker=async_session_maker)
 
 
-def event_broker_dep() -> AbstractEventBroker:
-    return InMemoryEventBroker()
+def get_current_user(user_id: uuid.UUID):
+    return user_id
+
+
+async def event_broker_dep(
+    current_user: Annotated[uuid.UUID, Depends(get_current_user)]
+) -> AsyncGenerator[AbstractEventBroker, None]:
+    event_broker = InMemoryEventBroker()
+    async with event_broker.session(current_user):
+        yield event_broker
 
 
 def chat_manager_dep(
@@ -31,7 +39,3 @@ def chat_manager_dep(
     event_broker: Annotated[AbstractEventBroker, Depends(event_broker_dep)],
 ) -> ChatManager:
     return ChatManager(uow=uow, event_broker=event_broker)
-
-
-def get_current_user(user_id: uuid.UUID):
-    return user_id

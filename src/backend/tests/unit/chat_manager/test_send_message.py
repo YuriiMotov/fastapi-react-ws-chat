@@ -24,14 +24,16 @@ from backend.services.event_broker.in_memory_event_broker import InMemoryEventBr
 
 
 async def test_send_message_success(
-    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+    async_session_maker: async_sessionmaker,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
     """
     Successful execution of send_message() creates a ChatUserMessage
     record in the DB.
     """
     # Create User, Chat, UserChatLink
-    user_id = uuid.uuid4()
+    user_id = event_broker_user_id_list[0]
     chat_id = uuid.uuid4()
     session: AsyncSession
     async with async_session_maker() as session:
@@ -58,14 +60,16 @@ async def test_send_message_success(
 
 
 async def test_send_message_success_added_to_event_broker_queue(
-    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+    async_session_maker: async_sessionmaker,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
     """
     Successful execution of send_message() adds an event to the Event broker's queue
     """
     # Create User, Chat, UserChatLink
-    user_id = uuid.uuid4()
-    other_user_id = uuid.uuid4()
+    user_id = event_broker_user_id_list[0]
+    other_user_id = event_broker_user_id_list[1]
     chat_id = uuid.uuid4()
     session: AsyncSession
     async with async_session_maker() as session:

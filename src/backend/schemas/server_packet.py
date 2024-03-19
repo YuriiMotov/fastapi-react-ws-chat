@@ -3,7 +3,7 @@ from typing import Literal, TypeAlias, Union
 from pydantic import Field
 
 from backend.schemas.chat import ChatExtSchema
-from backend.schemas.event import AnyEvent
+from backend.schemas.event import AnyEventDiscr
 from backend.services.chat_manager.chat_manager_exc import ChatManagerException
 
 from .base import BaseSchema
@@ -82,4 +82,4 @@ class SrvRespGetMessages(SrvRespSuccess):
 
 class SrvEventList(BaseSchema):
     packet_type: Literal["SrvEventList"] = "SrvEventList"
-    events: list[AnyEvent]
+    events: list[AnyEventDiscr]

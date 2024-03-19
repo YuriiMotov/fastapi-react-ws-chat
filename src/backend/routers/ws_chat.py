@@ -35,4 +35,4 @@ async def ws_chat(
             )
 
     except WebSocketDisconnect:
-        await chat_manager.unsubscribe_from_updates(current_user_id=current_user_id)
+        pass

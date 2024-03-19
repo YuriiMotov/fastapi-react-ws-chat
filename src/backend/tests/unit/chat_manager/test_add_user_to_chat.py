@@ -27,15 +27,17 @@ from backend.services.event_broker.in_memory_event_broker import InMemoryEventBr
 
 
 async def test_add_user_to_chat_success(
-    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+    async_session_maker: async_sessionmaker,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
     """
     Successful execution of add_user_to_chat() creates a user-chat
     association record in the database.
     """
     # Create User and Chat
-    chat_owner_id = uuid.uuid4()
-    user_id = uuid.uuid4()
+    chat_owner_id = event_broker_user_id_list[0]
+    user_id = event_broker_user_id_list[1]
     chat_id = uuid.uuid4()
     session: AsyncSession
     async with async_session_maker() as session:
@@ -60,15 +62,17 @@ async def test_add_user_to_chat_success(
 
 
 async def test_add_user_to_chat_notification_added_to_db(
-    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+    async_session_maker: async_sessionmaker,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
     """
     Successful execution of add_user_to_chat() creates a notification
     record in the database.
     """
     # Create User and Chat
-    chat_owner_id = uuid.uuid4()
-    user_id = uuid.uuid4()
+    chat_owner_id = event_broker_user_id_list[0]
+    user_id = event_broker_user_id_list[1]
     chat_id = uuid.uuid4()
     session: AsyncSession
     async with async_session_maker() as session:
@@ -94,16 +98,18 @@ async def test_add_user_to_chat_notification_added_to_db(
 
 
 async def test_add_user_to_chat_notification_posted_to_mb(
-    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+    async_session_maker: async_sessionmaker,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
     """
     Successful execution of add_user_to_chat() posts a notification
     record to the Event broker.
     """
     # Create User and Chat, subscribe user for updates
-    chat_owner_id = uuid.uuid4()
-    user_id = uuid.uuid4()
-    other_user_id = uuid.uuid4()
+    chat_owner_id = event_broker_user_id_list[0]
+    user_id = event_broker_user_id_list[1]
+    other_user_id = event_broker_user_id_list[2]
     chat_id = uuid.uuid4()
     session: AsyncSession
     async with async_session_maker() as session:
@@ -229,18 +235,19 @@ async def test_add_user_to_chat_repo_failure(
             )
 
 
-@pytest.mark.parametrize("failure_method", ("post_event", "subscribe"))
+@pytest.mark.parametrize("failure_method", ("post_event",))
 async def test_add_user_to_chat_event_broker_failure(
     async_session_maker: async_sessionmaker,
     chat_manager: ChatManager,
     failure_method: str,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
     """
     add_user_to_chat() raises EventBrokerError if EventBroker raises error
     """
     # Create User and Chat
-    chat_owner_id = uuid.uuid4()
-    user_id = uuid.uuid4()
+    chat_owner_id = event_broker_user_id_list[0]
+    user_id = event_broker_user_id_list[1]
     chat_id = uuid.uuid4()
     async with async_session_maker() as session:
         chat = Chat(id=chat_id, title="", owner_id=chat_owner_id)

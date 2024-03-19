@@ -47,10 +47,12 @@ async def test_process_ws_client_request_get_joined_chats(
 
 
 async def test_process_ws_client_request_add_user_to_chat(
-    chat_manager: ChatManager, async_session: AsyncSession
+    chat_manager: ChatManager,
+    async_session: AsyncSession,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
 
-    user_id = uuid.uuid4()
+    user_id = event_broker_user_id_list[0]
     chat_id = uuid.uuid4()
     current_user_id = user_id
 
@@ -116,9 +118,11 @@ async def test_process_ws_client_request_get_messages(
 
 
 async def test_process_ws_client_request_send_message(
-    chat_manager: ChatManager, async_session: AsyncSession
+    chat_manager: ChatManager,
+    async_session: AsyncSession,
+    event_broker_user_id_list: list[uuid.UUID],
 ):
-    user_id = uuid.uuid4()
+    user_id = event_broker_user_id_list[0]
     chat_id = uuid.uuid4()
     current_user_id = user_id
 

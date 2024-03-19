@@ -11,7 +11,7 @@ from backend.schemas.client_packet import (
     CMDGetMessages,
     CMDSendMessage,
 )
-from backend.schemas.event import AnyEvent
+from backend.schemas.event import AnyEvent, AnyEventDiscr
 from backend.schemas.server_packet import (
     ServerPacket,
     ServerPacketData,
@@ -93,7 +93,9 @@ async def send_events_to_ws_client(
         )
         if not events:
             break
-        event_adapter: TypeAdapter[AnyEvent] = TypeAdapter(AnyEvent)
+        event_adapter: TypeAdapter[AnyEvent] = TypeAdapter(
+            AnyEventDiscr  # type: ignore[arg-type]
+        )
         events_validated = [event_adapter.validate_json(event) for event in events]
 
         srv_packet = ServerPacket(

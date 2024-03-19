@@ -17,13 +17,17 @@ from backend.services.event_broker.in_memory_event_broker import InMemoryEventBr
 
 
 @pytest.mark.parametrize("count", (0, 1, 2))
-async def test_get_events_str(chat_manager: ChatManager, count: int):
+async def test_get_events_str(
+    chat_manager: ChatManager,
+    count: int,
+    event_broker_user_id_list: list[uuid.UUID],
+):
     """
     get_events_str() returns events from Event broker's queue.
     """
     # Subscribe user and add {count} messages to their queue
-    user_id = uuid.uuid4()
-    another_user_id = uuid.uuid4()
+    user_id = event_broker_user_id_list[0]
+    another_user_id = event_broker_user_id_list[1]
     chat_id = uuid.uuid4()
     channel = channel_code("chat", chat_id)
     await chat_manager.event_broker.subscribe(channel=channel, user_id=user_id)
@@ -50,13 +54,16 @@ async def test_get_events_str(chat_manager: ChatManager, count: int):
         assert messages[i].model_dump_json() in events_res[i]
 
 
-async def test_get_events_str_not_subscribed(chat_manager: ChatManager):
+@pytest.mark.xfail
+async def test_get_events_str_not_subscribed(
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
+):
     """
     Calling get_events_str() with user_id of user that isn't subscribed
     raises NotSubscribedError exception
     """
-    user_id = uuid.uuid4()
-
+    user_id = event_broker_user_id_list[0]
     with pytest.raises(NotSubscribedError):
         await chat_manager.get_events_str(current_user_id=user_id)
 

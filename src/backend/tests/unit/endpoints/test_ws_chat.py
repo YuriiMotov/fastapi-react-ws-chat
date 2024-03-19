@@ -21,7 +21,7 @@ from backend.schemas.client_packet import (
     CMDGetMessages,
     CMDSendMessage,
 )
-from backend.schemas.event import ChatMessageEvent
+from backend.schemas.event import ChatMessageEvent, UserAddedToChatNotification
 from backend.schemas.server_packet import (
     ServerPacket,
     SrvEventList,
@@ -35,6 +35,7 @@ from backend.services.chat_manager.chat_manager import (
     ChatManager,
 )
 from backend.services.chat_manager.chat_manager_exc import RepositoryError
+from backend.services.chat_manager.utils import channel_code
 from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 
 # ---------------------------------------------------------------------------------
@@ -43,10 +44,7 @@ from backend.services.event_broker.in_memory_event_broker import InMemoryEventBr
 
 async def test_ws_chat_connect(client: TestClient):
     user_id = uuid.uuid4()
-    websocket: WebSocketTestSession
-    with client.websocket_connect(
-        f"/ws/chat?user_id={user_id}"
-    ) as websocket:  # noqa: F841
+    with client.websocket_connect(f"/ws/chat?user_id={user_id}"):
         await asleep(0.1)
 
 
@@ -54,28 +52,25 @@ async def test_ws_chat_subscribe_on_connect(
     client: TestClient, event_broker: InMemoryEventBroker
 ):
     user_id = uuid.uuid4()
-    websocket: WebSocketTestSession
     mocked_subscribe = AsyncMock(wraps=event_broker.subscribe_list)
     with patch.object(InMemoryEventBroker, "subscribe_list", new=mocked_subscribe):
-        with client.websocket_connect(
-            f"/ws/chat?user_id={user_id}"
-        ) as websocket:  # noqa: F841
+        with client.websocket_connect(f"/ws/chat?user_id={user_id}"):
             await asleep(0.1)
             # Check that chat_manager.event_broker.subscribe_list() was called
-            mocked_subscribe.assert_awaited_with(user_id=user_id, channels=[])
+            mocked_subscribe.assert_awaited_with(
+                user_id=user_id, channels=[channel_code("user", user_id)]
+            )
 
 
-async def test_ws_chat_unsubscribe_on_connection_close(client: TestClient):
+async def test_ws_chat_unsubscribe_on_connection_close(
+    client: TestClient, event_broker: InMemoryEventBroker
+):
     user_id = uuid.uuid4()
-    websocket: WebSocketTestSession
-    mocked_unsubscribe = AsyncMock()
-    with patch.object(InMemoryEventBroker, "unsubscribe", new=mocked_unsubscribe):
-        with client.websocket_connect(
-            f"/ws/chat?user_id={user_id}"
-        ) as websocket:  # noqa: F841
-            await asleep(0.1)
-        # Check that chat_manager.event_broker.unsubscribe() was called
-        mocked_unsubscribe.assert_awaited_with(user_id=user_id)
+    with client.websocket_connect(f"/ws/chat?user_id={user_id}"):
+        await asleep(0.1)
+        assert str(user_id) in event_broker._subscribers
+    # Check that EventBroker's session data was deleted for this call
+    assert str(user_id) not in event_broker._subscribers
 
 
 # ---------------------------------------------------------------------------------
@@ -179,7 +174,7 @@ async def test_ws_chat_add_user_to_chat__success(
         assert isinstance(srv_packet.data, SrvRespSucessNoBody)
 
 
-def test_ws_chat_add_user_to_chat__chat_doesnt_exist_error(client: TestClient):
+async def test_ws_chat_add_user_to_chat__chat_doesnt_exist_error(client: TestClient):
     current_user_id = uuid.uuid4()
     another_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
@@ -486,7 +481,7 @@ async def test_ws_chat_receive_events__user_message(
                     assert event.message.text == message.text
 
 
-async def test_ws_chat_receive_events__user_added_to_chat(
+async def test_ws_chat_receive_events__user_added_to_chat_message(
     client: TestClient, async_session: AsyncSession
 ):
     user1_id = uuid.uuid4()
@@ -518,3 +513,41 @@ async def test_ws_chat_receive_events__user_added_to_chat(
             assert isinstance(event, ChatMessageEvent)
             if isinstance(event, ChatMessageEvent):
                 assert event.message.text == USER_JOINED_CHAT_NOTIFICATION
+
+
+async def test_ws_chat_receive_events__user_added_to_chat_notification(
+    client: TestClient, async_session: AsyncSession
+):
+    user1_id = uuid.uuid4()
+    user2_id = uuid.uuid4()
+    owner_id = user1_id
+    chat_id = uuid.uuid4()
+    async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
+    async_session.add(UserChatLink(chat_id=chat_id, user_id=user1_id))
+    await async_session.commit()
+
+    cmd = CMDAddUserToChat(chat_id=chat_id, user_id=user2_id)
+    client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
+    user1_websocket: WebSocketTestSession
+    user2_websocket: WebSocketTestSession
+    with (
+        client.websocket_connect(f"/ws/chat?user_id={user1_id}") as user1_websocket,
+        client.websocket_connect(f"/ws/chat?user_id={user2_id}") as user2_websocket,
+    ):
+        user1_websocket.send_text(client_packet.model_dump_json())
+        resp_str = user1_websocket.receive_text()
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # User was added
+
+        await asleep(0.1)
+
+        # Receive user2's events
+        resp_str = user2_websocket.receive_text()
+        srv_packet = ServerPacket.model_validate_json(resp_str)
+        assert isinstance(srv_packet.data, SrvEventList)
+        if isinstance(srv_packet.data, SrvEventList):
+            assert len(srv_packet.data.events) == 1
+            event = srv_packet.data.events[0]
+            assert isinstance(event, UserAddedToChatNotification)
+            if isinstance(event, UserAddedToChatNotification):
+                assert event.chat_id == chat_id

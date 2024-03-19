@@ -7,7 +7,7 @@ from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
 )
-from backend.schemas.event import ChatMessageEvent
+from backend.schemas.event import ChatMessageEvent, UserAddedToChatNotification
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
     EventBrokerError,
@@ -60,21 +60,20 @@ class ChatManager:
                     current_user_id
                 )
                 channel_list = [channel_code("chat", chat_id) for chat_id in chat_list]
+            channel_list.append(channel_code("user", current_user_id))
             await self.event_broker.subscribe_list(
                 channels=channel_list, user_id=current_user_id
             )
-            # TODO: subscribe user to other notifications
-            # (new chat, error notification, ..)
 
-    async def unsubscribe_from_updates(self, current_user_id: uuid.UUID):
-        """
-        Unsubscribe user from all events.
+    # async def unsubscribe_from_updates(self, current_user_id: uuid.UUID):
+    #     """
+    #     Unsubscribe user from all events.
 
-        Raises:
-         - EventBrokerError on Event broker failure
-        """
-        with process_exceptions():
-            await self.event_broker.unsubscribe(user_id=current_user_id)
+    #     Raises:
+    #      - EventBrokerError on Event broker failure
+    #     """
+    #     with process_exceptions():
+    #         await self.event_broker.unsubscribe(user_id=current_user_id)
 
     async def get_joined_chat_list(
         self, current_user_id: uuid.UUID
@@ -129,15 +128,19 @@ class ChatManager:
                     notification_create
                 )
                 await self.uow.commit()
-            # Post notification to the Event broker's queue, subscribe to notif-s
-            channel = channel_code("chat", chat_id)
+            # Post notification to the chat's channel and to the user's channel via
+            # Event broker
             # TODO: catch exceptions during post_event() and retry or log
             await self.event_broker.post_event(
-                channel=channel,
+                channel=channel_code("chat", chat_id),
                 user_id=current_user_id,
                 event=ChatMessageEvent(message=notification).model_dump_json(),
             )
-            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+            await self.event_broker.post_event(
+                channel=channel_code("user", user_id),
+                user_id=current_user_id,
+                event=UserAddedToChatNotification(chat_id=chat_id).model_dump_json(),
+            )
 
     async def send_message(
         self, current_user_id: uuid.UUID, message: ChatUserMessageCreateSchema

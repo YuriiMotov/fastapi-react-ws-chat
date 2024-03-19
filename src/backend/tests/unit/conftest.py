@@ -1,6 +1,8 @@
-from typing import AsyncGenerator, Generator
+import uuid
+from typing import Annotated, AsyncGenerator, Generator
 
 import pytest
+from fastapi import Depends
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -9,7 +11,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from backend.dependencies import event_broker_dep, sqla_sessionmaker_dep
+from backend.dependencies import (
+    event_broker_dep,
+    get_current_user,
+    sqla_sessionmaker_dep,
+)
 from backend.main import app
 from backend.models.base import BaseModel
 from backend.services.chat_manager.chat_manager import ChatManager
@@ -49,12 +55,25 @@ async def async_session(
 
 
 @pytest.fixture()
-def chat_manager(async_session_maker: async_sessionmaker):
+def event_broker_user_id_list() -> list[uuid.UUID]:
+    return [uuid.uuid4() for _ in range(3)]
+
+
+@pytest.fixture()
+async def chat_manager(
+    async_session_maker: async_sessionmaker, event_broker_user_id_list: list[uuid.UUID]
+):
+    event_broker = InMemoryEventBroker()
     chat_manager = ChatManager(
         uow=SQLAlchemyUnitOfWork(async_session_maker),
-        event_broker=InMemoryEventBroker(),
+        event_broker=event_broker,
     )
-    yield chat_manager
+    async with (
+        event_broker.session(event_broker_user_id_list[0]),
+        event_broker.session(event_broker_user_id_list[1]),
+        event_broker.session(event_broker_user_id_list[2]),
+    ):
+        yield chat_manager
 
 
 @pytest.fixture()
@@ -69,13 +88,15 @@ def get_test_client(
     def get_sessionmaker():
         return async_session_maker
 
-    def get_event_broker():
-        return event_broker
+    async def get_event_broker(
+        current_user_id: Annotated[uuid.UUID, Depends(get_current_user)]
+    ):
+        async with event_broker.session(current_user_id):
+            yield event_broker
 
     app.dependency_overrides[sqla_sessionmaker_dep] = get_sessionmaker
     app.dependency_overrides[event_broker_dep] = get_event_broker
     client = TestClient(app)
-
     yield client
 
     app.dependency_overrides.pop(sqla_sessionmaker_dep)
