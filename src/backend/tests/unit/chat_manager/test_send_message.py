@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
@@ -24,7 +24,7 @@ from backend.services.event_broker.in_memory_event_broker import InMemoryEventBr
 
 
 async def test_send_message_success(
-    async_session_maker: async_sessionmaker,
+    async_session: AsyncSession,
     chat_manager: ChatManager,
     event_broker_user_id_list: list[uuid.UUID],
 ):
@@ -35,13 +35,11 @@ async def test_send_message_success(
     # Create User, Chat, UserChatLink
     user_id = event_broker_user_id_list[0]
     chat_id = uuid.uuid4()
-    session: AsyncSession
-    async with async_session_maker() as session:
-        chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
-        user = User(id=user_id, name="")
-        user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
-        session.add_all((user, chat, user_chat_link))
-        await session.commit()
+    chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
+    user = User(id=user_id, name="")
+    user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat_link))
+    await async_session.commit()
 
     # Call chat_manager.send_message()
     message = ChatUserMessageCreateSchema(
@@ -50,17 +48,17 @@ async def test_send_message_success(
     await chat_manager.send_message(current_user_id=user_id, message=message)
 
     # Check that ChatUserMessage record was added to the DB
-    async with async_session_maker() as session:
-        res = await session.scalars(
-            select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)
-        )
-        messages = res.all()
+    async_session.expire_all()
+    res = await async_session.scalars(
+        select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)
+    )
+    messages = res.all()
     assert len(messages) == 1
     assert messages[0].text == message.text
 
 
 async def test_send_message_success_added_to_event_broker_queue(
-    async_session_maker: async_sessionmaker,
+    async_session: AsyncSession,
     chat_manager: ChatManager,
     event_broker_user_id_list: list[uuid.UUID],
 ):
@@ -71,13 +69,11 @@ async def test_send_message_success_added_to_event_broker_queue(
     user_id = event_broker_user_id_list[0]
     other_user_id = event_broker_user_id_list[1]
     chat_id = uuid.uuid4()
-    session: AsyncSession
-    async with async_session_maker() as session:
-        chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
-        user = User(id=user_id, name="")
-        user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
-        session.add_all((user, chat, user_chat_link))
-        await session.commit()
+    chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
+    user = User(id=user_id, name="")
+    user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat_link))
+    await async_session.commit()
 
     # Subscribe other_user to channel of the same chat
     await chat_manager.event_broker.subscribe(
@@ -97,7 +93,7 @@ async def test_send_message_success_added_to_event_broker_queue(
 
 
 async def test_send_message_wrong_sender(
-    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+    async_session: AsyncSession, chat_manager: ChatManager
 ):
     """
     Calling send_message() with wrong sender_id raises UnauthorizedAction
@@ -106,13 +102,11 @@ async def test_send_message_wrong_sender(
     user_id = uuid.uuid4()
     wrong_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    session: AsyncSession
-    async with async_session_maker() as session:
-        chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
-        user = User(id=user_id, name="")
-        user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
-        session.add_all((user, chat, user_chat_link))
-        await session.commit()
+    chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
+    user = User(id=user_id, name="")
+    user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat_link))
+    await async_session.commit()
 
     # Call chat_manager.send_message() with wrong sender_id and check that exception
     # is raised
@@ -123,16 +117,16 @@ async def test_send_message_wrong_sender(
         await chat_manager.send_message(current_user_id=user_id, message=message)
 
     # Check that ChatUserMessage wasn't added to the DB
-    async with async_session_maker() as session:
-        res = await session.scalars(
-            select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)
-        )
-        messages = res.all()
+    async_session.expire_all()
+    res = await async_session.scalars(
+        select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)
+    )
+    messages = res.all()
     assert len(messages) == 0
 
 
 async def test_send_message_user_not_a_chat_member(
-    async_session_maker: async_sessionmaker, chat_manager: ChatManager
+    async_session: AsyncSession, chat_manager: ChatManager
 ):
     """
     Calling send_message() with sender_id who is not a chat member
@@ -142,12 +136,10 @@ async def test_send_message_user_not_a_chat_member(
     user_id = uuid.uuid4()
     wrong_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    session: AsyncSession
-    async with async_session_maker() as session:
-        chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
-        user = User(id=user_id, name="")
-        session.add_all((user, chat))
-        await session.commit()
+    chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
+    user = User(id=user_id, name="")
+    async_session.add_all((user, chat))
+    await async_session.commit()
 
     # Call chat_manager.send_message() with user who is not a chat member and check
     # that exception is raised
@@ -158,17 +150,17 @@ async def test_send_message_user_not_a_chat_member(
         await chat_manager.send_message(current_user_id=user_id, message=message)
 
     # Check that ChatUserMessage wasn't added to the DB
-    async with async_session_maker() as session:
-        res = await session.scalars(
-            select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)
-        )
-        messages = res.all()
+    async_session.expire_all()
+    res = await async_session.scalars(
+        select(ChatUserMessage).where(ChatUserMessage.chat_id == chat_id)
+    )
+    messages = res.all()
     assert len(messages) == 0
 
 
 @pytest.mark.parametrize("failure_method", ("add_message",))
 async def test_send_message_repo_failure(
-    async_session_maker: async_sessionmaker,
+    async_session: AsyncSession,
     chat_manager: ChatManager,
     failure_method: str,
 ):
@@ -178,13 +170,11 @@ async def test_send_message_repo_failure(
     # Create User and Chat, add User to Chat
     user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    session: AsyncSession
-    async with async_session_maker() as session:
-        chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
-        user = User(id=user_id, name="")
-        user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
-        session.add_all((user, chat, user_chat_link))
-        await session.commit()
+    chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
+    user = User(id=user_id, name="")
+    user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat_link))
+    await async_session.commit()
     message = ChatUserMessageCreateSchema(
         chat_id=chat_id, text="my message", sender_id=user_id
     )
@@ -203,7 +193,7 @@ async def test_send_message_repo_failure(
 
 @pytest.mark.parametrize("failure_method", ("post_event",))
 async def test_send_message_event_broker_failure(
-    async_session_maker: async_sessionmaker,
+    async_session: AsyncSession,
     chat_manager: ChatManager,
     failure_method: str,
 ):
@@ -213,13 +203,11 @@ async def test_send_message_event_broker_failure(
     # Create User and Chat, add User to Chat
     user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    session: AsyncSession
-    async with async_session_maker() as session:
-        chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
-        user = User(id=user_id, name="")
-        user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
-        session.add_all((user, chat, user_chat_link))
-        await session.commit()
+    chat = Chat(id=chat_id, title="", owner_id=uuid.uuid4())
+    user = User(id=user_id, name="")
+    user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat_link))
+    await async_session.commit()
     message = ChatUserMessageCreateSchema(
         chat_id=chat_id, text="my message", sender_id=user_id
     )
