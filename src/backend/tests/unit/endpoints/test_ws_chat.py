@@ -23,7 +23,6 @@ from backend.schemas.client_packet import (
 )
 from backend.schemas.event import ChatMessageEvent, UserAddedToChatNotification
 from backend.schemas.server_packet import (
-    ServerPacket,
     SrvEventList,
     SrvRespError,
     SrvRespGetJoinedChatList,
@@ -37,6 +36,10 @@ from backend.services.chat_manager.chat_manager import (
 from backend.services.chat_manager.chat_manager_exc import RepositoryError
 from backend.services.chat_manager.utils import channel_code
 from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
+from backend.tests.unit.endpoints.helpers import (
+    connect_and_perform_request,
+    perform_request,
+)
 
 # ---------------------------------------------------------------------------------
 # Tests for websocket connect\disconnect
@@ -91,60 +94,46 @@ async def test_ws_chat_get_joined_chats__success(
 
     cmd = CMDGetJoinedChats()
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespGetJoinedChatList)
-        if isinstance(srv_packet.data, SrvRespGetJoinedChatList):
-            assert len(srv_packet.data.chats) == len(chat_ids)
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespGetJoinedChatList)
+    if isinstance(srv_packet.data, SrvRespGetJoinedChatList):
+        assert len(srv_packet.data.chats) == len(chat_ids)
 
 
 def test_ws_chat_get_joined_chats__empty_list(client: TestClient):
     current_user_id = uuid.uuid4()
     cmd = CMDGetJoinedChats()
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespGetJoinedChatList)
-        if isinstance(srv_packet.data, SrvRespGetJoinedChatList):
-            assert len(srv_packet.data.chats) == 0
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespGetJoinedChatList)
+    if isinstance(srv_packet.data, SrvRespGetJoinedChatList):
+        assert len(srv_packet.data.chats) == 0
 
 
 def test_ws_chat_get_joined_chats__error(client: TestClient):
     current_user_id = uuid.uuid4()
     cmd = CMDGetJoinedChats()
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-
     raise_error = RepositoryError(detail="repo error")
     with patch.object(
         ChatManager,
         "get_joined_chat_list",
         new=Mock(side_effect=raise_error),
     ):
-        with client.websocket_connect(
-            f"/ws/chat?user_id={current_user_id}"
-        ) as websocket:
-            websocket.send_text(client_packet.model_dump_json())
-            resp_str = websocket.receive_text()
-
-            srv_packet = ServerPacket.model_validate_json(resp_str)
-            assert srv_packet.request_packet_id == client_packet.id
-            assert isinstance(srv_packet.data, SrvRespError)
-            if isinstance(srv_packet.data, SrvRespError):
-                assert srv_packet.data.error_data.error_code == raise_error.error_code
-                assert srv_packet.data.error_data.detail == raise_error.detail
+        srv_packet = connect_and_perform_request(
+            client, f"/ws/chat?user_id={current_user_id}", client_packet
+        )
+        assert srv_packet.request_packet_id == client_packet.id
+        assert isinstance(srv_packet.data, SrvRespError)
+        if isinstance(srv_packet.data, SrvRespError):
+            assert srv_packet.data.error_data.error_code == raise_error.error_code
+            assert srv_packet.data.error_data.detail == raise_error.detail
 
 
 # ---------------------------------------------------------------------------------
@@ -164,14 +153,11 @@ async def test_ws_chat_add_user_to_chat__success(
 
     cmd = CMDAddUserToChat(chat_id=chat_id, user_id=another_user_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespSucessNoBody)
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespSucessNoBody)
 
 
 async def test_ws_chat_add_user_to_chat__chat_doesnt_exist_error(client: TestClient):
@@ -181,21 +167,16 @@ async def test_ws_chat_add_user_to_chat__chat_doesnt_exist_error(client: TestCli
 
     cmd = CMDAddUserToChat(chat_id=chat_id, user_id=another_user_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespError)
-        if isinstance(srv_packet.data, SrvRespError):
-            assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
-            assert (
-                srv_packet.data.error_data.detail
-                == f"Chat with ID={chat_id} doesn't exist"
-            )
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespError)
+    if isinstance(srv_packet.data, SrvRespError):
+        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert (
+            srv_packet.data.error_data.detail == f"Chat with ID={chat_id} doesn't exist"
+        )
 
 
 async def test_ws_chat_add_user_to_chat__unauthorized_error(
@@ -211,18 +192,14 @@ async def test_ws_chat_add_user_to_chat__unauthorized_error(
 
     cmd = CMDAddUserToChat(chat_id=chat_id, user_id=another_user_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespError)
-        if isinstance(srv_packet.data, SrvRespError):
-            assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
-            assert "unauthorized to add users to" in srv_packet.data.error_data.detail
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespError)
+    if isinstance(srv_packet.data, SrvRespError):
+        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert "unauthorized to add users to" in srv_packet.data.error_data.detail
 
 
 # ---------------------------------------------------------------------------------
@@ -245,14 +222,11 @@ async def test_ws_chat_send_message__success(
     )
     cmd = CMDSendMessage(message=message)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespSucessNoBody)
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespSucessNoBody)
 
     message_db = await async_session.scalar(
         select(ChatUserMessage)
@@ -280,20 +254,17 @@ async def test_ws_chat_send_message__unauthorized_error(
     )
     cmd = CMDSendMessage(message=message)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespError)
-        if isinstance(srv_packet.data, SrvRespError):
-            assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
-            assert (
-                "Can't send message on behalf of another user"
-                in srv_packet.data.error_data.detail
-            )
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespError)
+    if isinstance(srv_packet.data, SrvRespError):
+        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert (
+            "Can't send message on behalf of another user"
+            in srv_packet.data.error_data.detail
+        )
 
     message_db = await async_session.scalar(
         select(ChatUserMessage)
@@ -318,17 +289,14 @@ async def test_ws_chat_send_message__unauthorized_not_chat_member_error(
     )
     cmd = CMDSendMessage(message=message)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespError)
-        if isinstance(srv_packet.data, SrvRespError):
-            assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
-            assert "is not a member of chat" in srv_packet.data.error_data.detail
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespError)
+    if isinstance(srv_packet.data, SrvRespError):
+        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert "is not a member of chat" in srv_packet.data.error_data.detail
 
     message_db = await async_session.scalar(
         select(ChatUserMessage)
@@ -360,21 +328,18 @@ async def test_ws_chat_get_messages__success(
     expected_messages = list(reversed(messages))
     cmd = CMDGetMessages(chat_id=chat_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespGetMessages)
-        if isinstance(srv_packet.data, SrvRespGetMessages):
-            assert len(srv_packet.data.messages) == len(messages)
-            for i in range(len(messages)):
-                msg_obj = ChatUserMessageSchema.model_validate_json(
-                    srv_packet.data.messages[i]
-                )
-                assert msg_obj.text == expected_messages[i].text
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespGetMessages)
+    if isinstance(srv_packet.data, SrvRespGetMessages):
+        assert len(srv_packet.data.messages) == len(messages)
+        for i in range(len(messages)):
+            msg_obj = ChatUserMessageSchema.model_validate_json(
+                srv_packet.data.messages[i]
+            )
+            assert msg_obj.text == expected_messages[i].text
 
 
 async def test_ws_chat_get_messages__success_empty_list(client: TestClient):
@@ -383,16 +348,13 @@ async def test_ws_chat_get_messages__success_empty_list(client: TestClient):
 
     cmd = CMDGetMessages(chat_id=chat_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={current_user_id}") as websocket:
-        websocket.send_text(client_packet.model_dump_json())
-        resp_str = websocket.receive_text()
-
-        srv_packet = ServerPacket.model_validate_json(resp_str)
-        assert srv_packet.request_packet_id == client_packet.id
-        assert isinstance(srv_packet.data, SrvRespGetMessages)
-        if isinstance(srv_packet.data, SrvRespGetMessages):
-            assert len(srv_packet.data.messages) == 0
+    srv_packet = connect_and_perform_request(
+        client, f"/ws/chat?user_id={current_user_id}", client_packet
+    )
+    assert srv_packet.request_packet_id == client_packet.id
+    assert isinstance(srv_packet.data, SrvRespGetMessages)
+    if isinstance(srv_packet.data, SrvRespGetMessages):
+        assert len(srv_packet.data.messages) == 0
 
 
 def test_ws_chat_get_messages__error(client: TestClient):
@@ -400,26 +362,20 @@ def test_ws_chat_get_messages__error(client: TestClient):
     chat_id = uuid.uuid4()
     cmd = CMDGetMessages(chat_id=chat_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
-    websocket: WebSocketTestSession
-
     raise_error = RepositoryError(detail="repo error")
     with patch.object(
         ChatManager,
         "get_message_list",
         new=Mock(side_effect=raise_error),
     ):
-        with client.websocket_connect(
-            f"/ws/chat?user_id={current_user_id}"
-        ) as websocket:
-            websocket.send_text(client_packet.model_dump_json())
-            resp_str = websocket.receive_text()
-
-            srv_packet = ServerPacket.model_validate_json(resp_str)
-            assert srv_packet.request_packet_id == client_packet.id
-            assert isinstance(srv_packet.data, SrvRespError)
-            if isinstance(srv_packet.data, SrvRespError):
-                assert srv_packet.data.error_data.error_code == raise_error.error_code
-                assert srv_packet.data.error_data.detail == raise_error.detail
+        srv_packet = connect_and_perform_request(
+            client, f"/ws/chat?user_id={current_user_id}", client_packet
+        )
+        assert srv_packet.request_packet_id == client_packet.id
+        assert isinstance(srv_packet.data, SrvRespError)
+        if isinstance(srv_packet.data, SrvRespError):
+            assert srv_packet.data.error_data.error_code == raise_error.error_code
+            assert srv_packet.data.error_data.detail == raise_error.detail
 
 
 # ---------------------------------------------------------------------------------
@@ -447,38 +403,34 @@ async def test_ws_chat_receive_events__user_message(
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
     user1_websocket: WebSocketTestSession
     user2_websocket: WebSocketTestSession
-    with client.websocket_connect(f"/ws/chat?user_id={user1_id}") as user1_websocket:
-        with client.websocket_connect(
-            f"/ws/chat?user_id={user2_id}"
-        ) as user2_websocket:
-            user1_websocket.send_text(client_packet.model_dump_json())
-            resp_str = user1_websocket.receive_text()
-            srv_packet = ServerPacket.model_validate_json(resp_str)
-            assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # Msg was sent
 
-            await asleep(0.1)
+    with (
+        client.websocket_connect(f"/ws/chat?user_id={user1_id}") as user1_websocket,
+        client.websocket_connect(f"/ws/chat?user_id={user2_id}") as user2_websocket,
+    ):
+        srv_packet = perform_request(user1_websocket, client_packet)
+        assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # Msg was sent
+        await asleep(0.1)
 
-            # Receive user1's events
-            resp_str = user1_websocket.receive_text()
-            srv_packet = ServerPacket.model_validate_json(resp_str)
-            assert isinstance(srv_packet.data, SrvEventList)
-            if isinstance(srv_packet.data, SrvEventList):
-                assert len(srv_packet.data.events) == 1
-                event = srv_packet.data.events[0]
-                assert isinstance(event, ChatMessageEvent)
-                if isinstance(event, ChatMessageEvent):
-                    assert event.message.text == message.text
+        # Receive user1's events
+        srv_packet = perform_request(user1_websocket, None)
+        assert isinstance(srv_packet.data, SrvEventList)
+        if isinstance(srv_packet.data, SrvEventList):
+            assert len(srv_packet.data.events) == 1
+            event = srv_packet.data.events[0]
+            assert isinstance(event, ChatMessageEvent)
+            if isinstance(event, ChatMessageEvent):
+                assert event.message.text == message.text
 
-            # Receive user2's events
-            resp_str = user2_websocket.receive_text()
-            srv_packet = ServerPacket.model_validate_json(resp_str)
-            assert isinstance(srv_packet.data, SrvEventList)
-            if isinstance(srv_packet.data, SrvEventList):
-                assert len(srv_packet.data.events) == 1
-                event = srv_packet.data.events[0]
-                assert isinstance(event, ChatMessageEvent)
-                if isinstance(event, ChatMessageEvent):
-                    assert event.message.text == message.text
+        # Receive user2's events
+        srv_packet = perform_request(user2_websocket, None)
+        assert isinstance(srv_packet.data, SrvEventList)
+        if isinstance(srv_packet.data, SrvEventList):
+            assert len(srv_packet.data.events) == 1
+            event = srv_packet.data.events[0]
+            assert isinstance(event, ChatMessageEvent)
+            if isinstance(event, ChatMessageEvent):
+                assert event.message.text == message.text
 
 
 async def test_ws_chat_receive_events__user_added_to_chat_message(
@@ -496,16 +448,12 @@ async def test_ws_chat_receive_events__user_added_to_chat_message(
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
     user1_websocket: WebSocketTestSession
     with client.websocket_connect(f"/ws/chat?user_id={user1_id}") as user1_websocket:
-        user1_websocket.send_text(client_packet.model_dump_json())
-        resp_str = user1_websocket.receive_text()
-        srv_packet = ServerPacket.model_validate_json(resp_str)
+        srv_packet = perform_request(user1_websocket, client_packet)
         assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # User was added
-
         await asleep(0.1)
 
         # Receive user1's events
-        resp_str = user1_websocket.receive_text()
-        srv_packet = ServerPacket.model_validate_json(resp_str)
+        srv_packet = perform_request(user1_websocket, None)
         assert isinstance(srv_packet.data, SrvEventList)
         if isinstance(srv_packet.data, SrvEventList):
             assert len(srv_packet.data.events) == 1
@@ -534,16 +482,12 @@ async def test_ws_chat_receive_events__user_added_to_chat_notification(
         client.websocket_connect(f"/ws/chat?user_id={user1_id}") as user1_websocket,
         client.websocket_connect(f"/ws/chat?user_id={user2_id}") as user2_websocket,
     ):
-        user1_websocket.send_text(client_packet.model_dump_json())
-        resp_str = user1_websocket.receive_text()
-        srv_packet = ServerPacket.model_validate_json(resp_str)
+        srv_packet = perform_request(user1_websocket, client_packet)
         assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # User was added
-
         await asleep(0.1)
 
         # Receive user2's events
-        resp_str = user2_websocket.receive_text()
-        srv_packet = ServerPacket.model_validate_json(resp_str)
+        srv_packet = perform_request(user2_websocket, None)
         assert isinstance(srv_packet.data, SrvEventList)
         if isinstance(srv_packet.data, SrvEventList):
             assert len(srv_packet.data.events) == 1
