@@ -192,9 +192,7 @@ class EventBrokerTestBase:
             )
 
             # Post event to the channel
-            await self.event_broker.post_event(
-                channel=channel, user_id=user_id_1, event=event
-            )
+            await self.event_broker.post_event(channel=channel, event=event)
 
             # Check that get_events() returns posted event for user_1 and user_2
             events_res_1 = await self.event_broker.get_events(user_id_1)
@@ -230,9 +228,7 @@ class EventBrokerTestBase:
             )
 
             # Post event to the channel using instance #1 of EventBroker
-            await self.event_broker.post_event(
-                channel=channel, user_id=user_id_1, event=event
-            )
+            await self.event_broker.post_event(channel=channel, event=event)
 
             # Check that get_events() returns posted event for user_1 (instance #1 of
             # EventBroker) and user_2 (instance #2 of EventBroker)

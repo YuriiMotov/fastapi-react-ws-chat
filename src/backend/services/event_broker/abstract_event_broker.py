@@ -56,7 +56,7 @@ class AbstractEventBroker(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def post_event(self, channel: str, user_id: uuid.UUID, event: str):
+    async def post_event(self, channel: str, event: str):
         """
         Post new event to the specific channel.
 

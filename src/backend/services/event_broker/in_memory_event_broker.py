@@ -12,6 +12,7 @@ MAX_DEQUE_SIZE = 1000
 
 
 class InMemoryEventBroker(AbstractEventBroker):
+    _cls_initialized: bool = False
     _max_deque_size: int
     _subscribers: set[str]
     _subscribtions: dict[str, set[str]]
@@ -19,10 +20,11 @@ class InMemoryEventBroker(AbstractEventBroker):
 
     def __init__(self, max_deque_size: int = MAX_DEQUE_SIZE):
         cls = InMemoryEventBroker
-        cls._max_deque_size = max_deque_size
-        cls._subscribers = set()
-        cls._subscribtions = defaultdict(set)
-        cls._event_queue = {}
+        if cls._cls_initialized is False:
+            cls._max_deque_size = max_deque_size
+            cls._subscribers = set()
+            cls._subscribtions = defaultdict(set)
+            cls._event_queue = {}
 
     @asynccontextmanager
     async def session(self, user_id: uuid.UUID) -> AsyncIterator[None]:
@@ -65,10 +67,8 @@ class InMemoryEventBroker(AbstractEventBroker):
             limit = len(events)
         return [events.popleft() for _ in range(min(len(events), limit))]
 
-    async def post_event(self, channel: str, user_id: uuid.UUID, event: str):
+    async def post_event(self, channel: str, event: str):
         cls = InMemoryEventBroker
-        user_id_str = str(user_id)
-        assert user_id_str in cls._subscribers, USE_CONTEXT_ERROR
         channel_subscribers = cls._subscribtions[channel]
         for user_id_str in channel_subscribers:
             cls._event_queue[user_id_str].append(event)

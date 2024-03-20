@@ -23,10 +23,13 @@ class TestRabbitEventBroker(EventBrokerTestBase):
             "direct", auto_delete=True
         )
         self.event_broker = RabbitEventBroker(connection=self._connection)
+        await self.event_broker.ainit()
+
         self._connection_2 = await aio_pika.connect_robust(
             "amqp://guest:guest@127.0.0.1/"
         )
         self.event_broker_instance_2 = RabbitEventBroker(connection=self._connection_2)
+        await self.event_broker_instance_2.ainit()
 
         yield
         await self._connection.close()

@@ -43,7 +43,6 @@ async def test_get_events_str(
         messages.append(message)
         await chat_manager.event_broker.post_event(
             channel=channel,
-            user_id=user_id,
             event=ChatMessageEvent(message=message).model_dump_json(),
         )
 

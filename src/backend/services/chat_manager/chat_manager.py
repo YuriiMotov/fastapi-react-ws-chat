@@ -133,12 +133,10 @@ class ChatManager:
             # TODO: catch exceptions during post_event() and retry or log
             await self.event_broker.post_event(
                 channel=channel_code("chat", chat_id),
-                user_id=current_user_id,
                 event=ChatMessageEvent(message=notification).model_dump_json(),
             )
             await self.event_broker.post_event(
                 channel=channel_code("user", user_id),
-                user_id=current_user_id,
                 event=UserAddedToChatNotification(chat_id=chat_id).model_dump_json(),
             )
 
@@ -178,7 +176,6 @@ class ChatManager:
             channel = channel_code("chat", message.chat_id)
             await self.event_broker.post_event(
                 channel=channel,
-                user_id=current_user_id,
                 event=ChatMessageEvent(message=message_in_db).model_dump_json(),
             )
 

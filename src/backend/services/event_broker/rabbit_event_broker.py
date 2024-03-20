@@ -16,6 +16,11 @@ from backend.services.event_broker.abstract_event_broker import (
     AbstractEventBroker,
 )
 
+USE_AINIT_ERROR = (
+    "RabbitEventBroker should be initialized by calling `await event_broker.ainit()` "
+    "before using"
+)
+
 
 @dataclass
 class UserConData:
@@ -29,6 +34,14 @@ class RabbitEventBroker(AbstractEventBroker):
     def __init__(self, connection: AbstractRobustConnection):
         self._connection = connection
         self._con_data: dict[int, UserConData] = {}
+        self._common_channel: AbstractChannel | None = None
+        self._common_exchange: AbstractExchange | None = None
+
+    async def ainit(self):
+        self._common_channel = await self._connection.channel()
+        self._common_exchange = await self._common_channel.declare_exchange(
+            "direct", auto_delete=True
+        )
 
     @asynccontextmanager
     async def session(self, user_id: uuid.UUID) -> AsyncIterator[None]:
@@ -73,7 +86,6 @@ class RabbitEventBroker(AbstractEventBroker):
                 break
         return events
 
-    async def post_event(self, channel: str, user_id: uuid.UUID, event: str):
-        con_data = self._con_data.get(user_id.int)
-        assert con_data is not None, USE_CONTEXT_ERROR
-        await con_data.exchange.publish(Message(event.encode()), channel)
+    async def post_event(self, channel: str, event: str):
+        assert self._common_exchange is not None, USE_AINIT_ERROR
+        await self._common_exchange.publish(Message(event.encode()), channel)
