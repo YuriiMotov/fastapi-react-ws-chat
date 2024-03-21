@@ -58,12 +58,14 @@ class InMemoryEventBroker(AbstractEventBroker):
         for channel in channels:
             cls._subscribtions[channel].add(user_id_str)
 
-    async def get_events(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
+    async def get_events(
+        self, user_id: uuid.UUID, limit: int | None = None
+    ) -> list[str]:
         cls = InMemoryEventBroker
         user_id_str = str(user_id)
         assert user_id_str in cls._subscribers, USE_CONTEXT_ERROR
         events = cls._event_queue[user_id_str]
-        if limit == -1:
+        if limit is None:
             limit = len(events)
         return [events.popleft() for _ in range(min(len(events), limit))]
 

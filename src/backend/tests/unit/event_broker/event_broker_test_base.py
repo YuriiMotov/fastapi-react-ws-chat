@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from backend.services.chat_manager.utils import channel_code
 from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
 
@@ -165,6 +167,33 @@ class EventBrokerTestBase:
             assert len(events) == 2
             assert events[0] == event_1
             assert events[1] == event_2
+
+    @pytest.mark.parametrize("limit", (None, 1, 2, 10))
+    async def test_get_events__limit(self, limit: int | None):
+        """
+        get_events() method respects `limit` parameter when returns events.
+        """
+        user_id = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+        events = [f"event {i}" for i in range(3)]
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user to channe
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post events to channel
+            for event in events:
+                await self._post_message(routing_key=channel, message=event)
+
+            # Check that get_events() returns event list according to `limit` parameter
+            events_res = await self.event_broker.get_events(user_id, limit=limit)
+            if limit is None:
+                expected_events_res = events
+            else:
+                expected_events_res = events[:limit]
+
+            assert len(events_res) == len(expected_events_res), events_res
+            assert events_res == expected_events_res
 
     async def test_post_event__several_subscribers(self):
         """

@@ -73,11 +73,13 @@ class RabbitEventBroker(AbstractEventBroker):
         for routing_key in channels:
             await con_data.queue.bind(con_data.exchange, routing_key)
 
-    async def get_events(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
+    async def get_events(
+        self, user_id: uuid.UUID, limit: int | None = None
+    ) -> list[str]:
         con_data = self._con_data.get(user_id.int)
         assert con_data is not None, USE_CONTEXT_ERROR
         events: list[str] = []
-        count = limit if (limit > -1) else 1_000_000
+        count = limit if (limit is not None) else 1_000_000
         for _ in range(count):
             message = await con_data.queue.get(fail=False)
             if message:

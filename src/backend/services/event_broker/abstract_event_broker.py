@@ -45,7 +45,9 @@ class AbstractEventBroker(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_events(self, user_id: uuid.UUID, limit: int = -1) -> list[str]:
+    async def get_events(
+        self, user_id: uuid.UUID, limit: int | None = None
+    ) -> list[str]:
         """
         Return all new events for specific user.
 
