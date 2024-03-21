@@ -173,7 +173,7 @@ async def test_ws_chat_add_user_to_chat__chat_doesnt_exist_error(client: TestCli
     assert srv_packet.request_packet_id == client_packet.id
     assert isinstance(srv_packet.data, SrvRespError)
     if isinstance(srv_packet.data, SrvRespError):
-        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert srv_packet.data.error_data.error_code == "BAD_REQUEST"
         assert (
             srv_packet.data.error_data.detail == f"Chat with ID={chat_id} doesn't exist"
         )
@@ -198,7 +198,7 @@ async def test_ws_chat_add_user_to_chat__unauthorized_error(
     assert srv_packet.request_packet_id == client_packet.id
     assert isinstance(srv_packet.data, SrvRespError)
     if isinstance(srv_packet.data, SrvRespError):
-        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert srv_packet.data.error_data.error_code == "UNAUTHORIZED_ACTION"
         assert "unauthorized to add users to" in srv_packet.data.error_data.detail
 
 
@@ -260,7 +260,7 @@ async def test_ws_chat_send_message__unauthorized_error(
     assert srv_packet.request_packet_id == client_packet.id
     assert isinstance(srv_packet.data, SrvRespError)
     if isinstance(srv_packet.data, SrvRespError):
-        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert srv_packet.data.error_data.error_code == "UNAUTHORIZED_ACTION"
         assert (
             "Can't send message on behalf of another user"
             in srv_packet.data.error_data.detail
@@ -295,7 +295,7 @@ async def test_ws_chat_send_message__unauthorized_not_chat_member_error(
     assert srv_packet.request_packet_id == client_packet.id
     assert isinstance(srv_packet.data, SrvRespError)
     if isinstance(srv_packet.data, SrvRespError):
-        assert srv_packet.data.error_data.error_code == "CHAT_MANAGER_GENERAL_ERROR"
+        assert srv_packet.data.error_data.error_code == "UNAUTHORIZED_ACTION"
         assert "is not a member of chat" in srv_packet.data.error_data.detail
 
     message_db = await async_session.scalar(
