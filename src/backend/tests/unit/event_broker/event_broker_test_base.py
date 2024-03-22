@@ -1,6 +1,8 @@
 import uuid
+from datetime import datetime, timedelta
 
 import pytest
+from freezegun import freeze_time
 
 from backend.services.chat_manager.utils import channel_code
 from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
@@ -267,6 +269,202 @@ class EventBrokerTestBase:
             events_res_2 = await self.event_broker_instance_2.get_events(user_id_2)
             assert len(events_res_2) == 1
             assert events_res_2[0] == event
+
+    async def test_ack_events__dont_ack__subsequent_calls_return_empty(self):
+        """
+        Post event and receive it without acknowledgement.
+        Second call of get_events() returns empty list.
+        Post one more event.
+        Third call of get_events() returns empty list.
+        """
+        event = "my event"
+        user_id = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user_1 to the channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post event to the channel
+            await self._post_message(routing_key=channel, message=event)
+
+            # Check that get_events() returns posted event
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 1
+            assert events_res[0] == event
+
+            # Check that second call of get_events() returns empty list
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 0
+
+            # Post one more event to the channel
+            await self._post_message(routing_key=channel, message="event 2")
+
+            # Check that third call of get_events() returns empty list
+            # (because first call wasn't acknowledged)
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 0
+
+    async def test_ack_events__dont_ack__subsequent_call_after_timeout_return_all(self):
+        """
+        Post event and receive it without acknowledgement.
+        Post one more event.
+        Wait 3s (ack timeout).
+        Second call of get_events() returns first event again.
+        """
+        event = "my event"
+        user_id = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user_1 to the channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post event to the channel
+            await self._post_message(routing_key=channel, message=event)
+
+            # Check that get_events() returns posted event
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 1
+            assert events_res[0] == event
+
+            # Post one more event to the channel
+            await self._post_message(routing_key=channel, message="event 2")
+
+            # Wait 3 sec
+            with freeze_time(datetime.now() + timedelta(seconds=3)):
+                # Check that second call of get_events() returns first event again
+                # (because ack timeout riched and broker sends it again)
+                events_res = await self.event_broker.get_events(user_id)
+                assert len(events_res) == 1
+                assert events_res[0] == event
+
+    async def test_ack_events__dont_ack__subsequent_call_after_2nd_timeout_return_all(
+        self,
+    ):
+        """
+        Post event and receive it without acknowledgement.
+        Post one more event.
+        Wait 3s (ack timeout).
+        Second call of get_events() returns first event again.
+        Third call of get_events() returns empty list.
+        Wait another 3s (ack timeout).
+        Forth call of get_events() returns first event again.
+        """
+        event = "my event"
+        user_id = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user_1 to the channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post event to the channel
+            await self._post_message(routing_key=channel, message=event)
+
+            # Check that get_events() returns posted event
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 1
+            assert events_res[0] == event
+
+            # Post one more event to the channel
+            await self._post_message(routing_key=channel, message="event 2")
+
+            # Wait 3 sec
+            with freeze_time(datetime.now() + timedelta(seconds=3)):
+                # Check that second call of get_events() returns first event again
+                # (because ack timeout riched and broker sends it again)
+                events_res = await self.event_broker.get_events(user_id)
+                assert len(events_res) == 1
+                assert events_res[0] == event
+
+                # Third call or get_events() returns empty list
+                events_res = await self.event_broker.get_events(user_id)
+                assert len(events_res) == 0
+
+                # Wait another 3 sec
+                with freeze_time(datetime.now() + timedelta(seconds=3)):
+                    # Check that forth call of get_events() returns first event again
+                    # (because ack timeout riched and broker sends it again)
+                    events_res = await self.event_broker.get_events(user_id)
+                    assert len(events_res) == 1
+                    assert events_res[0] == event
+
+    async def test_ack_events__returns_next_events_after_acknowledgement(self):
+        """
+        Post event and receive it.
+        Post one more event.
+        Second call of get_events() returns empty list.
+        Acknowlege.
+        Third call of get_events() returns second event.
+        """
+        event_1 = "my event 1"
+        event_2 = "my event 2"
+        user_id = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user_1 to the channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post event_1 to the channel
+            await self._post_message(routing_key=channel, message=event_1)
+
+            # Check that get_events() returns posted event
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 1
+            assert events_res[0] == event_1
+
+            # Post event_2 to the channel
+            await self._post_message(routing_key=channel, message=event_2)
+
+            # Check that second call of get_events() returns empty list
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 0
+
+            # Acknowledge receiving event_1
+            await self.event_broker.acknowledge_events(user_id=user_id)
+
+            # Check that third call of get_events() returns event_2
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 1
+            assert events_res[0] == event_2
+
+    async def test_unacknowledged__clear_on_context_exit(self):
+        """
+        Post event and receive it without acknowledgement.
+        Exit context manager and enter again.
+        Post one more event.
+        Second call of get_events() returns empty second event.
+        """
+        event_1 = "my event 1"
+        event_2 = "my event 2"
+        user_id = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user_1 to the channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post event_1 to the channel
+            await self._post_message(routing_key=channel, message=event_1)
+
+            # Check that get_events() returns posted event
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 1
+            assert events_res[0] == event_1
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user_1 to the channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post event_2 to the channel
+            await self._post_message(routing_key=channel, message=event_2)
+
+            # Check that second call of get_events() returns second event
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 1
+            assert events_res[0] == event_2
 
     # Methods below should be implemented in the descendant class
 

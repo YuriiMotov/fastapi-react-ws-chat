@@ -1,6 +1,8 @@
 import uuid
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import AsyncIterator
 
 from backend.services.event_broker.abstract_event_broker import (
@@ -9,13 +11,20 @@ from backend.services.event_broker.abstract_event_broker import (
 )
 
 MAX_DEQUE_SIZE = 1000
+ACK_TIMEOUT_SEC = 2
+
+
+@dataclass
+class UnacknowledgedEvents:
+    expire_dt: datetime
+    sent_events: list[str]
 
 
 class InMemoryEventBroker(AbstractEventBroker):
     _cls_initialized: bool = False
     _max_deque_size: int
     _subscribers: set[str]
-    _subscribtions: dict[str, set[str]]
+    _subscribtions: defaultdict[str, set[str]]
     _event_queue: dict[str, deque[str]]
 
     def __init__(self, max_deque_size: int = MAX_DEQUE_SIZE):
@@ -25,6 +34,9 @@ class InMemoryEventBroker(AbstractEventBroker):
             cls._subscribers = set()
             cls._subscribtions = defaultdict(set)
             cls._event_queue = {}
+        self._unacknowledged_events: dict[str, UnacknowledgedEvents | None] = (
+            defaultdict(None)
+        )
 
     @asynccontextmanager
     async def session(self, user_id: uuid.UUID) -> AsyncIterator[None]:
@@ -35,6 +47,7 @@ class InMemoryEventBroker(AbstractEventBroker):
         ), f"session already exists for user {user_id_str}"
         cls._event_queue[user_id_str] = deque()
         cls._subscribers.add(user_id_str)
+        self._unacknowledged_events[user_id_str] = None
         yield
         if user_id_str in cls._event_queue:
             cls._event_queue.pop(user_id_str)
@@ -43,6 +56,7 @@ class InMemoryEventBroker(AbstractEventBroker):
         for channel_subscribers in cls._subscribtions.values():
             if user_id_str in channel_subscribers:
                 channel_subscribers.remove(user_id_str)
+        self._unacknowledged_events[user_id_str] = None
 
     async def subscribe(self, channel: str, user_id: uuid.UUID):
         cls = InMemoryEventBroker
@@ -64,10 +78,31 @@ class InMemoryEventBroker(AbstractEventBroker):
         cls = InMemoryEventBroker
         user_id_str = str(user_id)
         assert user_id_str in cls._subscribers, USE_CONTEXT_ERROR
+        if unack_data := self._unacknowledged_events[user_id_str]:
+            if unack_data.sent_events:
+                if unack_data.expire_dt > datetime.now():
+                    return []  # Waiting for aknowledgment of previous events
+                else:
+                    # Ack timeout reached. Send previous events again
+                    unack_data.expire_dt = datetime.now() + timedelta(
+                        seconds=ACK_TIMEOUT_SEC
+                    )
+                    return unack_data.sent_events
+            self._unacknowledged_events[user_id_str] = None
         events = cls._event_queue[user_id_str]
         if limit is None:
             limit = len(events)
-        return [events.popleft() for _ in range(min(len(events), limit))]
+        sent_events = [events.popleft() for _ in range(min(len(events), limit))]
+        if sent_events:
+            self._unacknowledged_events[user_id_str] = UnacknowledgedEvents(
+                expire_dt=(datetime.now() + timedelta(seconds=ACK_TIMEOUT_SEC)),
+                sent_events=sent_events,
+            )
+        return sent_events
+
+    async def acknowledge_events(self, user_id: uuid.UUID):
+        user_id_str = str(user_id)
+        self._unacknowledged_events[user_id_str] = None
 
     async def post_event(self, channel: str, event: str):
         cls = InMemoryEventBroker

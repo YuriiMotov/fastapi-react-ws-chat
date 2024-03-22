@@ -58,6 +58,16 @@ class AbstractEventBroker(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    async def acknowledge_events(self, user_id: uuid.UUID):
+        """
+        Acknowledge receiving the list of events.
+
+        Raises:
+         - EventBrokerFail in case of Event broker failure
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     async def post_event(self, channel: str, event: str):
         """
         Post new event to the specific channel.
