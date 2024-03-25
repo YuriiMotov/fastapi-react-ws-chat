@@ -7,7 +7,11 @@ from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
 )
-from backend.schemas.event import ChatMessageEvent, UserAddedToChatNotification
+from backend.schemas.event import (
+    AnyEvent,
+    ChatMessageEvent,
+    UserAddedToChatNotification,
+)
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
     EventBrokerError,
@@ -131,13 +135,13 @@ class ChatManager:
             # Post notification to the chat's channel and to the user's channel via
             # Event broker
             # TODO: catch exceptions during post_event() and retry or log
-            await self.event_broker._post_event_str(
+            await self.event_broker.post_event(
                 channel=channel_code("chat", chat_id),
-                event=ChatMessageEvent(message=notification).model_dump_json(),
+                event=ChatMessageEvent(message=notification),
             )
-            await self.event_broker._post_event_str(
+            await self.event_broker.post_event(
                 channel=channel_code("user", user_id),
-                event=UserAddedToChatNotification(chat_id=chat_id).model_dump_json(),
+                event=UserAddedToChatNotification(chat_id=chat_id),
             )
 
     async def send_message(
@@ -174,14 +178,14 @@ class ChatManager:
                 message_in_db = await self.uow.chat_repo.add_message(message)
                 await self.uow.commit()
             channel = channel_code("chat", message.chat_id)
-            await self.event_broker._post_event_str(
+            await self.event_broker.post_event(
                 channel=channel,
-                event=ChatMessageEvent(message=message_in_db).model_dump_json(),
+                event=ChatMessageEvent(message=message_in_db),
             )
 
-    async def get_events_str(
+    async def get_events(
         self, current_user_id: uuid.UUID, limit: int = 20
-    ) -> list[str]:
+    ) -> list[AnyEvent]:
         """
         Get events from user's Event broker queue.
 
@@ -192,7 +196,7 @@ class ChatManager:
         """
         with process_exceptions():
             try:
-                return await self.event_broker._get_events_str(
+                return await self.event_broker.get_events(
                     user_id=current_user_id, limit=limit
                 )
             except EventBrokerUserNotSubscribedError as exc:

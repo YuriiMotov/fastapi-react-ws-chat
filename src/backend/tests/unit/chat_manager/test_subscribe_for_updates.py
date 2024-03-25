@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -8,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.chat import Chat
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
+from backend.schemas.chat_message import ChatUserMessageSchema
+from backend.schemas.event import ChatMessageEvent
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     EventBrokerError,
@@ -43,15 +46,31 @@ async def test_subscribe_for_updates(
     # Call subscribe_for_updates()
     await chat_manager.subscribe_for_updates(current_user_id=user_id)
 
+    events_sent = []
     # Check that user was subscribed for events in all their chats
     for chat_id in chat_id_list:
         # Post one message to every chat
-        await chat_manager.event_broker._post_event_str(
-            channel=channel_code("chat", chat_id), event=str(chat_id)
+        event = ChatMessageEvent(
+            message=ChatUserMessageSchema(
+                id=1,
+                dt=datetime.now(UTC),
+                chat_id=chat_id,
+                text=f"my message in {chat_id} chat",
+                sender_id=uuid.uuid4(),
+            )
         )
-    events = await chat_manager.event_broker._get_events_str(user_id=user_id)
-    assert len(events) == len(chat_id_list)
-    assert set(events) == set(map(str, chat_id_list))
+        await chat_manager.event_broker.post_event(
+            channel=channel_code("chat", chat_id),
+            event=event,
+        )
+        events_sent.append(event)
+    events_received = await chat_manager.event_broker.get_events(user_id=user_id)
+    assert len(events_received) == len(chat_id_list)
+    assert len(events_received) == len(events_sent)
+
+    assert {ev.model_dump_json() for ev in events_received} == {
+        ev.model_dump_json() for ev in events_sent
+    }
 
 
 @pytest.mark.parametrize("failure_method", ("get_joined_chat_ids",))
