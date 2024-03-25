@@ -87,7 +87,7 @@ async def test_send_message_success_added_to_event_broker_queue(
     await chat_manager.send_message(current_user_id=user_id, message=message)
 
     # Check that other_user receives event via Event broker
-    events = await chat_manager.event_broker.get_events_str(user_id=other_user_id)
+    events = await chat_manager.event_broker._get_events_str(user_id=other_user_id)
     assert len(events) == 1
     assert message.text in events[0]
 
@@ -191,7 +191,7 @@ async def test_send_message_repo_failure(
             await chat_manager.send_message(current_user_id=user_id, message=message)
 
 
-@pytest.mark.parametrize("failure_method", ("post_event_str",))
+@pytest.mark.parametrize("failure_method", ("_post_event_str",))
 async def test_send_message_event_broker_failure(
     async_session: AsyncSession,
     chat_manager: ChatManager,

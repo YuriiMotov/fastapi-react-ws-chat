@@ -41,7 +41,7 @@ async def test_get_events_str(
             sender_id=another_user_id,
         )
         messages.append(message)
-        await chat_manager.event_broker.post_event_str(
+        await chat_manager.event_broker._post_event_str(
             channel=channel,
             event=ChatMessageEvent(message=message).model_dump_json(),
         )
@@ -67,7 +67,7 @@ async def test_get_events_str_not_subscribed(
         await chat_manager.get_events_str(current_user_id=user_id)
 
 
-@pytest.mark.parametrize("failure_method", ("get_events_str",))
+@pytest.mark.parametrize("failure_method", ("_get_events_str",))
 async def test_get_events_str_event_bus_failure(
     chat_manager: ChatManager, failure_method: str
 ):

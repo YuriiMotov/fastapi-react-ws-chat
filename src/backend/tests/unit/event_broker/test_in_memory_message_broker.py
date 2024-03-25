@@ -22,4 +22,4 @@ class TestInMemoryEventBroker(EventBrokerTestBase):
     async def _post_message(self, routing_key: str, message: str):
         uid = uuid.uuid4()
         async with self.event_broker.session(uid):
-            await self.event_broker.post_event_str(channel=routing_key, event=message)
+            await self.event_broker._post_event_str(channel=routing_key, event=message)

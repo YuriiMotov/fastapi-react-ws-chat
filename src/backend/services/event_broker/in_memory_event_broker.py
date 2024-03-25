@@ -72,7 +72,7 @@ class InMemoryEventBroker(AbstractEventBroker):
         for channel in channels:
             cls._subscribtions[channel].add(user_id_str)
 
-    async def get_events_str(
+    async def _get_events_str(
         self, user_id: uuid.UUID, limit: int | None = None
     ) -> list[str]:
         cls = InMemoryEventBroker
@@ -104,7 +104,7 @@ class InMemoryEventBroker(AbstractEventBroker):
         user_id_str = str(user_id)
         self._unacknowledged_events[user_id_str] = None
 
-    async def post_event_str(self, channel: str, event: str):
+    async def _post_event_str(self, channel: str, event: str):
         cls = InMemoryEventBroker
         channel_subscribers = cls._subscribtions[channel]
         for user_id_str in channel_subscribers:
