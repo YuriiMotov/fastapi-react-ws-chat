@@ -87,7 +87,7 @@ class RabbitEventBroker(AbstractEventBroker):
         for routing_key in channels:
             await con_data.queue.bind(con_data.exchange, routing_key)
 
-    async def get_events(
+    async def get_events_str(
         self, user_id: uuid.UUID, limit: int | None = None
     ) -> list[str]:
         con_data = self._con_data.get(user_id.int)
@@ -122,6 +122,6 @@ class RabbitEventBroker(AbstractEventBroker):
     async def acknowledge_events(self, user_id: uuid.UUID):
         self._unacknowledged_events[user_id.int] = None
 
-    async def post_event(self, channel: str, event: str):
+    async def post_event_str(self, channel: str, event: str):
         assert self._common_exchange is not None, USE_AINIT_ERROR
         await self._common_exchange.publish(Message(event.encode()), channel)

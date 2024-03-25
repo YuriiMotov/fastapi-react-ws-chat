@@ -46,10 +46,10 @@ async def test_subscribe_for_updates(
     # Check that user was subscribed for events in all their chats
     for chat_id in chat_id_list:
         # Post one message to every chat
-        await chat_manager.event_broker.post_event(
+        await chat_manager.event_broker.post_event_str(
             channel=channel_code("chat", chat_id), event=str(chat_id)
         )
-    events = await chat_manager.event_broker.get_events(user_id=user_id)
+    events = await chat_manager.event_broker.get_events_str(user_id=user_id)
     assert len(events) == len(chat_id_list)
     assert set(events) == set(map(str, chat_id_list))
 

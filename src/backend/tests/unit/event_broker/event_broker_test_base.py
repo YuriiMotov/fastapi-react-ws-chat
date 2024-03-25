@@ -37,7 +37,7 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event)
 
             # Check that event was added to user_1's queue
-            user_1_events = await self.event_broker.get_events(user_id_1)
+            user_1_events = await self.event_broker.get_events_str(user_id_1)
             assert len(user_1_events) == 1
             assert user_1_events[0] == event
 
@@ -59,7 +59,7 @@ class EventBrokerTestBase:
             await self.event_broker.subscribe(channel=channel, user_id=user_id_1)
 
             # Check that event was added to user_1's queue
-            user_1_events = await self.event_broker.get_events(user_id_1)
+            user_1_events = await self.event_broker.get_events_str(user_id_1)
             assert len(user_1_events) == 0
 
     async def test_unsubscribe__post_when_unsubscribed__empty_result(self):
@@ -86,7 +86,7 @@ class EventBrokerTestBase:
             await self.event_broker.subscribe(channel=channel, user_id=user_id_1)
 
             # Check that event was added to user_1's queue
-            user_1_events = await self.event_broker.get_events(user_id_1)
+            user_1_events = await self.event_broker.get_events_str(user_id_1)
             assert len(user_1_events) == 0
 
     async def test_unsubscribe__queue_is_cleared(self):
@@ -113,7 +113,7 @@ class EventBrokerTestBase:
             await self.event_broker.subscribe(channel=channel, user_id=user_id_1)
 
             # Check that event was added to user_1's queue
-            user_1_events = await self.event_broker.get_events(user_id_1)
+            user_1_events = await self.event_broker.get_events_str(user_id_1)
             assert len(user_1_events) == 0
 
     async def test_get_events__several_events_fifo__success(self):
@@ -133,7 +133,7 @@ class EventBrokerTestBase:
                 await self._post_message(routing_key=channel, message=event)
 
             # Check that get_events() returns posted event
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == len(events)
             assert events_res == events
 
@@ -165,7 +165,7 @@ class EventBrokerTestBase:
 
             # Check that get_events() returns all events from channels
             # user subscribed to
-            events = await self.event_broker.get_events(user_id)
+            events = await self.event_broker.get_events_str(user_id)
             assert len(events) == 2
             assert events[0] == event_1
             assert events[1] == event_2
@@ -188,7 +188,7 @@ class EventBrokerTestBase:
                 await self._post_message(routing_key=channel, message=event)
 
             # Check that get_events() returns event list according to `limit` parameter
-            events_res = await self.event_broker.get_events(user_id, limit=limit)
+            events_res = await self.event_broker.get_events_str(user_id, limit=limit)
             if limit is None:
                 expected_events_res = events
             else:
@@ -223,18 +223,18 @@ class EventBrokerTestBase:
             )
 
             # Post event to the channel
-            await self.event_broker.post_event(channel=channel, event=event)
+            await self.event_broker.post_event_str(channel=channel, event=event)
 
             # Check that get_events() returns posted event for user_1 and user_2
-            events_res_1 = await self.event_broker.get_events(user_id_1)
+            events_res_1 = await self.event_broker.get_events_str(user_id_1)
             assert len(events_res_1) == 1
             assert events_res_1[0] == event
-            events_res_2 = await self.event_broker.get_events(user_id_2)
+            events_res_2 = await self.event_broker.get_events_str(user_id_2)
             assert len(events_res_2) == 1
             assert events_res_2[0] == event
 
             # Check that get_event() returns empty list for user_3
-            events_res_3 = await self.event_broker.get_events(user_id_3)
+            events_res_3 = await self.event_broker.get_events_str(user_id_3)
             assert len(events_res_3) == 0
 
     async def test_different_instances_work_together(self):
@@ -259,14 +259,14 @@ class EventBrokerTestBase:
             )
 
             # Post event to the channel using instance #1 of EventBroker
-            await self.event_broker.post_event(channel=channel, event=event)
+            await self.event_broker.post_event_str(channel=channel, event=event)
 
             # Check that get_events() returns posted event for user_1 (instance #1 of
             # EventBroker) and user_2 (instance #2 of EventBroker)
-            events_res_1 = await self.event_broker.get_events(user_id_1)
+            events_res_1 = await self.event_broker.get_events_str(user_id_1)
             assert len(events_res_1) == 1
             assert events_res_1[0] == event
-            events_res_2 = await self.event_broker_instance_2.get_events(user_id_2)
+            events_res_2 = await self.event_broker_instance_2.get_events_str(user_id_2)
             assert len(events_res_2) == 1
             assert events_res_2[0] == event
 
@@ -289,12 +289,12 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event)
 
             # Check that get_events() returns posted event
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 1
             assert events_res[0] == event
 
             # Check that second call of get_events() returns empty list
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 0
 
             # Post one more event to the channel
@@ -302,7 +302,7 @@ class EventBrokerTestBase:
 
             # Check that third call of get_events() returns empty list
             # (because first call wasn't acknowledged)
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 0
 
     async def test_ack_events__dont_ack__subsequent_call_after_timeout_return_all(self):
@@ -324,7 +324,7 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event)
 
             # Check that get_events() returns posted event
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 1
             assert events_res[0] == event
 
@@ -335,7 +335,7 @@ class EventBrokerTestBase:
             with freeze_time(datetime.now() + timedelta(seconds=3)):
                 # Check that second call of get_events() returns first event again
                 # (because ack timeout riched and broker sends it again)
-                events_res = await self.event_broker.get_events(user_id)
+                events_res = await self.event_broker.get_events_str(user_id)
                 assert len(events_res) == 1
                 assert events_res[0] == event
 
@@ -363,7 +363,7 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event)
 
             # Check that get_events() returns posted event
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 1
             assert events_res[0] == event
 
@@ -374,19 +374,19 @@ class EventBrokerTestBase:
             with freeze_time(datetime.now() + timedelta(seconds=3)):
                 # Check that second call of get_events() returns first event again
                 # (because ack timeout riched and broker sends it again)
-                events_res = await self.event_broker.get_events(user_id)
+                events_res = await self.event_broker.get_events_str(user_id)
                 assert len(events_res) == 1
                 assert events_res[0] == event
 
                 # Third call or get_events() returns empty list
-                events_res = await self.event_broker.get_events(user_id)
+                events_res = await self.event_broker.get_events_str(user_id)
                 assert len(events_res) == 0
 
                 # Wait another 3 sec
                 with freeze_time(datetime.now() + timedelta(seconds=3)):
                     # Check that forth call of get_events() returns first event again
                     # (because ack timeout riched and broker sends it again)
-                    events_res = await self.event_broker.get_events(user_id)
+                    events_res = await self.event_broker.get_events_str(user_id)
                     assert len(events_res) == 1
                     assert events_res[0] == event
 
@@ -411,7 +411,7 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event_1)
 
             # Check that get_events() returns posted event
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 1
             assert events_res[0] == event_1
 
@@ -419,14 +419,14 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event_2)
 
             # Check that second call of get_events() returns empty list
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 0
 
             # Acknowledge receiving event_1
             await self.event_broker.acknowledge_events(user_id=user_id)
 
             # Check that third call of get_events() returns event_2
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 1
             assert events_res[0] == event_2
 
@@ -450,7 +450,7 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event_1)
 
             # Check that get_events() returns posted event
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 1
             assert events_res[0] == event_1
 
@@ -462,7 +462,7 @@ class EventBrokerTestBase:
             await self._post_message(routing_key=channel, message=event_2)
 
             # Check that second call of get_events() returns second event
-            events_res = await self.event_broker.get_events(user_id)
+            events_res = await self.event_broker.get_events_str(user_id)
             assert len(events_res) == 1
             assert events_res[0] == event_2
 

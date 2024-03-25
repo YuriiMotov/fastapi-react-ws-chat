@@ -131,11 +131,11 @@ class ChatManager:
             # Post notification to the chat's channel and to the user's channel via
             # Event broker
             # TODO: catch exceptions during post_event() and retry or log
-            await self.event_broker.post_event(
+            await self.event_broker.post_event_str(
                 channel=channel_code("chat", chat_id),
                 event=ChatMessageEvent(message=notification).model_dump_json(),
             )
-            await self.event_broker.post_event(
+            await self.event_broker.post_event_str(
                 channel=channel_code("user", user_id),
                 event=UserAddedToChatNotification(chat_id=chat_id).model_dump_json(),
             )
@@ -174,7 +174,7 @@ class ChatManager:
                 message_in_db = await self.uow.chat_repo.add_message(message)
                 await self.uow.commit()
             channel = channel_code("chat", message.chat_id)
-            await self.event_broker.post_event(
+            await self.event_broker.post_event_str(
                 channel=channel,
                 event=ChatMessageEvent(message=message_in_db).model_dump_json(),
             )
@@ -192,7 +192,7 @@ class ChatManager:
         """
         with process_exceptions():
             try:
-                return await self.event_broker.get_events(
+                return await self.event_broker.get_events_str(
                     user_id=current_user_id, limit=limit
                 )
             except EventBrokerUserNotSubscribedError as exc:
