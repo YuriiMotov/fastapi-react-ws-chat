@@ -62,10 +62,16 @@ class AbstractChatRepo(ABC):
 
     @abstractmethod
     async def get_joined_chat_list(
-        self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
+        self,
+        user_id: uuid.UUID,
+        *,
+        offset: int = 0,
+        limit: int | None = None,
+        chat_id_list: list[uuid.UUID] | None = None,
     ) -> list[ChatExtSchema]:
         """
-        Get the list of chats where user is a member.
+        Get list of joined chats by user.
+        If chat_id_list is not empty list, then filter chats by this list.
 
         Raises:
          - ChatRepoDatabaseError if the database fails

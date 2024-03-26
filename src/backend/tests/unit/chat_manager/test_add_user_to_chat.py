@@ -6,10 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.chat import Chat
-from backend.models.chat_message import ChatNotification
+from backend.models.chat_message import ChatNotification, ChatUserMessage
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.event import UserAddedToChatNotification
+from backend.schemas.event import ChatListUpdate, UserAddedToChatNotification
 from backend.services.chat_manager.chat_manager import (
     USER_JOINED_CHAT_NOTIFICATION,
     ChatManager,
@@ -166,6 +166,50 @@ async def test_add_user_to_chat__user_gets_subscribet_for_chat_updates(
         patched_method.assert_awaited_once_with(
             channel=channel_code("chat", chat_id), user_id=user_id
         )
+
+
+async def test_add_user_to_chat__chat_list_update_event_sent(
+    async_session: AsyncSession,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
+):
+    """
+    After successful execution of add_user_to_chat(), ChatListUpdate event with
+    appropriate chat data is sent to user.
+    """
+    # Create User and Chat, ChatUserMessage, subscribe user for updates
+    chat_owner_id = event_broker_user_id_list[0]
+    user_id = event_broker_user_id_list[1]
+    chat_id = uuid.uuid4()
+    chat = Chat(id=chat_id, title="", owner_id=chat_owner_id)
+    user = User(id=user_id, name="")
+    message = ChatUserMessage(chat_id=chat_id, text="my message", sender_id=user_id)
+    async_session.add_all((user, chat, message))
+    await async_session.commit()
+
+    # Subscribe user to events
+    await chat_manager.subscribe_for_updates(current_user_id=user_id)
+
+    # Call chat_manager.add_user_to_chat()
+    await chat_manager.add_user_to_chat(
+        current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
+    )
+
+    # Receive and acknowledge UserAddedToChatNotification
+    events = await chat_manager.get_events(current_user_id=user_id)
+    assert len(events) == 1
+    assert isinstance(events[0], UserAddedToChatNotification)
+    await chat_manager.acknowledge_events(current_user_id=user_id)
+
+    # Check that added user receives ChatListUpdate event
+    events = await chat_manager.get_events(current_user_id=user_id)
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, ChatListUpdate)
+    if isinstance(event, ChatListUpdate):
+        assert event.chat_data.id == chat_id
+        assert event.chat_data.members_count == 1
+        assert event.chat_data.last_message_text == message.text
 
 
 async def test_add_user_to_chat_wrong_chat_id(

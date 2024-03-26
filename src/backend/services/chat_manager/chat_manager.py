@@ -9,6 +9,7 @@ from backend.schemas.chat_message import (
 )
 from backend.schemas.event import (
     AnyEvent,
+    ChatListUpdate,
     ChatMessageEvent,
     UserAddedToChatNotification,
 )
@@ -229,6 +230,9 @@ class ChatManager:
                     limit=limit,
                 )
 
+    async def acknowledge_events(self, current_user_id: uuid.UUID):
+        await self.event_broker.acknowledge_events(user_id=current_user_id)
+
     async def _process_events_before_send(
         self, events: list[AnyEvent], current_user_id: uuid.UUID
     ):
@@ -242,10 +246,24 @@ class ChatManager:
         with process_exceptions():
             for event in events:
                 if isinstance(event, UserAddedToChatNotification):
-                    # Send chat list update data
-                    ...
                     # Subscribe user for this chat's updates
                     await self.event_broker.subscribe(
                         channel=channel_code("chat", event.chat_id),
                         user_id=current_user_id,
+                    )
+                    # Send chat list update data
+                    async with self.uow:
+                        chats = await self.uow.chat_repo.get_joined_chat_list(
+                            user_id=current_user_id, chat_id_list=[event.chat_id]
+                        )
+                    if len(chats) != 1:
+                        raise RepositoryError(
+                            detail=(
+                                f"get_joined_chat_list({current_user_id}, "
+                                f"{[event.chat_id]}) returned {chats}"
+                            )
+                        )
+                    await self.event_broker.post_event(
+                        channel=channel_code("user", current_user_id),
+                        event=ChatListUpdate(action_type="add", chat_data=chats[0]),
                     )

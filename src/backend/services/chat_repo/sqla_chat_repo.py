@@ -87,13 +87,20 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         return list(res)
 
     async def get_joined_chat_list(
-        self, user_id: uuid.UUID, offset: int = 0, limit: int | None = None
+        self,
+        user_id: uuid.UUID,
+        *,
+        offset: int = 0,
+        limit: int | None = None,
+        chat_id_list: list[uuid.UUID] | None = None,
     ) -> list[ChatExtSchema]:
         chat_ids_st = (
             select(UserChatLink.chat_id)
             .where(UserChatLink.user_id == user_id)
             .offset(offset)
         )
+        if chat_id_list:
+            chat_ids_st = chat_ids_st.where(UserChatLink.chat_id.in_(chat_id_list))
         if limit is not None:
             chat_ids_st = chat_ids_st.limit(limit)
 
