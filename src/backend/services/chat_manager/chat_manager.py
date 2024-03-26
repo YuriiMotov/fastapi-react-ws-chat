@@ -196,9 +196,12 @@ class ChatManager:
         """
         with process_exceptions():
             try:
-                return await self.event_broker.get_events(
+                events = await self.event_broker.get_events(
                     user_id=current_user_id, limit=limit
                 )
+                if events:
+                    await self._process_events_before_send(events, current_user_id)
+                return events
             except EventBrokerUserNotSubscribedError as exc:
                 raise NotSubscribedError(detail=str(exc))
 
@@ -225,3 +228,24 @@ class ChatManager:
                     order_desc=order_desc,
                     limit=limit,
                 )
+
+    async def _process_events_before_send(
+        self, events: list[AnyEvent], current_user_id: uuid.UUID
+    ):
+        """
+        Process events and do some actions triggered by these events.
+
+        Raises:
+         - RepositoryError on repository failure
+         - EventBrokerError on Event broker failure
+        """
+        with process_exceptions():
+            for event in events:
+                if isinstance(event, UserAddedToChatNotification):
+                    # Send chat list update data
+                    ...
+                    # Subscribe user for this chat's updates
+                    await self.event_broker.subscribe(
+                        channel=channel_code("chat", event.chat_id),
+                        user_id=current_user_id,
+                    )

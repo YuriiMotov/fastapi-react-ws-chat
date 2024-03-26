@@ -9,6 +9,7 @@ from backend.models.chat import Chat
 from backend.models.chat_message import ChatNotification
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
+from backend.schemas.event import UserAddedToChatNotification
 from backend.services.chat_manager.chat_manager import (
     USER_JOINED_CHAT_NOTIFICATION,
     ChatManager,
@@ -126,6 +127,45 @@ async def test_add_user_to_chat_notification_posted_to_mb(
     event_json = events[0].model_dump_json()
     assert USER_JOINED_CHAT_NOTIFICATION in event_json
     assert str(user_id) in event_json
+
+
+async def test_add_user_to_chat__user_gets_subscribet_for_chat_updates(
+    async_session: AsyncSession,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
+):
+    """
+    After successful execution of add_user_to_chat(), user is subscribed for chat
+    updates.
+    """
+    # Create User and Chat, subscribe user for updates
+    chat_owner_id = event_broker_user_id_list[0]
+    user_id = event_broker_user_id_list[1]
+    chat_id = uuid.uuid4()
+    chat = Chat(id=chat_id, title="", owner_id=chat_owner_id)
+    user = User(id=user_id, name="")
+    async_session.add_all((user, chat))
+    await async_session.commit()
+
+    # Subscribe user to events
+    await chat_manager.subscribe_for_updates(current_user_id=user_id)
+
+    # Call chat_manager.add_user_to_chat()
+    await chat_manager.add_user_to_chat(
+        current_user_id=chat_owner_id, user_id=user_id, chat_id=chat_id
+    )
+
+    # Check that added user was subscribed for updates
+    with patch.object(InMemoryEventBroker, "subscribe") as patched_method:
+        events = await chat_manager.get_events(current_user_id=user_id)
+        assert len(events) == 1
+        event = events[0]
+        assert isinstance(event, UserAddedToChatNotification)
+        if isinstance(event, UserAddedToChatNotification):
+            assert event.chat_id == chat_id
+        patched_method.assert_awaited_once_with(
+            channel=channel_code("chat", chat_id), user_id=user_id
+        )
 
 
 async def test_add_user_to_chat_wrong_chat_id(
