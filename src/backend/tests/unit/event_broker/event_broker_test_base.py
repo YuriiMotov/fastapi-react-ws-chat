@@ -493,6 +493,56 @@ class EventBrokerTestBase:
             assert len(events_res) == 1
             assert events_res[0].model_dump_json() == event_2.model_dump_json()
 
+    async def test_ack_events__returns_list_of_events_that_were_acknoledged(self):
+        """
+        Post event and receive it.
+        Post one more event.
+        Acknowlege. acknowledge_events() returns list of events, returned by the first
+        call of get_events.
+        """
+        events = [create_chat_event(ChatMessageEvent) for _ in range(3)]
+        event_next = create_chat_event(ChatMessageEvent)
+        user_id = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        async with self.event_broker.session(user_id):
+            # Subscribe user_1 to the channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id)
+
+            # Post events to the channel
+            for event in events:
+                await self._post_message(
+                    routing_key=channel, message=event.model_dump_json()
+                )
+
+            # Check that get_events() returns posted events
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == len(events)
+            assert [ev.model_dump_json() for ev in events_res] == [
+                ev.model_dump_json() for ev in events
+            ]
+
+            # Post event_next to the channel
+            await self._post_message(
+                routing_key=channel, message=event_next.model_dump_json()
+            )
+
+            # Check that second call of get_events() returns empty list
+            events_res = await self.event_broker.get_events(user_id)
+            assert len(events_res) == 0
+
+            # Acknowledge receiving events
+            events_cknowledged = await self.event_broker.acknowledge_events(
+                user_id=user_id
+            )
+
+            # Chack that the list of acknowledged events equals to list of first events
+            # (without event_next)
+            assert len(events_cknowledged) == len(events)
+            assert [ev.model_dump_json() for ev in events_cknowledged] == [
+                ev.model_dump_json() for ev in events
+            ]
+
     async def test_unacknowledged__clear_on_context_exit(self):
         """
         Post event and receive it without acknowledgement.

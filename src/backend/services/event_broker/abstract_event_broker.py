@@ -126,11 +126,14 @@ class AbstractEventBroker(ABC):
             )
         return events_validated
 
-    async def acknowledge_events(self, user_id: uuid.UUID):
+    async def acknowledge_events(self, user_id: uuid.UUID) -> list[AnyEvent]:
         """
         Acknowledge receiving the list of events.
+        Returns list of events that were acknowledged by this call.
         """
+        acknowledged_events = self._unacknowledged_events[user_id.int]
         self._unacknowledged_events[user_id.int] = None
+        return acknowledged_events.sent_events if acknowledged_events else []
 
     @abstractmethod
     async def _post_event_str(self, channel: str, event: str):
