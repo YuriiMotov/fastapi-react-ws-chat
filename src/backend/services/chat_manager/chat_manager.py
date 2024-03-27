@@ -6,6 +6,7 @@ from backend.schemas.chat_message import (
     ChatMessageAny,
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
+    ChatUserMessageSchema,
 )
 from backend.schemas.event import (
     AnyEvent,
@@ -201,7 +202,9 @@ class ChatManager:
                     user_id=current_user_id, limit=limit
                 )
                 if events:
-                    await self._process_events_before_send(events, current_user_id)
+                    await self._process_events_before_send(
+                        current_user_id=current_user_id, events=events
+                    )
                 return events
             except EventBrokerUserNotSubscribedError as exc:
                 raise NotSubscribedError(detail=str(exc))
@@ -231,10 +234,14 @@ class ChatManager:
                 )
 
     async def acknowledge_events(self, current_user_id: uuid.UUID):
-        await self.event_broker.acknowledge_events(user_id=current_user_id)
+        events = await self.event_broker.acknowledge_events(user_id=current_user_id)
+        await self._process_events_after_acknowledgement(
+            current_user_id=current_user_id,
+            events=events,
+        )
 
     async def _process_events_before_send(
-        self, events: list[AnyEvent], current_user_id: uuid.UUID
+        self, current_user_id: uuid.UUID, events: list[AnyEvent]
     ):
         """
         Process events and do some actions triggered by these events.
@@ -267,3 +274,35 @@ class ChatManager:
                         channel=channel_code("user", current_user_id),
                         event=ChatListUpdate(action_type="add", chat_data=chats[0]),
                     )
+
+    async def _process_events_after_acknowledgement(
+        self, current_user_id: uuid.UUID, events: list[AnyEvent]
+    ):
+        """
+        Process acknowledged events and do some actions triggered by these events.
+
+        Raises:
+         - RepositoryError on repository failure
+         - EventBrokerError on Event broker failure
+        """
+        with process_exceptions():
+            user_chat_state_dict: dict[uuid.UUID, dict[str, int]] = {}
+            for event in events:
+                if isinstance(event, ChatMessageEvent):
+                    if isinstance(event.message, ChatUserMessageSchema):
+                        prev = user_chat_state_dict.get(event.message.chat_id)
+                        if prev:
+                            prev["last_delivered"] = max(
+                                prev["last_delivered"], event.message.id
+                            )
+                        else:
+                            user_chat_state_dict[event.message.chat_id] = {
+                                "last_delivered": event.message.id
+                            }
+            if user_chat_state_dict:
+                async with self.uow:
+                    await self.uow.chat_repo.update_user_chat_state_from_dict(
+                        user_id=current_user_id,
+                        user_chat_state_dict=user_chat_state_dict,
+                    )
+                    await self.uow.commit()
