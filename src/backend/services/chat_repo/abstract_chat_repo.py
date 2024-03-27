@@ -9,6 +9,7 @@ from backend.schemas.chat_message import (
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
+from backend.schemas.user_chat_state import UserChatStateSchema
 
 MAX_MESSAGE_COUNT_PER_PAGE: int = 50
 
@@ -127,6 +128,32 @@ class AbstractChatRepo(ABC):
 
         Returns list of pydantic objects, each of those is either ChatUserMessageSchema
         or ChatNotificationSchema objects.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get_user_chat_state(
+        self,
+        user_id: uuid.UUID,
+    ) -> list[UserChatStateSchema]:
+        """
+        Get data about last delivered and last read chat message for specific user.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def update_user_chat_state_from_dict(
+        self, user_id: uuid.UUID, user_chat_state_dict: dict[uuid.UUID, dict[str, int]]
+    ):
+        """
+        Updates data about last delivered and last read chat message, according to the
+        data in the input dict.
 
         Raises:
          - ChatRepoDatabaseError if the database fails

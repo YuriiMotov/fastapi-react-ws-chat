@@ -2,13 +2,14 @@ import uuid
 from contextlib import contextmanager
 
 from pydantic import TypeAdapter
-from sqlalchemy import insert, select
+from sqlalchemy import and_, delete, insert, select
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.chat import Chat, ChatExt
 from backend.models.chat_message import ChatMessage, ChatNotification, ChatUserMessage
 from backend.models.user_chat_link import UserChatLink
+from backend.models.user_chat_state import UserChatState
 from backend.schemas.chat import ChatExtSchema, ChatSchema
 from backend.schemas.chat_message import (
     AnnotatedChatMessageAny,
@@ -18,6 +19,7 @@ from backend.schemas.chat_message import (
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
+from backend.schemas.user_chat_state import UserChatStateSchema
 from backend.services.chat_repo.abstract_chat_repo import (
     MAX_MESSAGE_COUNT_PER_PAGE,
     AbstractChatRepo,
@@ -166,3 +168,31 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
             )
 
             return [message_adapter.validate_python(message) for message in res]
+
+    async def get_user_chat_state(
+        self,
+        user_id: uuid.UUID,
+    ) -> list[UserChatStateSchema]:
+        with sqla_exceptions_to_repo_exc():
+            res = await self._session.scalars(
+                select(UserChatState).where(UserChatState.user_id == user_id)
+            )
+            return [UserChatStateSchema.model_validate(state) for state in res.all()]
+
+    async def update_user_chat_state_from_dict(
+        self, user_id: uuid.UUID, user_chat_state_dict: dict[uuid.UUID, dict[str, int]]
+    ):
+        await self._session.execute(
+            delete(UserChatState).where(
+                and_(
+                    UserChatState.chat_id.in_(user_chat_state_dict.keys()),
+                    UserChatState.user_id == user_id,
+                )
+            )
+        )
+        insert_data = [
+            {"chat_id": chat_id, "user_id": user_id, **state_item}
+            for (chat_id, state_item) in user_chat_state_dict.items()
+        ]
+        with sqla_exceptions_to_repo_exc():
+            await self._session.execute(insert(UserChatState), insert_data)

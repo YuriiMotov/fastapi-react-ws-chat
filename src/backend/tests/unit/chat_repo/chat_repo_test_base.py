@@ -1,3 +1,4 @@
+import random
 import uuid
 
 import pytest
@@ -527,6 +528,76 @@ class ChatRepoTestBase:
         message_ids_res = [msg.id for msg in messages_res]
         assert len(expected_ids) == len(message_ids_res)
         assert message_ids_res == expected_ids
+
+    async def test_user_chat_state_update__all_new(self):
+        """
+        update_user_chat_state_from_dict() updates chat status data for specific user
+        according to the input dict.
+
+        No any records exist in the DB for this user.
+        Input dict contains items with different set of fields.
+        """
+        user_id = uuid.uuid4()
+        user_chat_state_dict = {
+            uuid.uuid4(): {"last_delivered": random.randint(1, 100)},
+            uuid.uuid4(): {"last_read": random.randint(1, 100)},
+            uuid.uuid4(): {
+                "last_delivered": random.randint(1, 100),
+                "last_read": random.randint(1, 100),
+            },
+        }
+        expected_data_set = {
+            (chat_id, state.get("last_delivered", 0), state.get("last_read", 0))
+            for chat_id, state in user_chat_state_dict.items()
+        }
+        await self.repo.update_user_chat_state_from_dict(user_id, user_chat_state_dict)
+
+        user_chat_state_data = await self.repo.get_user_chat_state(user_id)
+        real_data_set = {
+            (state.chat_id, state.last_delivered, state.last_read)
+            for state in user_chat_state_data
+        }
+
+        assert len(real_data_set) == len(expected_data_set)
+        assert real_data_set == expected_data_set, real_data_set
+
+    async def test_user_chat_state_update__all_existed(self):
+        """
+        update_user_chat_state_from_dict() updates chat status data for specific user
+        according to the input dict.
+
+        All the records already exist in the DB for this user.
+        """
+        user_id = uuid.uuid4()
+        await self.repo.update_user_chat_state_from_dict(
+            user_id,
+            {
+                uuid.uuid4(): {"last_delivered": 4, "last_read": 1},
+                uuid.uuid4(): {"last_delivered": 5, "last_read": 2},
+                uuid.uuid4(): {"last_delivered": 6, "last_read": 3},
+            },
+        )
+        user_chat_state_data_prev = await self.repo.get_user_chat_state(user_id)
+        user_chat_state_dict = {
+            state.chat_id: {
+                "last_delivered": state.last_delivered + 1,
+                "last_read": state.last_read + 1,
+            }
+            for state in user_chat_state_data_prev
+        }
+        expected_data_set = {
+            (chat_id, state["last_delivered"], state["last_read"])
+            for chat_id, state in user_chat_state_dict.items()
+        }
+        await self.repo.update_user_chat_state_from_dict(user_id, user_chat_state_dict)
+
+        user_chat_state_data = await self.repo.get_user_chat_state(user_id)
+        real_data_set = {
+            (state.chat_id, state.last_delivered, state.last_read)
+            for state in user_chat_state_data
+        }
+        assert len(real_data_set) == len(expected_data_set)
+        assert real_data_set == expected_data_set
 
     # ---------------------------------------------------------------------------------
     # Methods below should be implemented in the descendant class
