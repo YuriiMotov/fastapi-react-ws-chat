@@ -180,6 +180,68 @@ class ChatRepoTestBase:
             await self.repo.add_message(message)
 
     # ---------------------------------------------------------------------------------
+    # Tests for edit_message() method
+
+    async def test_edit_message__success(self):
+        """
+        add_message() edits message record in the DB and returns edited message.
+        """
+        # Prepare data
+        chat_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        message = ChatUserMessageCreateSchema(
+            chat_id=chat_id, text="my message", sender_id=user_id
+        )
+        message_in_db = await self.repo.add_message(message)
+
+        # Check that method returned edited message's data
+        new_text = "my edited message text"
+        message_edited = await self.repo.edit_message(
+            message_id=message_in_db.id, sender_id_filter=user_id, text=new_text
+        )
+
+        assert message_edited.id == message_in_db.id
+        assert message_edited.sender_id == user_id
+        assert message_edited.text == new_text
+
+    async def test_edit_message__bad_request_on_wrong_message_id(self):
+        """
+        add_message() raises ChatRepoRequestError if there is no message with message_id
+        """
+        user_id = uuid.uuid4()
+        message_id = random.randint(1, 100000)
+
+        # Check that method raises exception
+        new_text = "my edited message text"
+        with pytest.raises(ChatRepoRequestError, match="doesnt exist"):
+            await self.repo.edit_message(
+                message_id=message_id, sender_id_filter=user_id, text=new_text
+            )
+
+    async def test_edit_message__bad_request_on_wrong_sender_id(self):
+        """
+        add_message() raises ChatRepoRequestError if sender_id of message is different
+        from sender_id_filter
+        """
+        # Prepare data
+        chat_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        another_user_id = uuid.uuid4()
+        message = ChatUserMessageCreateSchema(
+            chat_id=chat_id, text="my message", sender_id=user_id
+        )
+        message_in_db = await self.repo.add_message(message)
+
+        # Check that method raises exception
+        new_text = "my edited message text"
+        with pytest.raises(ChatRepoRequestError, match="Wrong sender_id for message"):
+            await self.repo.edit_message(
+                message_id=message_in_db.id,
+                sender_id_filter=another_user_id,
+                text=new_text,
+            )
+
+    # ---------------------------------------------------------------------------------
     # Tests for add_notification() method
 
     async def test_add_notification(self):

@@ -103,6 +103,19 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    async def edit_message(
+        self, message_id: int, sender_id_filter: uuid.UUID, text: str
+    ) -> ChatUserMessageSchema:
+        """
+        Edit text of the message with id=message_id and sender_id=sender_id_filter.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+         - ChatRepoRequestError if there is no message with such id and sender_id
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     async def add_notification(
         self, notification: ChatNotificationCreateSchema
     ) -> ChatNotificationSchema:
