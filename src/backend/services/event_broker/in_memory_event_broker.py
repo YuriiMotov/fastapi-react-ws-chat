@@ -6,6 +6,7 @@ from typing import AsyncIterator
 from backend.services.event_broker.abstract_event_broker import (
     USE_CONTEXT_ERROR,
     AbstractEventBroker,
+    handle_exceptions,
 )
 
 MAX_DEQUE_SIZE = 1000
@@ -46,18 +47,20 @@ class InMemoryEventBroker(AbstractEventBroker):
                 channel_subscribers.remove(user_id_str)
 
     async def subscribe(self, channel: str, user_id: uuid.UUID):
-        cls = InMemoryEventBroker
-        user_id_str = str(user_id)
-        assert user_id_str in cls._subscribers, USE_CONTEXT_ERROR
-        channel_subscribers = cls._subscribtions[channel]
-        channel_subscribers.add(user_id_str)
+        with handle_exceptions():
+            cls = InMemoryEventBroker
+            user_id_str = str(user_id)
+            assert user_id_str in cls._subscribers, USE_CONTEXT_ERROR
+            channel_subscribers = cls._subscribtions[channel]
+            channel_subscribers.add(user_id_str)
 
     async def subscribe_list(self, channels: list[str], user_id: uuid.UUID):
-        cls = InMemoryEventBroker
-        user_id_str = str(user_id)
-        assert user_id_str in cls._subscribers, USE_CONTEXT_ERROR
-        for channel in channels:
-            cls._subscribtions[channel].add(user_id_str)
+        with handle_exceptions():
+            cls = InMemoryEventBroker
+            user_id_str = str(user_id)
+            assert user_id_str in cls._subscribers, USE_CONTEXT_ERROR
+            for channel in channels:
+                cls._subscribtions[channel].add(user_id_str)
 
     async def _get_events_str(
         self, user_id: uuid.UUID, limit: int | None = None

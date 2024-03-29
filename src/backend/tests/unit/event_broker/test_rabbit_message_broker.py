@@ -1,3 +1,7 @@
+from contextlib import asynccontextmanager
+from typing import cast
+from unittest.mock import Mock
+
 import aio_pika
 import pytest
 
@@ -37,3 +41,11 @@ class TestRabbitEventBroker(EventBrokerTestBase):
 
     async def _post_message(self, routing_key: str, message: str):
         await self._exchange.publish(aio_pika.Message(message.encode()), routing_key)
+
+    @asynccontextmanager
+    async def _brake_event_broker_derrived(self, exception: Exception):
+        event_broker = cast(RabbitEventBroker, self.event_broker)
+        for user_id_int in event_broker._con_data.keys():
+            event_broker._con_data[user_id_int] = Mock(side_effect=exception)
+        event_broker._common_exchange = Mock(side_effect=exception)
+        yield

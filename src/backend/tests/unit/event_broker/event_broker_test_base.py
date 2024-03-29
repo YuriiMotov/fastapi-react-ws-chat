@@ -1,5 +1,7 @@
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -11,6 +13,10 @@ from backend.schemas.event import (
 )
 from backend.services.chat_manager.utils import channel_code
 from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
+from backend.services.event_broker.event_broker_exc import (
+    EventBrokerException,
+    EventBrokerFail,
+)
 from backend.tests.unit.event_broker.helpers import create_chat_event
 
 
@@ -583,7 +589,171 @@ class EventBrokerTestBase:
             assert len(events_res) == 1
             assert events_res[0].model_dump_json() == event_2.model_dump_json()
 
+    # Error handling
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_get_events__failure_on_get_events_str_exception(
+        self, exception_raise: Exception
+    ):
+        """
+        get_events() raises EventBrokerFail on any error in _get_events_str()
+        """
+        user_id_1 = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+
+        async with self.event_broker.session(user_id_1):
+            # Subcribe user_1 to channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id_1)
+
+            with patch.object(
+                self.event_broker.__class__,
+                "_get_events_str",
+                new=Mock(side_effect=exception_raise),
+            ):
+                with pytest.raises(EventBrokerFail):
+                    await self.event_broker.get_events(user_id_1)
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_get_events__failure_on_other_exceptions(
+        self, exception_raise: Exception
+    ):
+        """
+        get_events() raises EventBrokerFail on any error outside in _get_events_str()
+        """
+        user_id_1 = uuid.uuid4()
+
+        async with self._brake_event_broker(exception_raise):
+            with pytest.raises(EventBrokerFail):
+                await self.event_broker.get_events(user_id_1)
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_post_event__failure_on_post_event_str_exception(
+        self, exception_raise: Exception
+    ):
+        """
+        post_event() raises EventBrokerFail on any error in _post_event_str()
+        """
+        user_id_1 = uuid.uuid4()
+        channel = channel_code("chat", uuid.uuid4())
+        event = create_chat_event(ChatMessageEvent)
+
+        async with self.event_broker.session(user_id_1):
+            # Subcribe user_1 to channel
+            await self.event_broker.subscribe(channel=channel, user_id=user_id_1)
+
+            with patch.object(
+                self.event_broker.__class__,
+                "_post_event_str",
+                new=Mock(side_effect=exception_raise),
+            ):
+                with pytest.raises(EventBrokerFail):
+                    await self.event_broker.post_event(channel=channel, event=event)
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_post_event__failure_on_other_exceptions(
+        self, exception_raise: Exception
+    ):
+        """
+        post_event() raises EventBrokerFail on any error outside _post_event_str()
+        """
+        channel = channel_code("chat", uuid.uuid4())
+        event = create_chat_event(ChatMessageEvent)
+
+        async with self._brake_event_broker(exception_raise):
+            with pytest.raises(EventBrokerFail):
+                await self.event_broker.post_event(channel=channel, event=event)
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_session__failure(self, exception_raise: Exception):
+        """
+        session() raises EventBrokerFail on any error in _session()
+        """
+        user_id_1 = uuid.uuid4()
+        with patch.object(
+            self.event_broker.__class__,
+            "_session",
+            new=Mock(side_effect=exception_raise),
+        ):
+            with pytest.raises(EventBrokerFail):
+                async with self.event_broker.session(user_id_1):
+                    pass
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_subscribe__failure(self, exception_raise: Exception):
+        """
+        subscribe() raises EventBrokerFail on any error in it
+        """
+        user_id_1 = uuid.uuid4()
+
+        # Brake event_broker so that it will always raise errors
+        async with self._brake_event_broker(exception_raise):
+            with pytest.raises(EventBrokerFail):
+                await self.event_broker.subscribe("channel_1", user_id_1)
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_subscribe_list__failure(self, exception_raise: Exception):
+        """
+        subscribe_list() raises EventBrokerFail on any error in it
+        """
+        user_id_1 = uuid.uuid4()
+
+        # Brake event_broker so that it will always raise errors
+        async with self._brake_event_broker(exception_raise):
+            with pytest.raises(EventBrokerFail):
+                await self.event_broker.subscribe_list(
+                    ["channel_1", "channel_2"], user_id_1
+                )
+
+    @pytest.mark.parametrize(
+        "exception_raise",
+        (Exception(), EventBrokerFail("-"), EventBrokerException("-")),
+    )
+    async def test_acknowledge_events__failure(self, exception_raise: Exception):
+        """
+        acknowledge_events() raises EventBrokerFail on any error in it
+        """
+        user_id_1 = uuid.uuid4()
+
+        # Brake event_broker so that it will always raise errors
+        async with self._brake_event_broker(exception_raise):
+            with pytest.raises(EventBrokerFail):
+                await self.event_broker.acknowledge_events(user_id_1)
+
+    # Utils
+
+    @asynccontextmanager
+    async def _brake_event_broker(self, exception: Exception):
+        self.event_broker._unacknowledged_events = Mock(side_effect=exception)
+        async with self._brake_event_broker_derrived(exception):
+            yield
+
     # Methods below should be implemented in the descendant class
 
     async def _post_message(self, routing_key: str, message: str):
         raise NotImplementedError
+
+    @asynccontextmanager
+    async def _brake_event_broker_derrived(self, exception: Exception):
+        raise NotImplementedError
+        yield

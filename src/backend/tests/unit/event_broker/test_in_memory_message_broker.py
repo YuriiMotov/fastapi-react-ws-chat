@@ -1,4 +1,6 @@
 import uuid
+from contextlib import asynccontextmanager
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -23,3 +25,18 @@ class TestInMemoryEventBroker(EventBrokerTestBase):
         uid = uuid.uuid4()
         async with self.event_broker.session(uid):
             await self.event_broker._post_event_str(channel=routing_key, event=message)
+
+    @asynccontextmanager
+    async def _brake_event_broker_derrived(self, exception: Exception):
+        with (
+            patch.object(
+                InMemoryEventBroker, "_event_queue", new=Mock(side_effect=exception)
+            ),
+            patch.object(
+                InMemoryEventBroker, "_subscribers", new=Mock(side_effect=exception)
+            ),
+            patch.object(
+                InMemoryEventBroker, "_subscribtions", new=Mock(side_effect=exception)
+            ),
+        ):
+            yield

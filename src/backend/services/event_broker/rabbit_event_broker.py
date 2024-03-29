@@ -14,6 +14,7 @@ from aio_pika.abc import (
 from backend.services.event_broker.abstract_event_broker import (
     USE_CONTEXT_ERROR,
     AbstractEventBroker,
+    handle_exceptions,
 )
 
 USE_AINIT_ERROR = (
@@ -63,16 +64,18 @@ class RabbitEventBroker(AbstractEventBroker):
             self._con_data.pop(user_id_int)
 
     async def subscribe(self, channel: str, user_id: uuid.UUID):
-        con_data = self._con_data.get(user_id.int)
-        assert con_data is not None, USE_CONTEXT_ERROR
-        routing_key = channel
-        await con_data.queue.bind(con_data.exchange, routing_key)
+        with handle_exceptions():
+            con_data = self._con_data.get(user_id.int)
+            assert con_data is not None, USE_CONTEXT_ERROR
+            routing_key = channel
+            await con_data.queue.bind(con_data.exchange, routing_key)
 
     async def subscribe_list(self, channels: list[str], user_id: uuid.UUID):
-        con_data = self._con_data.get(user_id.int)
-        assert con_data is not None, USE_CONTEXT_ERROR
-        for routing_key in channels:
-            await con_data.queue.bind(con_data.exchange, routing_key)
+        with handle_exceptions():
+            con_data = self._con_data.get(user_id.int)
+            assert con_data is not None, USE_CONTEXT_ERROR
+            for routing_key in channels:
+                await con_data.queue.bind(con_data.exchange, routing_key)
 
     async def _get_events_str(
         self, user_id: uuid.UUID, limit: int | None = None
