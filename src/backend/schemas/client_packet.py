@@ -8,7 +8,11 @@ from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from .base import BaseSchema
 
 ClientPacketData: TypeAlias = Union[
-    "CMDGetJoinedChats", "CMDAddUserToChat", "CMDSendMessage", "CMDGetMessages"
+    "CMDGetJoinedChats",
+    "CMDAddUserToChat",
+    "CMDSendMessage",
+    "CMDGetMessages",
+    "CMDEditMessage",
 ]
 
 
@@ -43,3 +47,9 @@ class CMDGetMessages(BaseSchema):
     start_id: int | None = None
     order_desc: bool | None = None
     limit: int | None = None
+
+
+class CMDEditMessage(BaseSchema):
+    packet_type: Literal["CMDEditMessage"] = "CMDEditMessage"
+    message_id: int
+    text: str

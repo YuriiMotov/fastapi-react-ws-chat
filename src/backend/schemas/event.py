@@ -4,7 +4,7 @@ from typing import Annotated, Literal, TypeAlias, Union
 from pydantic import Field
 
 from backend.schemas.chat import ChatExtSchema
-from backend.schemas.chat_message import ChatMessageAny
+from backend.schemas.chat_message import ChatMessageAny, ChatUserMessageSchema
 
 from .base import BaseSchema
 
@@ -25,10 +25,15 @@ class ChatListUpdate(BaseSchema):
     chat_data: ChatExtSchema
 
 
+class ChatMessageEdited(BaseSchema):
+    event_type: Literal["ChatMessageEdited"] = "ChatMessageEdited"
+    message: ChatUserMessageSchema
+
+
 # Discriminated union type
 
 AnyEvent: TypeAlias = Union[
-    ChatMessageEvent, UserAddedToChatNotification, ChatListUpdate
+    ChatMessageEvent, UserAddedToChatNotification, ChatListUpdate, ChatMessageEdited
 ]
 
 AnyEventDiscr: TypeAlias = Annotated[

@@ -11,6 +11,7 @@ from backend.schemas.chat_message import (
 from backend.schemas.event import (
     AnyEvent,
     ChatListUpdate,
+    ChatMessageEdited,
     ChatMessageEvent,
     UserAddedToChatNotification,
 )
@@ -185,6 +186,29 @@ class ChatManager:
                 event=ChatMessageEvent(message=message_in_db),
             )
 
+    async def edit_message(
+        self, current_user_id: uuid.UUID, message_id: int, text: str
+    ):
+        """
+        Edit message with specified id and sender_id.
+        Initiates a chat Event to send edited message to all chat users
+
+        Raises:
+         - RepositoryError on repository failure
+         - EventBrokerError on Event broker failure
+
+        """
+        with process_exceptions():
+            async with self.uow:
+                message = await self.uow.chat_repo.edit_message(
+                    message_id=message_id, sender_id_filter=current_user_id, text=text
+                )
+                await self.event_broker.post_event(
+                    channel=channel_code("chat", message.chat_id),
+                    event=ChatMessageEdited(message=message),
+                )
+                await self.uow.commit()
+
     async def get_events(
         self, current_user_id: uuid.UUID, limit: int = 20
     ) -> list[AnyEvent]:
@@ -195,6 +219,7 @@ class ChatManager:
          - UserNotSubscribedMBE(EventBrokerException) if user is not subscribed.
          - RepositoryError on repository failure
          - EventBrokerError on Event broker failure
+         - BadRequest on wrong message id or sender_id
         """
         with process_exceptions():
             try:
