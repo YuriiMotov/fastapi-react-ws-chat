@@ -241,6 +241,27 @@ class ChatRepoTestBase:
                 text=new_text,
             )
 
+    async def test_edit_message_database_failure(self):
+        """
+        edit_message() raises ChatRepoDatabaseError in case of DB failure.
+        """
+        # Prepare data
+        chat_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        message = ChatUserMessageCreateSchema(
+            chat_id=chat_id, text="my message", sender_id=user_id
+        )
+        message_in_db = await self.repo.add_message(message)
+
+        # Mock DB connection to make it always return error
+        await self._break_connection()
+
+        # Attempt to edit message with no DB connection
+        with pytest.raises(ChatRepoDatabaseError):
+            await self.repo.edit_message(
+                message_id=message_in_db.id, sender_id_filter=user_id, text="new text"
+            )
+
     # ---------------------------------------------------------------------------------
     # Tests for add_notification() method
 
