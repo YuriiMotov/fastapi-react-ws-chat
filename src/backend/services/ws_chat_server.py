@@ -6,6 +6,7 @@ from fastapi import WebSocket
 from backend.schemas.client_packet import (  # CMDEditMessage,
     ClientPacket,
     CMDAddUserToChat,
+    CMDEditMessage,
     CMDGetJoinedChats,
     CMDGetMessages,
     CMDSendMessage,
@@ -53,13 +54,13 @@ async def _process_ws_client_request_packet(
             )
             messages_str_encoded = [msg.model_dump_json() for msg in messages]
             response_data = SrvRespGetMessages(messages=messages_str_encoded)
-        # elif isinstance(packet.data, CMDEditMessage):
-        #     await chat_manager.edit_message(
-        #         current_user_id=current_user_id,
-        #         message_id=packet.data.message_id,
-        #         text=packet.data.text
-        #     )
-        #     response_data = SrvRespSucessNoBody()
+        elif isinstance(packet.data, CMDEditMessage):
+            await chat_manager.edit_message(
+                current_user_id=current_user_id,
+                message_id=packet.data.message_id,
+                text=packet.data.text,
+            )
+            response_data = SrvRespSucessNoBody()
     except ChatManagerException as exc:
         response_data = SrvRespError(error_data=exc)
 

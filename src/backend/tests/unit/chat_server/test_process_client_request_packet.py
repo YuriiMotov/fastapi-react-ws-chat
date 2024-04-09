@@ -1,6 +1,8 @@
 import random
 import uuid
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +16,10 @@ from backend.schemas.chat_message import (
     ChatUserMessageSchema,
 )
 from backend.services.chat_manager.chat_manager import ChatManager
+from backend.services.chat_manager.chat_manager_exc import (
+    EventBrokerError,
+    RepositoryError,
+)
 from backend.services.ws_chat_server import _process_ws_client_request_packet
 
 
@@ -149,3 +155,57 @@ async def test_process_ws_client_request_send_message(
     )
     assert message_in_db is not None
     assert isinstance(message_in_db, ChatUserMessage)
+
+
+async def test_process_ws_client_request__edit_message__success(
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
+):
+    user_id = event_broker_user_id_list[0]
+    current_user_id = user_id
+    message_id = random.randint(1, 1000000)
+    new_text = "new text"
+
+    request = cli_p.ClientPacket(
+        id=random.randint(1, 10000),
+        data=cli_p.CMDEditMessage(message_id=message_id, text=new_text),
+    )
+
+    with patch.object(chat_manager, "edit_message") as patched:
+        response = await _process_ws_client_request_packet(
+            chat_manager=chat_manager, packet=request, current_user_id=current_user_id
+        )
+        patched.assert_awaited_once_with(
+            current_user_id=current_user_id, message_id=message_id, text=new_text
+        )
+
+    assert isinstance(response.data, srv_p.SrvRespSucessNoBody) is True
+
+
+@pytest.mark.parametrize("exception", (RepositoryError("-"), EventBrokerError("-")))
+async def test_process_ws_client_request__edit_message__failure(
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
+    exception: Exception,
+):
+    user_id = event_broker_user_id_list[0]
+    current_user_id = user_id
+    message_id = random.randint(1, 1000000)
+    new_text = "new text"
+
+    request = cli_p.ClientPacket(
+        id=random.randint(1, 10000),
+        data=cli_p.CMDEditMessage(message_id=message_id, text=new_text),
+    )
+
+    with patch.object(
+        chat_manager, "edit_message", new=AsyncMock(side_effect=exception)
+    ) as patched:
+        response = await _process_ws_client_request_packet(
+            chat_manager=chat_manager, packet=request, current_user_id=current_user_id
+        )
+        patched.assert_awaited_once_with(
+            current_user_id=current_user_id, message_id=message_id, text=new_text
+        )
+
+    assert isinstance(response.data, srv_p.SrvRespError) is True
