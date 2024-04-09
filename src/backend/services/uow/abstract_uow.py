@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 from backend.services.chat_repo.abstract_chat_repo import AbstractChatRepo
 
+USE_AS_CONTEXT_MANAGER_ERROR = "UoW should be used as a context manager"
+
 
 class AbstractUnitOfWork(ABC):
     chat_repo: AbstractChatRepo

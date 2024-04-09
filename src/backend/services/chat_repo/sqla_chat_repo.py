@@ -143,7 +143,6 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
                     detail=f"Wrong sender_id for message with id={id}"
                 )
             message.text = text
-            await self._session.commit()
             return ChatUserMessageSchema.model_validate(message)
 
     async def add_notification(
