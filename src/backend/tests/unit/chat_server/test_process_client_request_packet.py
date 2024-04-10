@@ -22,6 +22,9 @@ from backend.services.chat_manager.chat_manager_exc import (
 )
 from backend.services.ws_chat_server import _process_ws_client_request_packet
 
+# ---------------------------------------------------------------------------------
+# CMDGetJoinedChats
+
 
 async def test_process_ws_client_request_get_joined_chats(
     chat_manager: ChatManager, async_session: AsyncSession
@@ -50,6 +53,10 @@ async def test_process_ws_client_request_get_joined_chats(
         assert len(response.data.chats) == len(chat_ids)
         for chat in response.data.chats:
             assert chat.id in chat_ids
+
+
+# ---------------------------------------------------------------------------------
+# CMDAddUserToChat
 
 
 async def test_process_ws_client_request_add_user_to_chat(
@@ -82,6 +89,10 @@ async def test_process_ws_client_request_add_user_to_chat(
     )
     assert user_chat_link is not None
     assert isinstance(user_chat_link, UserChatLink)
+
+
+# ---------------------------------------------------------------------------------
+# CMDGetMessages
 
 
 async def test_process_ws_client_request_get_messages(
@@ -121,6 +132,10 @@ async def test_process_ws_client_request_get_messages(
     for resp_msg in resp_messages:
         resp_msg_obj = ChatUserMessageSchema.model_validate_json(resp_msg)
         assert resp_msg_obj.text in expected_message_texts
+
+
+# ---------------------------------------------------------------------------------
+# CMDSendMessage
 
 
 async def test_process_ws_client_request_send_message(
