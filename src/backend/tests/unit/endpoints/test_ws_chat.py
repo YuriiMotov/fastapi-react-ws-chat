@@ -9,6 +9,7 @@ from starlette.testclient import TestClient, WebSocketTestSession
 
 from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
+from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.schemas.chat_message import (
     ChatUserMessageCreateSchema,
@@ -315,14 +316,17 @@ async def test_ws_chat_get_messages__success(
 ):
     current_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    # Create messages
+    # Create user, chat, user-chat link, messages
     messages = [
         ChatUserMessage(
             chat_id=chat_id, text=f"message {uuid.uuid4()}", sender_id=current_user_id
         )
         for _ in range(3)
     ]
-    async_session.add_all(messages)
+    user = User(id=current_user_id, name="user")
+    chat = Chat(id=chat_id, title="chat", owner_id=current_user_id)
+    user_chat = UserChatLink(user_id=current_user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat, *messages))
     await async_session.commit()
 
     expected_messages = list(reversed(messages))
@@ -342,9 +346,17 @@ async def test_ws_chat_get_messages__success(
             assert msg_obj.text == expected_messages[i].text
 
 
-async def test_ws_chat_get_messages__success_empty_list(client: TestClient):
+async def test_ws_chat_get_messages__success_empty_list(
+    client: TestClient, async_session: AsyncSession
+):
     current_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
+    # Create user, chat, user-chat link
+    user = User(id=current_user_id, name="user")
+    chat = Chat(id=chat_id, title="chat", owner_id=current_user_id)
+    user_chat = UserChatLink(user_id=current_user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat))
+    await async_session.commit()
 
     cmd = CMDGetMessages(chat_id=chat_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
@@ -357,9 +369,18 @@ async def test_ws_chat_get_messages__success_empty_list(client: TestClient):
         assert len(srv_packet.data.messages) == 0
 
 
-def test_ws_chat_get_messages__error(client: TestClient):
+async def test_ws_chat_get_messages__error(
+    client: TestClient, async_session: AsyncSession
+):
     current_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
+    # Create user, chat, user-chat link
+    user = User(id=current_user_id, name="user")
+    chat = Chat(id=chat_id, title="chat", owner_id=current_user_id)
+    user_chat = UserChatLink(user_id=current_user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat))
+    await async_session.commit()
+
     cmd = CMDGetMessages(chat_id=chat_id)
     client_packet = ClientPacket(id=random.randint(1, 1000), data=cmd)
     raise_error = RepositoryError(detail="repo error")

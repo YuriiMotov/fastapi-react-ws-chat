@@ -56,11 +56,10 @@ class AbstractEventBroker(ABC):
         Raises:
          - EventBrokerFail in case of Event broker failure
         """
-        with handle_exceptions():
-            async with self._session(user_id=user_id):
-                self._unacknowledged_events[user_id.int] = None
-                yield
-                self._unacknowledged_events[user_id.int] = None
+        async with self._session(user_id=user_id):
+            self._unacknowledged_events[user_id.int] = None
+            yield
+            self._unacknowledged_events[user_id.int] = None
 
     @abstractmethod
     @asynccontextmanager

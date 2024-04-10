@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
+from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.schemas import client_packet as cli_p
 from backend.schemas import server_packet as srv_p
@@ -110,10 +111,10 @@ async def test_process_ws_client_request_get_messages(
                 chat_id=chat_id, text=f"msg {uuid.uuid4()}", sender_id=another_user_id
             )
         )
-
-    async_session.add(Chat(id=chat_id, title="my chat", owner_id=current_user_id))
-    async_session.add_all(messages)
-
+    user = User(id=user_id, name="user")
+    chat = Chat(id=chat_id, title="my chat", owner_id=current_user_id)
+    user_chat = UserChatLink(user_id=user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat, *messages))
     await async_session.commit()
 
     request = cli_p.ClientPacket(

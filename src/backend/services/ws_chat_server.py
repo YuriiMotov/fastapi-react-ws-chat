@@ -51,7 +51,8 @@ async def _process_ws_client_request_packet(
             response_data = SrvRespSucessNoBody()
         elif isinstance(packet.data, CMDGetMessages):
             messages = await chat_manager.get_message_list(
-                **packet.data.model_dump(exclude_none=True, exclude={"packet_type"})
+                **packet.data.model_dump(exclude_none=True, exclude={"packet_type"}),
+                current_user_id=current_user_id,
             )
             messages_str_encoded = [msg.model_dump_json() for msg in messages]
             response_data = SrvRespGetMessages(messages=messages_str_encoded)

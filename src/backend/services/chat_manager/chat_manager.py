@@ -236,6 +236,7 @@ class ChatManager:
 
     async def get_message_list(
         self,
+        current_user_id: uuid.UUID,
         chat_id: uuid.UUID,
         start_id: int = -1,
         order_desc: bool = True,
@@ -246,11 +247,21 @@ class ChatManager:
         Note: message with id=start_id is not included int the results.
 
         Raises:
+         - UnauthorizedAction if current user is not a member of that chat
          - RepositoryError on repository failure
         """
 
         with process_exceptions():
             async with self.uow:
+                user_chats = await self.uow.chat_repo.get_joined_chat_ids(
+                    user_id=current_user_id
+                )  # TODO: Add user_chats caching
+                if chat_id not in user_chats:
+                    raise UnauthorizedAction(
+                        detail=(
+                            f"User {current_user_id} is not a member of chat {chat_id}"
+                        )
+                    )
                 return await self.uow.chat_repo.get_message_list(
                     chat_id=chat_id,
                     start_id=start_id,

@@ -30,21 +30,23 @@ class InMemoryEventBroker(AbstractEventBroker):
 
     @asynccontextmanager
     async def _session(self, user_id: uuid.UUID) -> AsyncIterator[None]:
-        cls = InMemoryEventBroker
-        user_id_str = str(user_id)
-        assert (
-            user_id_str not in cls._subscribers
-        ), f"session already exists for user {user_id_str}"
-        cls._event_queue[user_id_str] = deque()
-        cls._subscribers.add(user_id_str)
+        with handle_exceptions():
+            cls = InMemoryEventBroker
+            user_id_str = str(user_id)
+            assert (
+                user_id_str not in cls._subscribers
+            ), f"session already exists for user {user_id_str}"
+            cls._event_queue[user_id_str] = deque()
+            cls._subscribers.add(user_id_str)
         yield
-        if user_id_str in cls._event_queue:
-            cls._event_queue.pop(user_id_str)
-        if user_id_str in cls._subscribers:
-            cls._subscribers.remove(user_id_str)
-        for channel_subscribers in cls._subscribtions.values():
-            if user_id_str in channel_subscribers:
-                channel_subscribers.remove(user_id_str)
+        with handle_exceptions():
+            if user_id_str in cls._event_queue:
+                cls._event_queue.pop(user_id_str)
+            if user_id_str in cls._subscribers:
+                cls._subscribers.remove(user_id_str)
+            for channel_subscribers in cls._subscribtions.values():
+                if user_id_str in channel_subscribers:
+                    channel_subscribers.remove(user_id_str)
 
     async def subscribe(self, channel: str, user_id: uuid.UUID):
         with handle_exceptions():

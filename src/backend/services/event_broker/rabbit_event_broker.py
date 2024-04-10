@@ -47,21 +47,23 @@ class RabbitEventBroker(AbstractEventBroker):
 
     @asynccontextmanager
     async def _session(self, user_id: uuid.UUID) -> AsyncIterator[None]:
-        user_id_int = user_id.int
-        con_data = self._con_data.get(user_id_int)
-        assert con_data is None, f"session already exists for user {user_id_int}"
-        channel = await self._connection.channel()
-        exchange = await channel.declare_exchange("direct", auto_delete=True)
-        queue = await channel.declare_queue(name="", exclusive=True)
-        con_data = UserConData(channel=channel, exchange=exchange, queue=queue)
-        self._con_data[user_id.int] = con_data
+        with handle_exceptions():
+            user_id_int = user_id.int
+            con_data = self._con_data.get(user_id_int)
+            assert con_data is None, f"session already exists for user {user_id_int}"
+            channel = await self._connection.channel()
+            exchange = await channel.declare_exchange("direct", auto_delete=True)
+            queue = await channel.declare_queue(name="", exclusive=True)
+            con_data = UserConData(channel=channel, exchange=exchange, queue=queue)
+            self._con_data[user_id.int] = con_data
         yield
-        assert self._con_data.get(
-            user_id_int
-        ), f"con data doesn't exists for user {user_id}"
-        await self._con_data[user_id_int].channel.close()
-        if self._con_data.get(user_id_int):
-            self._con_data.pop(user_id_int)
+        with handle_exceptions():
+            assert self._con_data.get(
+                user_id_int
+            ), f"con data doesn't exists for user {user_id}"
+            await self._con_data[user_id_int].channel.close()
+            if self._con_data.get(user_id_int):
+                self._con_data.pop(user_id_int)
 
     async def subscribe(self, channel: str, user_id: uuid.UUID):
         with handle_exceptions():
