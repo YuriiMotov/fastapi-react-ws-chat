@@ -5,6 +5,7 @@ from fastapi import WebSocket
 
 from backend.schemas.client_packet import (  # CMDEditMessage,
     ClientPacket,
+    CMDAcknowledgeEvents,
     CMDAddUserToChat,
     CMDEditMessage,
     CMDGetJoinedChats,
@@ -60,6 +61,9 @@ async def _process_ws_client_request_packet(
                 message_id=packet.data.message_id,
                 text=packet.data.text,
             )
+            response_data = SrvRespSucessNoBody()
+        elif isinstance(packet.data, CMDAcknowledgeEvents):
+            await chat_manager.acknowledge_events(current_user_id=current_user_id)
             response_data = SrvRespSucessNoBody()
     except ChatManagerException as exc:
         response_data = SrvRespError(error_data=exc)

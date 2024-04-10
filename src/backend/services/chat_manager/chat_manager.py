@@ -259,11 +259,19 @@ class ChatManager:
                 )
 
     async def acknowledge_events(self, current_user_id: uuid.UUID):
-        events = await self.event_broker.acknowledge_events(user_id=current_user_id)
-        await self._process_events_after_acknowledgement(
-            current_user_id=current_user_id,
-            events=events,
-        )
+        """
+        Acknowledge receiving events that were sent to client.
+
+        Raises:
+         - RepositoryError on repository failure
+         - EventBrokerError on Event broker failure
+        """
+        with process_exceptions():
+            events = await self.event_broker.acknowledge_events(user_id=current_user_id)
+            await self._process_events_after_acknowledgement(
+                current_user_id=current_user_id,
+                events=events,
+            )
 
     async def _process_events_before_send(
         self, current_user_id: uuid.UUID, events: list[AnyEvent]
