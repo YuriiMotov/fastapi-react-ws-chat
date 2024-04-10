@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from backend.schemas.chat_message import ChatUserMessageSchema
 from backend.schemas.event import ChatMessageEvent
@@ -10,7 +10,7 @@ def test_event_list_packet():
 
     msg = ChatUserMessageSchema(
         id=1,
-        dt=datetime.utcnow(),
+        dt=datetime.now(UTC),
         chat_id=uuid.uuid4(),
         text="my msg",
         sender_id=uuid.uuid4(),

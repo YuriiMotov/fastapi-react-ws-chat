@@ -10,7 +10,7 @@ Here is a list of tests that check whether it works as expected.
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from pydantic import TypeAdapter
 
@@ -30,7 +30,7 @@ def test_validate_user_message():
         "id": 1,
         "chat_id": uuid.uuid4(),
         "text": "message text",
-        "dt": datetime.utcnow(),
+        "dt": datetime.now(UTC),
         "sender_id": uuid.uuid4(),
         "is_notification": False,
     }
@@ -55,7 +55,7 @@ def test_validate_notification():
         "chat_id": uuid.uuid4(),
         "text": "message text",
         "params": str(uuid.uuid4()),
-        "dt": datetime.utcnow(),
+        "dt": datetime.now(UTC),
         "is_notification": True,
     }
 

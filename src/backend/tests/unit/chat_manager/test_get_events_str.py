@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -35,7 +35,7 @@ async def test_get_events(
     for _ in range(count):
         message = ChatUserMessageSchema(
             id=1,
-            dt=datetime.utcnow(),
+            dt=datetime.now(UTC),
             chat_id=chat_id,
             text="my message",
             sender_id=another_user_id,
