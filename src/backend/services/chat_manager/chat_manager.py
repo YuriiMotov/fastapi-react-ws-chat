@@ -196,10 +196,13 @@ class ChatManager:
         Raises:
          - RepositoryError on repository failure
          - EventBrokerError on Event broker failure
-
+         - UnauthorizedAction on attempt to edit another user's message
         """
         with process_exceptions():
             async with self.uow:
+                message = await self.uow.chat_repo.get_message(message_id=message_id)
+                if message.sender_id != current_user_id:
+                    raise UnauthorizedAction(detail="Can't edit another user's message")
                 message = await self.uow.chat_repo.edit_message(
                     message_id=message_id, sender_id_filter=current_user_id, text=text
                 )

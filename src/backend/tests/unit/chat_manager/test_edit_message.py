@@ -13,6 +13,7 @@ from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     EventBrokerError,
     RepositoryError,
+    UnauthorizedAction,
 )
 from backend.services.chat_repo.chat_repo_exc import ChatRepoDatabaseError
 from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
@@ -95,6 +96,39 @@ async def test_edit_message__edited_message_event_sent(
     assert isinstance(user_2_events[0], ChatMessageEdited)
     assert user_2_events[0].message.id == message.id
     assert user_2_events[0].message.text == new_text
+
+
+async def test_edit_message__unauthorized_access(
+    async_session: AsyncSession,
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
+):
+    """
+    Attempt to call edit_message() to edit the message of another user will raise
+    UnauthorizedAction
+    """
+    # Create message in the DB
+    user_id = event_broker_user_id_list[0]
+    other_user_id = event_broker_user_id_list[1]
+    chat_id = uuid.uuid4()
+    message_text = "my message"
+    message = ChatUserMessage(
+        chat_id=chat_id, text=message_text, sender_id=other_user_id
+    )
+    async_session.add(message)
+    await async_session.commit()
+    await async_session.refresh(message)
+    new_text = "updated text"
+
+    # Attempt to edit message of another user
+    with pytest.raises(UnauthorizedAction):
+        await chat_manager.edit_message(
+            current_user_id=user_id, message_id=message.id, text=new_text
+        )
+
+    # Check that message in DB was not updated
+    await async_session.refresh(message)
+    assert message.text == message_text
 
 
 async def test_edit_message__db_update_failure(
