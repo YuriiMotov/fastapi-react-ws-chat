@@ -145,6 +145,13 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
             message.text = text
             return ChatUserMessageSchema.model_validate(message)
 
+    async def get_message(self, message_id: int) -> ChatUserMessageSchema:
+        with sqla_exceptions_to_repo_exc():
+            message = await self._session.get(ChatUserMessage, message_id)
+            if message is None:
+                raise ChatRepoRequestError(detail=f"Message with id={id} doesnt exist")
+            return ChatUserMessageSchema.model_validate(message)
+
     async def add_notification(
         self, notification: ChatNotificationCreateSchema
     ) -> ChatNotificationSchema:

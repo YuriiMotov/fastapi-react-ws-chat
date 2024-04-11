@@ -116,6 +116,17 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    async def get_message(self, message_id: int) -> ChatUserMessageSchema:
+        """
+        Get the message with id=message_id.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+         - ChatRepoRequestError if there is no message with such id
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     async def add_notification(
         self, notification: ChatNotificationCreateSchema
     ) -> ChatNotificationSchema:
