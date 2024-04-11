@@ -131,17 +131,11 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         else:
             raise ChatRepoException()
 
-    async def edit_message(
-        self, message_id: int, sender_id_filter: uuid.UUID, text: str
-    ) -> ChatUserMessageSchema:
+    async def edit_message(self, message_id: int, text: str) -> ChatUserMessageSchema:
         with sqla_exceptions_to_repo_exc():
             message = await self._session.get(ChatUserMessage, message_id)
             if message is None:
                 raise ChatRepoRequestError(detail=f"Message with id={id} doesnt exist")
-            if message.sender_id != sender_id_filter:
-                raise ChatRepoRequestError(
-                    detail=f"Wrong sender_id for message with id={id}"
-                )
             message.text = text
             return ChatUserMessageSchema.model_validate(message)
 

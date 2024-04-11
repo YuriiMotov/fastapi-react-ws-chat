@@ -204,7 +204,7 @@ class ChatManager:
                 if message.sender_id != current_user_id:
                     raise UnauthorizedAction(detail="Can't edit another user's message")
                 message = await self.uow.chat_repo.edit_message(
-                    message_id=message_id, sender_id_filter=current_user_id, text=text
+                    message_id=message_id, text=text
                 )
                 await self.event_broker.post_event(
                     channel=channel_code("chat", message.chat_id),
