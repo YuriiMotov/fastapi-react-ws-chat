@@ -505,7 +505,7 @@ async def test_ws_chat_receive_events__user_added_to_chat_notification(
     ):
         srv_packet = perform_request(user1_websocket, client_packet)
         assert isinstance(srv_packet.data, SrvRespSucessNoBody)  # User was added
-        await asleep(0.2)
+        await asleep(0.1)
 
         # Receive user2's events
         srv_packet = perform_request(user2_websocket, None)

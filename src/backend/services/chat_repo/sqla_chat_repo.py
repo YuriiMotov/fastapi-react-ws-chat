@@ -96,17 +96,31 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         limit: int | None = None,
         chat_id_list: list[uuid.UUID] | None = None,
     ) -> list[ChatExtSchema]:
-        chat_ids_st = (
-            select(UserChatLink.chat_id)
-            .where(UserChatLink.user_id == user_id)
-            .offset(offset)
-        )
         if chat_id_list:
-            chat_ids_st = chat_ids_st.where(UserChatLink.chat_id.in_(chat_id_list))
-        if limit is not None:
-            chat_ids_st = chat_ids_st.limit(limit)
+            if (offset != 0) or (limit is not None):
+                raise ChatRepoException(
+                    detail=(
+                        "get_joined_chat_list() you can't use limit and offset when"
+                        "chat_id_list is passed"
+                    )
+                )
+            chats_st = (
+                select(ChatExt)
+                .select_from(UserChatLink)
+                .join(ChatExt)
+                .where(UserChatLink.user_id == user_id)
+                .where(ChatExt.id.in_(chat_id_list))
+            )
+        else:
+            chat_ids_st = (
+                select(UserChatLink.chat_id)
+                .where(UserChatLink.user_id == user_id)
+                .offset(offset)
+            )
+            if limit is not None:
+                chat_ids_st = chat_ids_st.limit(limit)
+            chats_st = select(ChatExt).where(ChatExt.id.in_(chat_ids_st))
 
-        chats_st = select(ChatExt).where(ChatExt.id.in_(chat_ids_st))
         with sqla_exceptions_to_repo_exc():
             chats = await self._session.scalars(chats_st)
 
