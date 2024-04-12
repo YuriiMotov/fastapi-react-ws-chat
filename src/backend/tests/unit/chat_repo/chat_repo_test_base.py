@@ -485,6 +485,31 @@ class ChatRepoTestBase:
         assert len(chats) == 1
         assert chats[0].last_message_text is None
 
+    async def test_get_joined_chat_list_filtered_by_id_list(self):
+        """
+        get_joined_chat_list() method returns the list of chats (extended info)
+        joined by user with specific user_id, filtered by the list od IDs if it's
+        passed as a parameter.
+        """
+        chat_id_list = [uuid.uuid4() for _ in range(5)]
+        user_1_id = uuid.uuid4()
+        # Create chats, add user to the chat
+        for chat_id in chat_id_list:
+            await self.repo.add_chat(
+                ChatSchema(id=chat_id, title=f"my_chat {chat_id}", owner_id=user_1_id)
+            )
+            await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_1_id)
+
+        filter_id_list = chat_id_list[::2]  # With indexes 0, 2, 4
+
+        # Request and check the list of chats of user_1
+        chats = await self.repo.get_joined_chat_list(
+            user_id=user_1_id, chat_id_list=filter_id_list
+        )
+        assert chats is not None
+        assert len(chats) == len(filter_id_list)
+        assert {chat.id for chat in chats} == set(filter_id_list)
+
     async def test_get_joined_chat_list_database_failure(self):
         """
         get_joined_chat_list() raises ChatRepoDatabaseError in case of
