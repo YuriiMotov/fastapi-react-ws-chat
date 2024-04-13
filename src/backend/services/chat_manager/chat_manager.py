@@ -72,16 +72,6 @@ class ChatManager:
                 channels=channel_list, user_id=current_user_id
             )
 
-    # async def unsubscribe_from_updates(self, current_user_id: uuid.UUID):
-    #     """
-    #     Unsubscribe user from all events.
-
-    #     Raises:
-    #      - EventBrokerError on Event broker failure
-    #     """
-    #     with process_exceptions():
-    #         await self.event_broker.unsubscribe(user_id=current_user_id)
-
     async def get_joined_chat_list(
         self, current_user_id: uuid.UUID
     ) -> list[ChatExtSchema]:
