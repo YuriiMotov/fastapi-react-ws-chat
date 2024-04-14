@@ -1,5 +1,6 @@
 import uuid
 from contextlib import contextmanager
+from typing import Optional
 
 from backend.schemas.chat import ChatExtSchema
 from backend.schemas.chat_message import (
@@ -52,6 +53,7 @@ class ChatManager:
     def __init__(self, uow: AbstractUnitOfWork, event_broker: AbstractEventBroker):
         self.uow = uow
         self.event_broker = event_broker
+        self._user_chat_ids_cached: Optional[list[uuid.UUID]] = None
 
     async def subscribe_for_updates(self, current_user_id: uuid.UUID):
         """
@@ -83,7 +85,10 @@ class ChatManager:
         """
         with process_exceptions():
             async with self.uow:
-                return await self.uow.chat_repo.get_joined_chat_list(current_user_id)
+                chat_list = await self.uow.chat_repo.get_joined_chat_list(
+                    current_user_id
+                )
+                return chat_list
 
     async def add_user_to_chat(
         self, current_user_id: uuid.UUID, user_id: uuid.UUID, chat_id: uuid.UUID
@@ -157,10 +162,13 @@ class ChatManager:
                 raise UnauthorizedAction(
                     detail="Can't send message on behalf of another user"
                 )
-            async with self.uow:
-                user_chats = await self.uow.chat_repo.get_joined_chat_ids(
-                    user_id=current_user_id
-                )  # TODO: Add user_chats caching
+            if self._user_chat_ids_cached is not None:
+                user_chats = self._user_chat_ids_cached
+            else:
+                async with self.uow:
+                    user_chats = await self.uow.chat_repo.get_joined_chat_ids(
+                        user_id=current_user_id
+                    )  # TODO: Add user_chats caching
             chat_id = message.chat_id
             if chat_id not in user_chats:
                 raise UnauthorizedAction(
@@ -246,9 +254,12 @@ class ChatManager:
 
         with process_exceptions():
             async with self.uow:
-                user_chats = await self.uow.chat_repo.get_joined_chat_ids(
-                    user_id=current_user_id
-                )  # TODO: Add user_chats caching
+                if self._user_chat_ids_cached is not None:
+                    user_chats = self._user_chat_ids_cached
+                else:
+                    user_chats = await self.uow.chat_repo.get_joined_chat_ids(
+                        user_id=current_user_id
+                    )
                 if chat_id not in user_chats:
                     raise UnauthorizedAction(
                         detail=(
