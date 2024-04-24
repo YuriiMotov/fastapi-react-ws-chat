@@ -8,6 +8,17 @@ function App() {
   const socket = useRef(null);
   const connectDelay = useRef(null);
 
+  function requestChatList() {
+    const cmd = {
+      "id": 1,
+      "data": {
+        "packet_type": "CMDGetJoinedChats"
+      }
+    }
+    socket.current.send(JSON.stringify(cmd))
+  }
+
+
   useEffect(
       () => {
           connectDelay.current = setTimeout(
@@ -23,8 +34,18 @@ function App() {
               };
 
               socket.current.onmessage = function (event) {
+                const srv_p = JSON.parse(event.data);
+                switch (srv_p.data.packet_type) {
+                  case 'RespGetJoinedChatList':
+                    console.log('List of chats:');
+                    for (const chat of srv_p.data.chats) {
+                      console.log(" - " + chat.title);
+                    }
+                    break;
+                  default:
+                    console.log(`Unknown server packet ${srv_p}.`);
                   console.log("Received message:", event);
-                  setMessage((oldArray) => [...oldArray, event.data]);
+                  };
               };
             }, 100
           )
@@ -46,6 +67,7 @@ function App() {
       <div>
         Works!
       </div>
+      <button onClick={(e)=> {requestChatList()}}>Request chat list</button>
     </>
   )
 }
