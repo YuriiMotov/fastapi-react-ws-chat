@@ -37,8 +37,17 @@ interface ChatMessage {
     params?: string;
 };
 
+interface ChatEventListPacket extends ServerPacketData {
+    events: ChatEventBase[];
+}
 
+interface ChatEventBase {
+    event_type: string;
+};
 
+interface ChatMessageEvent extends ChatEventBase {
+    message: ChatMessage;
+};
 
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
 
@@ -47,10 +56,12 @@ class ChatClient {
     #connection: Websocket | null = null;
     #userId: string | null = null;
     #lastPacketId: number = 0
+    #selectedChat: ChatDataExtended | null = null;
+    #chatList: ChatDataExtended[] = [];
+
     #setChatList: SetState<ChatDataExtended[]>;
     #setSelectedChat: SetState<ChatDataExtended | null>;
     #setSelectedChatMessages: SetState<ChatMessage[]>;
-    #chatList: ChatDataExtended[] = [];
 
     constructor(
         setChatList: SetState<ChatDataExtended[]>,
@@ -89,6 +100,7 @@ class ChatClient {
 
     selectChat(chat: ChatDataExtended) {
         if (this.#chatList.indexOf(chat) > -1) {
+            this.#selectedChat = chat;
             this.#setSelectedChat(chat);
             this.#requestChatMessageList(chat.id);
         }
@@ -162,6 +174,20 @@ class ChatClient {
                 break;
             case 'SrvEventList':
                 console.log(`SrvEventList has been received: ${srv_p.data}`);
+                const chatEventsPacket = srv_p.data as ChatEventListPacket;
+                for (const chatEvent of chatEventsPacket.events) {
+                    switch (chatEvent.event_type) {
+                        case "ChatMessageEvent":
+                            console.log(`ChatMessageEvent has been received: ${chatEvent}`);
+                            const chatMessageEvent = chatEvent as ChatMessageEvent;
+                            if (this.#selectedChat && (chatMessageEvent.message.chat_id === this.#selectedChat.id)){
+                                this.#setSelectedChatMessages(prev=>[chatMessageEvent.message, ...prev]);
+                            }
+                            break;
+                        default:
+                            console.log(`Unknown chat event ${chatEvent}.`);
+                    };
+                };
                 this.#acknowledgeEvents();
                 break;
             case 'RespSuccessNoBody':
