@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ChatClient, ChatDataExtended } from './ChatClient';
+import { ChatClient, ChatDataExtended, ChatMessage } from './ChatClient';
 import React from 'react';
 
 function App() {
@@ -7,12 +7,11 @@ function App() {
   const [clientId, setClientId] = useState("ef376e46-db3b-4beb-8170-82940d849847");
   const [chatList, setChatList] = useState<ChatDataExtended[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatDataExtended | null>(null);
+  const [selectedChatMessages, setSelectedChatMessages] = useState<ChatMessage[]>([]);
+  const [sendMessageText, setSendMessageText] = useState("");
 
-
-  const chatClient = useRef<ChatClient>(new ChatClient(setChatList, setSelectedChat));
+  const chatClient = useRef<ChatClient>(new ChatClient(setChatList, setSelectedChat, setSelectedChatMessages));
   const connectDelay = useRef<number | null>(null);
-
-
 
 
   useEffect(
@@ -50,15 +49,19 @@ function App() {
         </ul>
         {
           (selectedChat !== null) ? (
-            <button onClick={()=>chatClient.current.sendMessage("Some text", selectedChat.id)}>Send</button>
+            <div>
+              <input value={sendMessageText} onChange={(e)=>setSendMessageText(e.target.value)} />
+              <button onClick={()=>chatClient.current.sendMessage(sendMessageText, selectedChat.id)}>Send</button>
+            </div>
           ): (<b>Chat not selected</b>)
         }
-        {/* {
-          (selectedChat !== null) ? (
-            <button onClick={()=>chatClient.current.sendMessage("Some text", selectedChat.id)}>Send</button>);
-          ): (<b>Chat not selected</b>)
-        } */}
-
+        <ul>
+          {
+            selectedChatMessages.map((message) => (
+              <li key={message.id}>{message.text}</li>
+            ))
+          }
+        </ul>
       </div>
   )
 }

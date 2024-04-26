@@ -23,26 +23,46 @@ interface JoinedChatListPacket extends ServerPacketData {
     chats: ChatDataExtended[];
 };
 
+interface ChatMessagesResponsePacket extends ServerPacketData {
+    messages: string[];
+}
+
+interface ChatMessage {
+    id: string;
+    chat_id: string;
+    dt: string;
+    text: string;
+    is_notification: string;
+    sender_id?: string;
+    params?: string;
+};
+
+
 
 
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
 
 
-
 class ChatClient {
     #connection: Websocket | null = null;
     #userId: string | null = null;
+    #lastPacketId: number = 0
     #setChatList: SetState<ChatDataExtended[]>;
     #setSelectedChat: SetState<ChatDataExtended | null>;
+    #setSelectedChatMessages: SetState<ChatMessage[]>;
     #chatList: ChatDataExtended[] = [];
 
     constructor(
         setChatList: SetState<ChatDataExtended[]>,
-        setSelectedChat: SetState<ChatDataExtended | null>
+        setSelectedChat: SetState<ChatDataExtended | null>,
+        setSelectedChatMessages: SetState<ChatMessage[]>,
     ) {
         this.#setChatList = setChatList;
         this.#setSelectedChat = setSelectedChat;
+        this.#setSelectedChatMessages = setSelectedChatMessages;
     };
+
+    // ................................  Public methods ................................
 
     connect(userId: string): void {
         if (this.#connection) {
@@ -56,7 +76,6 @@ class ChatClient {
             .onError(this.#connectionErrorHandler.bind(this))
             .onMessage(this.#messageReceiveHandler.bind(this))
             // .onRetry((i, ev) => console.log("retry"))
-            .onReconnect(this.#reconnectedHandler)
             .withBackoff(new ConstantBackoff(1000))
             .build();
     };
@@ -71,13 +90,14 @@ class ChatClient {
     selectChat(chat: ChatDataExtended) {
         if (this.#chatList.indexOf(chat) > -1) {
             this.#setSelectedChat(chat);
+            this.#requestChatMessageList(chat.id);
         }
     }
 
     sendMessage(text: string, chatId: string): void {
         if (this.#connection) {
             const cmd = {
-                "id": 1,
+                "id": (this.#lastPacketId += 1),
                 "data": {
                     "packet_type": "CMDSendMessage",
                     "message": {
@@ -91,6 +111,23 @@ class ChatClient {
             console.log(`Sending message: ${JSON.stringify(cmd)}`);
         } else {
             console.log("Attempt to call sendMessage while disconnected")
+        };
+    }
+
+    // ................................  Private methods ................................
+
+    #acknowledgeEvents() {
+        if (this.#connection) {
+            const cmd = {
+                "id": (this.#lastPacketId += 1),
+                "data": {
+                    "packet_type": "CMDAcknowledgeEvents",
+                }
+            };
+            this.#connection.send(JSON.stringify(cmd));
+            console.log('Acknowledging events');
+        } else {
+            console.log("Attempt to call acknowledgeEvents while disconnected")
         };
 
     }
@@ -108,45 +145,40 @@ class ChatClient {
         console.log("Connection error: " + event);
     };
 
-
-    #reconnectedHandler(ws: Websocket, event: Event): void {
-        console.log("Reconnected to WebSocket server");
-        this.#requestJoinedChatList();
-    };
-
-
     #messageReceiveHandler(ws: Websocket, event: MessageEvent): void {
         const srv_p: ServerPacket = (JSON.parse(event.data) as ServerPacket);
         switch (srv_p.data.packet_type) {
             case 'RespGetJoinedChatList':
                 const chatListPacket: JoinedChatListPacket = (srv_p.data as JoinedChatListPacket)
-                console.log('List of chats:');
-                for (const chat of chatListPacket.chats) {
-                    console.log(" - " + chat.title);
-                }
+                console.log('List of chats has been received');
                 this.#chatList = chatListPacket.chats;
                 this.#setChatList([...chatListPacket.chats]);
                 break;
-
+            case 'RespGetMessages':
+                const messagesEncoded = (srv_p.data as ChatMessagesResponsePacket).messages;
+                const messages = messagesEncoded.map((m)=>JSON.parse(m));
+                console.log(`RespGetMessages has been received: ${srv_p.data}, ${messages}`);
+                this.#setSelectedChatMessages([...messages]);
+                break;
             case 'SrvEventList':
-                console.log(`SrvEventList received: ${srv_p.data}`);
+                console.log(`SrvEventList has been received: ${srv_p.data}`);
+                this.#acknowledgeEvents();
                 break;
             case 'RespSuccessNoBody':
-                console.log('RespSuccessNoBody received');
+                console.log('RespSuccessNoBody has been received');
                 break;
             case 'SrvRespError':
-                console.log(`SrvRespError received: ${srv_p.data}`);
+                console.log(`SrvRespError has been received: ${srv_p.data}`);
                 break;
             default:
                 console.log(`Unknown server packet ${srv_p}.`);
         };
-
     };
 
     #requestJoinedChatList(): void {
         if (this.#connection) {
             const cmd = {
-                "id": 1,
+                "id": (this.#lastPacketId += 1),
                 "data": {
                     "packet_type": "CMDGetJoinedChats"
                 }
@@ -156,6 +188,22 @@ class ChatClient {
             console.log("Attempt to call requestJoinedChatList while disconnected")
         };
     };
+
+    #requestChatMessageList(chatId: string) {
+        if (this.#connection) {
+            const cmd = {
+                "id": (this.#lastPacketId += 1),
+                "data": {
+                    "packet_type": "CMDGetMessages",
+                    "chat_id": chatId
+                }
+            };
+            this.#connection.send(JSON.stringify(cmd));
+        } else {
+            console.log("Attempt to call requestChatMessageList while disconnected")
+        };
+
+    }
 }
 
-export {ChatClient, ChatDataExtended};
+export {ChatClient, ChatDataExtended, ChatMessage};
