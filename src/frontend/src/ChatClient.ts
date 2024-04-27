@@ -1,4 +1,5 @@
 import {ConstantBackoff, Websocket, WebsocketBuilder} from "websocket-ts";
+import React from 'react';
 
 
 interface ServerPacketData {
@@ -24,7 +25,7 @@ interface JoinedChatListPacket extends ServerPacketData {
 };
 
 interface ChatMessagesResponsePacket extends ServerPacketData {
-    messages: string[];
+    messages: ChatMessage[];
 }
 
 interface ChatMessage {
@@ -167,8 +168,7 @@ class ChatClient {
                 this.#setChatList([...chatListPacket.chats]);
                 break;
             case 'RespGetMessages':
-                const messagesEncoded = (srv_p.data as ChatMessagesResponsePacket).messages;
-                const messages = messagesEncoded.map((m)=>JSON.parse(m));
+                const messages = (srv_p.data as ChatMessagesResponsePacket).messages;
                 console.log(`RespGetMessages has been received: ${srv_p.data}, ${messages}`);
                 this.#setSelectedChatMessages([...messages]);
                 break;

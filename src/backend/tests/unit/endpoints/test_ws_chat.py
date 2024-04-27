@@ -12,10 +12,7 @@ from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.chat_message import (
-    ChatUserMessageCreateSchema,
-    ChatUserMessageSchema,
-)
+from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from backend.schemas.client_packet import (
     ClientPacket,
     CMDAddUserToChat,
@@ -341,10 +338,7 @@ async def test_ws_chat_get_messages__success(
     if isinstance(srv_packet.data, SrvRespGetMessages):
         assert len(srv_packet.data.messages) == len(messages)
         for i in range(len(messages)):
-            msg_obj = ChatUserMessageSchema.model_validate_json(
-                srv_packet.data.messages[i]
-            )
-            assert msg_obj.text == expected_messages[i].text
+            assert srv_packet.data.messages[i].text == expected_messages[i].text
 
 
 async def test_ws_chat_get_messages__success_empty_list(

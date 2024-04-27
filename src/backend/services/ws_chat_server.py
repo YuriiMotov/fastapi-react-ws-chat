@@ -54,8 +54,7 @@ async def _process_ws_client_request_packet(
                 **packet.data.model_dump(exclude_none=True, exclude={"packet_type"}),
                 current_user_id=current_user_id,
             )
-            messages_str_encoded = [msg.model_dump_json() for msg in messages]
-            response_data = SrvRespGetMessages(messages=messages_str_encoded)
+            response_data = SrvRespGetMessages(messages=messages)
         elif isinstance(packet.data, CMDEditMessage):
             await chat_manager.edit_message(
                 current_user_id=current_user_id,

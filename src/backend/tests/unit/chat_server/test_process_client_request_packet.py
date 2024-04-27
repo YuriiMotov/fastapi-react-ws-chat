@@ -12,10 +12,7 @@ from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.schemas import client_packet as cli_p
 from backend.schemas import server_packet as srv_p
-from backend.schemas.chat_message import (
-    ChatUserMessageCreateSchema,
-    ChatUserMessageSchema,
-)
+from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     EventBrokerError,
@@ -131,8 +128,7 @@ async def test_process_ws_client_request_get_messages(
     assert len(resp_messages) == len(messages)
     expected_message_texts = {msg.text for msg in messages}
     for resp_msg in resp_messages:
-        resp_msg_obj = ChatUserMessageSchema.model_validate_json(resp_msg)
-        assert resp_msg_obj.text in expected_message_texts
+        assert resp_msg.text in expected_message_texts
 
 
 # ---------------------------------------------------------------------------------
