@@ -58,7 +58,7 @@ function App() {
         <ul>
           {
             selectedChatMessages.map((message) => (
-              <li key={message.id}>{message.text}</li>
+              <li key={message.id}>{message.text} <button onClick={()=>chatClient.current.editMessage(message.id, message.text + " edited")}>Edit</button> </li>
             ))
           }
         </ul>

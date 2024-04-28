@@ -127,6 +127,25 @@ class ChatClient {
         };
     }
 
+
+    editMessage(messageId: string, newText: string): void {
+        if (this.#connection) {
+            const cmd = {
+                "id": (this.#lastPacketId += 1),
+                "data": {
+                    "packet_type": "CMDEditMessage",
+                    "message_id": messageId,
+                    "text": newText,
+                }
+            };
+            this.#connection.send(JSON.stringify(cmd));
+            console.log(`Editing message: ${JSON.stringify(cmd)}`);
+        } else {
+            console.log("Attempt to call editMessage while disconnected")
+        };
+    }
+
+
     // ................................  Private methods ................................
 
     #acknowledgeEvents() {
