@@ -50,6 +50,11 @@ interface ChatMessageEvent extends ChatEventBase {
     message: ChatMessage;
 };
 
+interface ChatMessageEditedEvent extends ChatEventBase {
+    message: ChatMessage;
+};
+
+
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
 
 
@@ -161,7 +166,6 @@ class ChatClient {
         } else {
             console.log("Attempt to call acknowledgeEvents while disconnected")
         };
-
     }
 
     #connectedHandler(ws: Websocket, event: Event): void {
@@ -201,6 +205,15 @@ class ChatClient {
                             const chatMessageEvent = chatEvent as ChatMessageEvent;
                             if (this.#selectedChat && (chatMessageEvent.message.chat_id === this.#selectedChat.id)){
                                 this.#setSelectedChatMessages(prev=>[chatMessageEvent.message, ...prev]);
+                            }
+                            break;
+                        case "ChatMessageEdited":
+                            console.log(`ChatMessageEdited has been received: ${chatEvent}`);
+                            const chatMessageEditedEvent = chatEvent as ChatMessageEditedEvent;
+                            if (this.#selectedChat && (chatMessageEditedEvent.message.chat_id === this.#selectedChat.id)){
+                                this.#setSelectedChatMessages(prev=>
+                                    prev.map(m=> (m.id == chatMessageEditedEvent.message.id) ? chatMessageEditedEvent.message : m)
+                                );
                             }
                             break;
                         default:
