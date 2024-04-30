@@ -24,8 +24,15 @@ async def lifespan(app: FastAPI):
         chats = [
             Chat(id=uuid.uuid4(), title=f"Chat {i}", owner_id=user.id) for i in range(3)
         ]
+        chats.append(
+            Chat(
+                id=uuid.UUID("eccf5b4a-c706-4c05-9ab2-5edc7539daad"),
+                title="One more chat",
+                owner_id=user.id,
+            )
+        )
         user_chat_links = [
-            UserChatLink(user_id=user.id, chat_id=chat.id) for chat in chats
+            UserChatLink(user_id=user.id, chat_id=chat.id) for chat in chats[:-1]
         ]
         session.add_all((user, *chats, *user_chat_links))
         await session.commit()

@@ -54,6 +54,10 @@ interface ChatMessageEditedEvent extends ChatEventBase {
     message: ChatMessage;
 };
 
+interface ChatListUpdateEvent extends ChatEventBase {
+    action_type: string;
+    chat_data: ChatDataExtended
+}
 
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
 
@@ -150,6 +154,22 @@ class ChatClient {
         };
     }
 
+    addUserToChat(userId: string, chatId: string) {
+        if (this.#connection) {
+            const cmd = {
+                "id": (this.#lastPacketId += 1),
+                "data": {
+                    "packet_type": "CMDAddUserToChat",
+                    "user_id": userId,
+                    "chat_id": chatId,
+                }
+            };
+            this.#connection.send(JSON.stringify(cmd));
+            console.log(`Adding user to chat: ${JSON.stringify(cmd)}`);
+        } else {
+            console.log("Attempt to call addUserToChat while disconnected")
+        };
+    }
 
     // ................................  Private methods ................................
 
@@ -200,6 +220,24 @@ class ChatClient {
                 const chatEventsPacket = srv_p.data as ChatEventListPacket;
                 for (const chatEvent of chatEventsPacket.events) {
                     switch (chatEvent.event_type) {
+                        case "ChatListUpdate":
+                            console.log(`ChatListUpdateEvent has been received: ${chatEvent}`);
+                            const chatListUpdatePacket = chatEvent as ChatListUpdateEvent;
+                            switch (chatListUpdatePacket.action_type) {
+                                case "add":
+                                    this.#setChatList(prev=>[...prev, chatListUpdatePacket.chat_data]);
+                                    break;
+                                // case "delete":
+                                //     this.#setChatList(prev=>prev.filter(chat=>chat.id !== chatListUpdatePacket.chat_data.id));
+                                //     break;
+                                // case "update":
+                                //     this.#setChatList(prev=>prev.map(chat=>(chat.id === chatListUpdatePacket.chat_data.id) ? chatListUpdatePacket.chat_data : chat));
+                                //     break;
+                                default:
+                                    console.log(`ChatListUpdateEvent with action_type=${chatListUpdatePacket.action_type} is not supported yet`)
+                                    break;
+                            }
+                            break;
                         case "ChatMessageEvent":
                             console.log(`ChatMessageEvent has been received: ${chatEvent}`);
                             const chatMessageEvent = chatEvent as ChatMessageEvent;
@@ -229,7 +267,7 @@ class ChatClient {
                 console.log(`SrvRespError has been received: ${srv_p.data}`);
                 break;
             default:
-                console.log(`Unknown server packet ${srv_p}.`);
+                console.log(`Unknown server packet ${event.data}.`);
         };
     };
 

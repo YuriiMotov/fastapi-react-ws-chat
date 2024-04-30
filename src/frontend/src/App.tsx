@@ -47,6 +47,11 @@ function App() {
             ))
           }
         </ul>
+        <div>
+          <button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
+            Add yourself to forth chat
+          </button>
+        </div>
         {
           (selectedChat !== null) ? (
             <div>
