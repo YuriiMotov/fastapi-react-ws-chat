@@ -61,6 +61,14 @@ interface ChatListUpdateEvent extends ChatEventBase {
 
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
 
+class ChatMessages {
+    minMessageId: number = Infinity;
+    maxMessageId: number = 0;
+    messages: ChatMessage[] = [];
+}
+
+
+const chatMessageRequestLimit = 5;
 
 class ChatClient {
     #connection: Websocket | null = null;
@@ -68,6 +76,7 @@ class ChatClient {
     #lastPacketId: number = 0
     #selectedChat: ChatDataExtended | null = null;
     #chatList: ChatDataExtended[] = [];
+    #chatMessages: Map<string, ChatMessages>;
 
     #setChatList: SetState<ChatDataExtended[]>;
     #setSelectedChat: SetState<ChatDataExtended | null>;
@@ -81,6 +90,7 @@ class ChatClient {
         this.#setChatList = setChatList;
         this.#setSelectedChat = setSelectedChat;
         this.#setSelectedChatMessages = setSelectedChatMessages;
+        this.#chatMessages = new Map<string, ChatMessages>();
     };
 
     // ................................  Public methods ................................
@@ -112,7 +122,14 @@ class ChatClient {
         if (this.#chatList.indexOf(chat) > -1) {
             this.#selectedChat = chat;
             this.#setSelectedChat(chat);
-            this.#requestChatMessageList(chat.id);
+            if (this.#chatMessages.has(chat.id)) {
+                this.#setSelectedChatMessages(
+                    [...this.#chatMessages.get(chat.id)!.messages]
+                );
+            } else {
+                this.#setSelectedChatMessages([]);
+                this.#requestChatMessageList(chat.id);
+            };
         }
     }
 
@@ -171,6 +188,14 @@ class ChatClient {
         };
     }
 
+    loadPreviousMessages(chatId: string) {
+        if (this.#chatMessages.has(chatId)) {
+            this.#requestChatMessageList(chatId, this.#chatMessages.get(chatId)!.minMessageId);
+        } else {
+            console.log("Error: calling loadPreviousMessages before loading last messages");
+        }
+    }
+
     // ................................  Private methods ................................
 
     #acknowledgeEvents() {
@@ -213,7 +238,14 @@ class ChatClient {
             case 'RespGetMessages':
                 const messages = (srv_p.data as ChatMessagesResponsePacket).messages;
                 console.log(`RespGetMessages has been received: ${srv_p.data}, ${messages}`);
-                this.#setSelectedChatMessages([...messages]);
+                if (messages.length > 0) {
+                    const chatId = messages[0].chat_id;
+                    this.#updateChatMessageListInternal(chatId, messages);
+                    const chatMessages: ChatMessage[] = this.#chatMessages.has(chatId) ? this.#chatMessages.get(chatId)!.messages : [];
+                    if (this.#selectedChat && (chatId === this.#selectedChat.id)) {
+                        this.#setSelectedChatMessages([...chatMessages]);
+                    };
+                }
                 break;
             case 'SrvEventList':
                 console.log(`SrvEventList has been received: ${srv_p.data}`);
@@ -285,21 +317,54 @@ class ChatClient {
         };
     };
 
-    #requestChatMessageList(chatId: string) {
+    #requestChatMessageList(chatId: string, startId: number | null = null, limit: number = chatMessageRequestLimit) {
         if (this.#connection) {
             const cmd = {
                 "id": (this.#lastPacketId += 1),
                 "data": {
                     "packet_type": "CMDGetMessages",
-                    "chat_id": chatId
+                    "chat_id": chatId,
+                    "start_id": startId,
+                    "limit": limit,
                 }
             };
             this.#connection.send(JSON.stringify(cmd));
         } else {
             console.log("Attempt to call requestChatMessageList while disconnected")
         };
-
     }
+
+    #updateChatMessageListInternal(chatId: string, messages: ChatMessage[]) {
+        console.log(`updateChatMessageListInternal(${chatId})`);
+        if (this.#chatMessages.has(chatId) === false) {
+            this.#chatMessages.set(chatId, new ChatMessages());
+        }
+        const chatMessages: ChatMessages = this.#chatMessages.get(chatId)!;
+        let minMessageId = Infinity;
+        let maxMessageId = 0;
+
+        messages.forEach(message=>{
+            const messageId = parseInt(message.id);
+            if (messageId < minMessageId) {
+                minMessageId = messageId;
+            } else if (messageId > maxMessageId) {
+                maxMessageId = messageId;
+            }
+        });
+
+        if (maxMessageId < chatMessages.minMessageId) {
+            chatMessages.messages.push(...messages);
+            chatMessages.minMessageId = minMessageId;
+        } else if (minMessageId  > chatMessages.maxMessageId) {
+            chatMessages.messages.unshift(...messages);
+            chatMessages.maxMessageId = maxMessageId;
+        } else {
+            chatMessages.messages.push(...messages);
+            chatMessages.messages.sort((a, b)=> parseInt(a.id) - parseInt(b.id));
+            console.log("updateChatMessageListInternal is quite slow in inserting messages in the middle of the list.");
+            console.log("Consider refactoring to store ID's as a numbers instead of strings to make it faster");
+        };
+    };
 }
 
 export {ChatClient, ChatDataExtended, ChatMessage};

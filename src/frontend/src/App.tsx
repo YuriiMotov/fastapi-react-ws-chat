@@ -67,6 +67,11 @@ function App() {
             ))
           }
         </ul>
+        {
+          (selectedChat !== null) ? (
+            <button onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>Load prev</button>
+          ) : null
+        }
       </div>
   )
 }
