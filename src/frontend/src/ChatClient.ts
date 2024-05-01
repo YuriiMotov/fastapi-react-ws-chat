@@ -273,8 +273,10 @@ class ChatClient {
                         case "ChatMessageEvent":
                             console.log(`ChatMessageEvent has been received: ${chatEvent}`);
                             const chatMessageEvent = chatEvent as ChatMessageEvent;
+                            const chatId = chatMessageEvent.message.chat_id;
+                            this.#updateChatMessageListInternal(chatId, [chatMessageEvent.message,]);
                             if (this.#selectedChat && (chatMessageEvent.message.chat_id === this.#selectedChat.id)){
-                                this.#setSelectedChatMessages(prev=>[chatMessageEvent.message, ...prev]);
+                                this.#setSelectedChatMessages([...this.#chatMessages.get(chatId)!.messages]);
                             }
                             break;
                         case "ChatMessageEdited":
@@ -347,18 +349,23 @@ class ChatClient {
             const messageId = parseInt(message.id);
             if (messageId < minMessageId) {
                 minMessageId = messageId;
-            } else if (messageId > maxMessageId) {
+            }
+            if (messageId > maxMessageId) {
                 maxMessageId = messageId;
             }
         });
 
         if (maxMessageId < chatMessages.minMessageId) {
+            console.log("Add messages to the tail");
+            console.log(`${maxMessageId} < ${chatMessages.minMessageId}`);
             chatMessages.messages.push(...messages);
             chatMessages.minMessageId = minMessageId;
         } else if (minMessageId  > chatMessages.maxMessageId) {
+            console.log("Add messages to the head");
             chatMessages.messages.unshift(...messages);
             chatMessages.maxMessageId = maxMessageId;
         } else {
+            console.log("Insert messages to the middle");
             chatMessages.messages.push(...messages);
             chatMessages.messages.sort((a, b)=> parseInt(a.id) - parseInt(b.id));
             console.log("updateChatMessageListInternal is quite slow in inserting messages in the middle of the list.");
