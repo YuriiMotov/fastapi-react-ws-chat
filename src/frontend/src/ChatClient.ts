@@ -285,10 +285,14 @@ class ChatClient {
                         case "ChatMessageEdited":
                             console.log(`ChatMessageEdited has been received: ${chatEvent}`);
                             const chatMessageEditedEvent = chatEvent as ChatMessageEditedEvent;
-                            if (this.#selectedChat && (chatMessageEditedEvent.message.chat_id === this.#selectedChat.id)){
-                                this.#setSelectedChatMessages(prev=>
-                                    prev.map(m=> (m.id == chatMessageEditedEvent.message.id) ? chatMessageEditedEvent.message : m)
-                                );
+                            const chatMessages = this.#chatMessages.get(chatMessageEditedEvent.message.chat_id);
+                            if (chatMessages) {
+                                chatMessages.messages = chatMessages.messages.map((message)=>{
+                                    return (message.id === chatMessageEditedEvent.message.id) ? chatMessageEditedEvent.message : message;
+                                });
+                                if (this.#selectedChat && (chatMessageEditedEvent.message.chat_id === this.#selectedChat.id)){
+                                    this.#setSelectedChatMessages([...chatMessages.messages]);
+                                };
                             }
                             break;
                         default:
