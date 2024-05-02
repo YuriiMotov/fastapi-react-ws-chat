@@ -215,7 +215,10 @@ class ChatClient {
 
     #connectedHandler(ws: Websocket, event: Event): void {
         console.log("Connected to WebSocket server");
+        this.#chatMessages.clear();
         this.#requestJoinedChatList();
+        if (this.#selectedChat)
+            this.#requestChatMessageList(this.#selectedChat.id);
     };
 
     #disconnectedHandler(ws: Websocket, event: Event): void {

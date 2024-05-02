@@ -5,6 +5,7 @@ import React from 'react';
 function App() {
 
   const [clientId, setClientId] = useState("ef376e46-db3b-4beb-8170-82940d849847");
+  const [reconnectCount, setReconnectCount] = useState(0);
   const [chatList, setChatList] = useState<ChatDataExtended[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatDataExtended | null>(null);
   const [selectedChatMessages, setSelectedChatMessages] = useState<ChatMessage[]>([]);
@@ -29,7 +30,7 @@ function App() {
             chatClient.current.disconnect();
           };
       },
-      [clientId,]
+      [clientId, reconnectCount, ]
   );
 
 
@@ -41,7 +42,7 @@ function App() {
             chatList.map((chat)=> (
               <li key={chat.id}>
                 <button onClick={()=> chatClient.current.selectChat(chat)}>
-                  {(selectedChat === chat) ? (<b>{chat.title}</b>) : chat.title}
+                  {(selectedChat?.id === chat.id) ? (<b>{chat.title}</b>) : chat.title}
                 </button>
               </li>
             ))
@@ -72,6 +73,9 @@ function App() {
             <button onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>Load prev</button>
           ) : null
         }
+        <div>
+          <button onClick={()=>setReconnectCount(reconnectCount + 1)}>Reconnect</button>
+        </div>
       </div>
   )
 }
