@@ -1,26 +1,31 @@
-import { useState} from 'react'
 import React from 'react';
 import { ChatDataExtended } from '../ChatClient';
-import { Card, CardHeader, CardBody, CardFooter, Avatar, Box, Heading, Flex, Text, Button, VStack } from '@chakra-ui/react';
+import { Card, CardHeader, Avatar, Box, Heading, Flex, Text,VStack, LinkBox, LinkOverlay} from '@chakra-ui/react';
 
 
 interface ChatListLineComponentParams {
     chat: ChatDataExtended;
     selected: boolean;
-    onClick: React.MouseEventHandler<HTMLButtonElement>;
+    onClick: React.MouseEventHandler<HTMLAnchorElement>;
 }
 
 function ChatListLineComponent(params: ChatListLineComponentParams) {
     return (
-        <Button width='100%' colorScheme='telegram' variant={params.selected ? 'solid' : 'outline'} onClick={params.onClick}>
-            <Flex flex='1' gap='4' alignItems='center' flexWrap='wrap'>
-                <Avatar name={params.chat.title} src='/public/defaultavatar.png' size='sm' />
-                <Box>
-                    <Text fontSize='small'>{params.chat.title}</Text>
-                    <Text fontSize='x-small'> 1{params.chat.last_message_text}</Text>
-                </Box>
-            </Flex>
-        </Button>
+        <LinkBox as='button' w='100%' maxH='sm' >
+            <Card variant={params.selected ? 'filled' : 'elevated'} size='sm' w='100%'>
+                <CardHeader>
+                    <Flex flex='1' gap='4' alignItems='left' flexWrap='wrap'>
+                        <Avatar name={params.chat.title} src='/public/defaultavatar.png' size='sm' />
+                        <Box textAlign='left'>
+                            <LinkOverlay href='#' onClick={params.onClick} >
+                                {params.chat.title}
+                            </LinkOverlay>
+                            <Text fontSize='x-small' textColor='gray'>{params.chat.last_message_text}</Text>
+                        </Box>
+                    </Flex>
+                </CardHeader>
+            </Card>
+        </LinkBox>
     )
 }
 
@@ -32,11 +37,9 @@ interface ChatListComponentParams {
 }
 
 function ChatListComponent(params: ChatListComponentParams) {
-
-
-
     return (
-        <VStack spacing="1">
+        <VStack spacing="1" w='100%'>
+            <Heading size='sm'>Chat list:</Heading>
             {
                 params.chatList.map((chat)=> (
                     <ChatListLineComponent key={chat.id} chat={chat} selected={params.selectedChatId === chat.id} onClick={()=>params.onChatSelect(chat)}/>

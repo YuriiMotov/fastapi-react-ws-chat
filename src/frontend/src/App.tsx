@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect, useRef } from 'react'
 import { ChatClient, ChatDataExtended, ChatMessage } from './ChatClient';
 import { ChatListComponent } from './ChatUI/ChatList';
-import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem, Container } from '@chakra-ui/react';
 
 function App() {
 
@@ -37,23 +37,22 @@ function App() {
 
 
   return (
-        <Grid h='calc(100vh)' templateRows='1fc' templateColumns='200px 1fr 200px' gap='4' >
+        <Grid h='calc(100vh)' templateRows='1fc' templateColumns='250px 1fr 250px' backgroundColor='whitesmoke' >
 
-          <GridItem p='2'>
-            <h4>Chat list:</h4>
-            <ChatListComponent chatList={chatList} selectedChatId={selectedChat?.id} onChatSelect={chatClient.current.selectChat.bind(chatClient.current)} />
-
+          <GridItem>
+            <Container p='4'>
+              <ChatListComponent chatList={chatList} selectedChatId={selectedChat?.id} onChatSelect={chatClient.current.selectChat.bind(chatClient.current)} />
+            </Container>
           </GridItem>
 
-          <GridItem p='2'>
-            <Flex h='calc(100vh)' border='1px' direction='column'>
+          <GridItem>
+            <Flex h='calc(100vh)' direction='column' p='4' backgroundColor='AppWorkspace'>
               <Box w='100%' h='100%' overflow='scroll'>
                 {
                   (selectedChat !== null) ? (
                     <Button colorScheme='telegram' variant='outline' size='sm' onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>Load prev</Button>
                   ) : null
                 }
-
                 {
                   selectedChatMessages.map((message) => (
                     <Text key={message.id}>{message.text} <Button variant='link' onClick={()=>chatClient.current.editMessage(message.id, message.text + " edited")}>Edit</Button> </Text>
@@ -72,20 +71,14 @@ function App() {
             </Flex>
           </GridItem>
 
-          <GridItem p='4'>
-            <VStack spacing='3'>
+          <GridItem>
+            <VStack spacing='3' p='4'>
               <Button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
                 Add yourself to forth chat
               </Button>
               <Button onClick={()=>setReconnectCount(reconnectCount + 1)}>Reconnect</Button>
             </VStack>
-
           </GridItem>
-
-          {/* <Box w="sm" h='100%'>
-          </Box>
-          <Box w='sm'>
-          </Box> */}
 
         </Grid>
   )
