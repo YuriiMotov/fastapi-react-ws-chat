@@ -2,7 +2,9 @@ import React from 'react';
 import { useState, useEffect, useRef } from 'react'
 import { ChatClient, ChatDataExtended, ChatMessage } from './ChatClient';
 import { ChatListComponent } from './ChatUI/ChatList';
+
 import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem, Container } from '@chakra-ui/react';
+import { MessageListComponent } from './ChatUI/MessageList';
 
 function App() {
 
@@ -48,16 +50,16 @@ function App() {
           <GridItem>
             <Flex h='calc(100vh)' direction='column' p='4' backgroundColor='AppWorkspace'>
               <Box w='100%' h='100%' overflow='scroll'>
-                {
-                  (selectedChat !== null) ? (
-                    <Button colorScheme='telegram' variant='outline' size='sm' onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>Load prev</Button>
-                  ) : null
-                }
-                {
-                  selectedChatMessages.map((message) => (
-                    <Text key={message.id}>{message.text} <Button variant='link' onClick={()=>chatClient.current.editMessage(message.id, message.text + " edited")}>Edit</Button> </Text>
-                  ))
-                }
+                <VStack spacing='4'>
+                  {
+                    (selectedChat !== null) ? (
+                      <Container minW='unset' centerContent>
+                        <Button colorScheme='telegram' variant='link' size='sm' onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>⇧ Load prev ⇧</Button>
+                      </Container>
+                    ) : null
+                  }
+                  <MessageListComponent messages={selectedChatMessages} />
+                </VStack>
               </Box>
               <Spacer />
               {
