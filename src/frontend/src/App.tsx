@@ -1,6 +1,8 @@
+import React from 'react';
 import { useState, useEffect, useRef } from 'react'
 import { ChatClient, ChatDataExtended, ChatMessage } from './ChatClient';
-import React from 'react';
+import { ChatListComponent } from './ChatUI/ChatList';
+import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem } from '@chakra-ui/react';
 
 function App() {
 
@@ -35,48 +37,57 @@ function App() {
 
 
   return (
-      <div>
-        <h4>Chat list:</h4>
-        <ul>
-          {
-            chatList.map((chat)=> (
-              <li key={chat.id}>
-                <button onClick={()=> chatClient.current.selectChat(chat)}>
-                  {(selectedChat?.id === chat.id) ? (<b>{chat.title}</b>) : chat.title}
-                </button>
-              </li>
-            ))
-          }
-        </ul>
-        <div>
-          <button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
-            Add yourself to forth chat
-          </button>
-        </div>
-        {
-          (selectedChat !== null) ? (
-            <div>
-              <input value={sendMessageText} onChange={(e)=>setSendMessageText(e.target.value)} />
-              <button onClick={()=>chatClient.current.sendMessage(sendMessageText, selectedChat.id)}>Send</button>
-            </div>
-          ): (<b>Chat not selected</b>)
-        }
-        <ul>
-          {
-            selectedChatMessages.map((message) => (
-              <li key={message.id}>{message.text} <button onClick={()=>chatClient.current.editMessage(message.id, message.text + " edited")}>Edit</button> </li>
-            ))
-          }
-        </ul>
-        {
-          (selectedChat !== null) ? (
-            <button onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>Load prev</button>
-          ) : null
-        }
-        <div>
-          <button onClick={()=>setReconnectCount(reconnectCount + 1)}>Reconnect</button>
-        </div>
-      </div>
+        <Grid h='calc(100vh)' templateRows='1fc' templateColumns='200px 1fr 200px' gap='4' >
+
+          <GridItem p='2'>
+            <h4>Chat list:</h4>
+            <ChatListComponent chatList={chatList} selectedChatId={selectedChat?.id} onChatSelect={chatClient.current.selectChat.bind(chatClient.current)} />
+
+          </GridItem>
+
+          <GridItem p='2'>
+            <Flex h='calc(100vh)' border='1px' direction='column'>
+              <Box w='100%' h='100%' overflow='scroll'>
+                {
+                  (selectedChat !== null) ? (
+                    <Button colorScheme='telegram' variant='outline' size='sm' onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>Load prev</Button>
+                  ) : null
+                }
+
+                {
+                  selectedChatMessages.map((message) => (
+                    <Text key={message.id}>{message.text} <Button variant='link' onClick={()=>chatClient.current.editMessage(message.id, message.text + " edited")}>Edit</Button> </Text>
+                  ))
+                }
+              </Box>
+              <Spacer />
+              {
+                  (selectedChat !== null) ? (
+                    <HStack spacing='1'>
+                      <Input colorScheme='telegram' value={sendMessageText} onChange={(e)=>setSendMessageText(e.target.value)} />
+                      <Button colorScheme='telegram' onClick={()=>chatClient.current.sendMessage(sendMessageText, selectedChat.id)}>Send</Button>
+                    </HStack>
+                  ): (<b>Chat not selected</b>)
+                }
+            </Flex>
+          </GridItem>
+
+          <GridItem p='4'>
+            <VStack spacing='3'>
+              <Button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
+                Add yourself to forth chat
+              </Button>
+              <Button onClick={()=>setReconnectCount(reconnectCount + 1)}>Reconnect</Button>
+            </VStack>
+
+          </GridItem>
+
+          {/* <Box w="sm" h='100%'>
+          </Box>
+          <Box w='sm'>
+          </Box> */}
+
+        </Grid>
   )
 }
 

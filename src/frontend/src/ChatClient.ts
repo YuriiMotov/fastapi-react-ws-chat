@@ -243,7 +243,7 @@ class ChatClient {
                 console.log(`RespGetMessages has been received: ${srv_p.data}, ${messages}`);
                 if (messages.length > 0) {
                     const chatId = messages[0].chat_id;
-                    this.#updateChatMessageListInternal(chatId, messages);
+                    this.#updateChatMessageListInternal(chatId, messages.slice().reverse());
                     const chatMessages: ChatMessage[] = this.#chatMessages.has(chatId) ? this.#chatMessages.get(chatId)!.messages : [];
                     if (this.#selectedChat && (chatId === this.#selectedChat.id)) {
                         this.#setSelectedChatMessages([...chatMessages]);
@@ -363,13 +363,11 @@ class ChatClient {
         });
 
         if (maxMessageId < chatMessages.minMessageId) {
-            console.log("Add messages to the tail");
             console.log(`${maxMessageId} < ${chatMessages.minMessageId}`);
-            chatMessages.messages.push(...messages);
+            chatMessages.messages.unshift(...messages);
             chatMessages.minMessageId = minMessageId;
         } else if (minMessageId  > chatMessages.maxMessageId) {
-            console.log("Add messages to the head");
-            chatMessages.messages.unshift(...messages);
+            chatMessages.messages.push(...messages);
             chatMessages.maxMessageId = maxMessageId;
         } else {
             console.log("Insert messages to the middle");
