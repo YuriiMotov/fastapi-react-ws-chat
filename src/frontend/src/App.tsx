@@ -37,6 +37,11 @@ function App() {
       [clientId, reconnectCount, ]
   );
 
+  function sendMessageClickHandler() {
+    chatClient.current.sendMessage(sendMessageText, selectedChat!.id);
+    setSendMessageText("");
+  }
+
 
   return (
         <Grid h='calc(100vh)' templateRows='1fc' templateColumns='250px 1fr 250px' backgroundColor='whitesmoke' >
@@ -66,7 +71,7 @@ function App() {
                   (selectedChat !== null) ? (
                     <HStack spacing='1'>
                       <Input colorScheme='telegram' value={sendMessageText} onChange={(e)=>setSendMessageText(e.target.value)} />
-                      <Button colorScheme='telegram' onClick={()=>chatClient.current.sendMessage(sendMessageText, selectedChat.id)}>Send</Button>
+                      <Button colorScheme='telegram' onClick={sendMessageClickHandler}>Send</Button>
                     </HStack>
                   ): (<b>Chat not selected</b>)
                 }
