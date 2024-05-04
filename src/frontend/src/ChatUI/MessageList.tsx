@@ -15,7 +15,7 @@ function MessageListItemComponent(params: MessageListItemComponentParams) {
                 John Doe
             </CardHeader>
             <CardBody>
-                {params.message.text}
+                {params.message.text.split('\n').map(l=>(<Text>{l}</Text>))}
             </CardBody>
         </Card>
         // <Button variant='link' onClick={()=>chatClient.current.editMessage(message.id, message.text + " edited")}>Edit</Button>
@@ -31,7 +31,7 @@ interface MessageListComponentParams {
 function MessageListComponent(params: MessageListComponentParams) {
 
     return (
-        <VStack spacing='1'>
+        <VStack spacing='1' paddingBottom='4'>
             {
                 params.messages.map((message) => (
                     <MessageListItemComponent key={message.id} message={message} />

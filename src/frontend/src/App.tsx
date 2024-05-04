@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ChatClient, ChatDataExtended, ChatMessage } from './ChatClient';
 import { ChatListComponent } from './ChatUI/ChatList';
 
-import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem, Container } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem, Container, Textarea } from '@chakra-ui/react';
 import { MessageListComponent } from './ChatUI/MessageList';
 
 function App() {
@@ -70,7 +70,13 @@ function App() {
               {
                   (selectedChat !== null) ? (
                     <HStack spacing='1'>
-                      <Input colorScheme='telegram' value={sendMessageText} onChange={(e)=>setSendMessageText(e.target.value)} />
+                      <Textarea
+                        colorScheme='telegram'
+                        value={sendMessageText}
+                        onChange={(e)=>setSendMessageText(e.target.value)}
+                        placeholder='Input message to send'
+                        size='sm'
+                      />
                       <Button colorScheme='telegram' onClick={sendMessageClickHandler}>Send</Button>
                     </HStack>
                   ): (<b>Chat not selected</b>)
