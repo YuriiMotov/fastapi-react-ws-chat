@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChatDataExtended, ChatMessage } from '../ChatClient';
-import { Card, CardHeader, Avatar, Box, Heading, Flex, Text,VStack, LinkBox, LinkOverlay, CardBody} from '@chakra-ui/react';
+import { Card, CardHeader, Avatar, Box, Heading, Flex, Text,VStack, LinkBox, LinkOverlay, CardBody, Link} from '@chakra-ui/react';
 
 
 interface MessageListItemComponentParams {
@@ -37,6 +37,7 @@ function MessageListComponent(params: MessageListComponentParams) {
                     <MessageListItemComponent key={message.id} message={message} />
                 ))
             }
+            <Link id='chat-messages-bottom'></Link>
         </VStack>
     )
 }

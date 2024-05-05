@@ -37,6 +37,11 @@ function App() {
       [clientId, reconnectCount, ]
   );
 
+  useEffect(() => {
+    const ele = document.querySelector("#chat-messages-bottom");
+    if (ele) ele.scrollIntoView();
+  }, [selectedChatMessages]);
+
   function sendMessageClickHandler() {
     chatClient.current.sendMessage(sendMessageText, selectedChat!.id);
     setSendMessageText("");
