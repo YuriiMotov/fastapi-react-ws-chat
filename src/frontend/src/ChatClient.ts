@@ -293,7 +293,13 @@ class ChatClient {
                                 if (this.#selectedChat && (chatMessageEditedEvent.message.chat_id === this.#selectedChat.id)){
                                     this.#setSelectedChatMessages([...chatMessages.messages]);
                                 };
+                                if (parseInt(chatMessageEditedEvent.message.id) === chatMessages.maxMessageId) {
+                                    this.#updateChatListOnLastMessageUpdate(chatMessageEditedEvent.message);
+                                }
+                            } else {
+                                this.#requestChatMessageList(chatMessageEditedEvent.message.chat_id);   // This case hasn't tested yet !
                             }
+
                             break;
                         default:
                             console.log(`Unknown chat event ${chatEvent}.`);
@@ -363,12 +369,10 @@ class ChatClient {
         });
 
         if (maxMessageId < chatMessages.minMessageId) {
-            console.log(`${maxMessageId} < ${chatMessages.minMessageId}`);
             chatMessages.messages.unshift(...messages);
-            chatMessages.minMessageId = minMessageId;
         } else if (minMessageId  > chatMessages.maxMessageId) {
             chatMessages.messages.push(...messages);
-            chatMessages.maxMessageId = maxMessageId;
+            this.#updateChatListOnLastMessageUpdate(messages[0]);
         } else {
             console.log("Insert messages to the middle");
             chatMessages.messages.push(...messages);
@@ -376,7 +380,20 @@ class ChatClient {
             console.log("updateChatMessageListInternal is quite slow in inserting messages in the middle of the list.");
             console.log("Consider refactoring to store ID's as a numbers instead of strings to make it faster");
         };
+        if (chatMessages.maxMessageId < maxMessageId)
+            chatMessages.maxMessageId = maxMessageId;
+        if (chatMessages.minMessageId > minMessageId)
+            chatMessages.minMessageId = minMessageId;
+
     };
+
+    #updateChatListOnLastMessageUpdate(lastMessage: ChatMessage) {
+        this.#chatList = this.#chatList.map(chat=>{
+            return (chat.id == lastMessage.chat_id) ? {...chat, "last_message_text": lastMessage.text} : chat;
+        })
+        this.#setChatList([...this.#chatList]);
+    }
+
 }
 
 export {ChatClient, ChatDataExtended, ChatMessage};
