@@ -68,7 +68,7 @@ function App() {
                       </Container>
                     ) : null
                   }
-                  <MessageListComponent messages={selectedChatMessages} />
+                  <MessageListComponent messages={selectedChatMessages} onMessageEdit={chatClient.current.editMessage.bind(chatClient.current)} />
                 </VStack>
               </Box>
               <Spacer />
