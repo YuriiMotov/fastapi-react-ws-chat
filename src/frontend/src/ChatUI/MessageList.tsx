@@ -13,7 +13,7 @@ function MessageListItemComponent(params: MessageListItemComponentParams) {
 
     // console.log(`repainting message ${params.message.id}`);
     return (
-        <Card minW='md'>
+        <Card minW='md' id={'chat-message-' + params.message.id}>
             <CardHeader textColor='lightgray' fontWeight='bold' p='2' paddingBottom='0'>
                 <Flex direction='row'>
                     <Text>John Doe</Text>
@@ -59,7 +59,7 @@ function MessageListComponent(params: MessageListComponentParams) {
     }
 
     return (
-        <VStack spacing='1' paddingBottom='4'>
+        <VStack spacing='1' paddingBottom='4' id='chat-messages-container'>
             {
                 params.messages.map((message) => (
                     <MessageListItemComponent key={message.id} message={message} onShowEditMessageWindow={showEditMessageWindow} />

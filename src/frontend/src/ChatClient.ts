@@ -80,12 +80,12 @@ class ChatClient {
 
     #setChatList: SetState<ChatDataExtended[]>;
     #setSelectedChat: SetState<ChatDataExtended | null>;
-    #setSelectedChatMessages: SetState<ChatMessage[]>;
+    #setSelectedChatMessages: (messages: ChatMessage[])=>void;
 
     constructor(
         setChatList: SetState<ChatDataExtended[]>,
         setSelectedChat: SetState<ChatDataExtended | null>,
-        setSelectedChatMessages: SetState<ChatMessage[]>,
+        setSelectedChatMessages: (messages: ChatMessage[])=>void,
     ) {
         this.#setChatList = setChatList;
         this.#setSelectedChat = setSelectedChat;

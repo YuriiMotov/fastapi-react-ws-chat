@@ -15,9 +15,9 @@ function App() {
   const [selectedChatMessages, setSelectedChatMessages] = useState<ChatMessage[]>([]);
   const [sendMessageText, setSendMessageText] = useState("");
 
-  const chatClient = useRef<ChatClient>(new ChatClient(setChatList, setSelectedChat, setSelectedChatMessages));
+  const chatClient = useRef<ChatClient>(new ChatClient(setChatList, setSelectedChat, setChatMessageListStoreScrollPos));
   const connectDelay = useRef<number | null>(null);
-
+  const messageListScrollElementID = useRef<string | null>("chat-messages-bottom");
 
   useEffect(
       () => {
@@ -26,7 +26,6 @@ function App() {
               chatClient.current.connect(clientId);
             }, 100
           )
-
           return () => {
             if (connectDelay.current) {
               clearTimeout(connectDelay.current);
@@ -37,20 +36,40 @@ function App() {
       [clientId, reconnectCount, ]
   );
 
-  useEffect(() => {
-    const ele = document.querySelector("#chat-messages-bottom");
-    if (ele) ele.scrollIntoView();
-  }, [selectedChatMessages]);
+  useEffect(
+    () => {
+      if (messageListScrollElementID.current) {
+        const ele = document.querySelector('#' + messageListScrollElementID.current) as HTMLDivElement;
+        ele.scrollIntoView();
+      }
+    }, [selectedChatMessages, ]
+  );
+
+  function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
+    const messageListScrollArea = document.querySelector("#chat-messages-scroll-area") as HTMLDivElement;
+    const messageListScrollAreaTopY = messageListScrollArea.scrollTop;
+
+    if (messageListScrollArea.scrollTop < 10) {
+      const messageListContainer = document.querySelector("#chat-messages-container") as HTMLDivElement;
+      messageListScrollElementID.current = (messageListContainer.childNodes[0] as HTMLBaseElement).id;
+    } else if (((messageListScrollArea.scrollHeight - messageListScrollArea.clientHeight) - messageListScrollAreaTopY) < 10) {
+      messageListScrollElementID.current = "chat-messages-bottom";
+    } else {
+      messageListScrollElementID.current = null;
+    }
+    console.log(`messageListScrollElementID = ${messageListScrollElementID.current}`);
+
+    setSelectedChatMessages(messages);
+
+  }
 
   function sendMessageClickHandler() {
     chatClient.current.sendMessage(sendMessageText, selectedChat!.id);
     setSendMessageText("");
   }
 
-
   return (
         <Grid h='calc(100vh)' templateRows='1fc' templateColumns='250px 1fr 250px' backgroundColor='whitesmoke' >
-
           <GridItem>
             <Container p='4'>
               <ChatListComponent chatList={chatList} selectedChatId={selectedChat?.id} onChatSelect={chatClient.current.selectChat.bind(chatClient.current)} />
@@ -59,7 +78,7 @@ function App() {
 
           <GridItem>
             <Flex h='calc(100vh)' direction='column' p='4' backgroundColor='AppWorkspace'>
-              <Box w='100%' h='100%' overflow='scroll'>
+              <Box w='100%' h='100%' overflow='scroll' id='chat-messages-scroll-area'>
                 <VStack spacing='4'>
                   {
                     (selectedChat !== null) ? (
