@@ -27,6 +27,7 @@ class InMemoryEventBroker(AbstractEventBroker):
             cls._subscribers = set()
             cls._subscribtions = defaultdict(set)
             cls._event_queue = {}
+            cls._cls_initialized = True
 
     @asynccontextmanager
     async def _session(self, user_id: uuid.UUID) -> AsyncIterator[None]:
