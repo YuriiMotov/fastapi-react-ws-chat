@@ -6,6 +6,7 @@ import { useDisclosure } from '@chakra-ui/react'
 
 interface MessageListItemComponentParams {
     message: ChatMessage;
+    currentUserID: string | null;
     onShowEditMessageWindow: (messageId: string, text: string)=>void;
 }
 
@@ -18,7 +19,17 @@ function MessageListItemComponent(params: MessageListItemComponentParams) {
                 <Flex direction='row'>
                     <Text>John Doe</Text>
                     <Spacer />
-                    <Button rightIcon={<TiEdit />} variant='link' onClick={()=>params.onShowEditMessageWindow(params.message.id, params.message.text)}></Button>
+                    {
+                        (params.currentUserID === params.message.sender_id) ? (
+                            <Button
+                                rightIcon={<TiEdit />}
+                                variant='link'
+                                onClick={()=>params.onShowEditMessageWindow(params.message.id, params.message.text)}
+                            >
+                            </Button>
+                        ) : null
+                    }
+
                 </Flex>
             </CardHeader>
             <CardBody>
@@ -31,6 +42,7 @@ function MessageListItemComponent(params: MessageListItemComponentParams) {
 
 interface MessageListComponentParams {
     messages: ChatMessage[];
+    currentUserID: string | null;
     onMessageEdit: (messageId: string, newText: string)=>void;
 }
 
@@ -62,7 +74,12 @@ function MessageListComponent(params: MessageListComponentParams) {
         <VStack spacing='1' paddingBottom='4' id='chat-messages-container'>
             {
                 params.messages.map((message) => (
-                    <MessageListItemComponent key={message.id} message={message} onShowEditMessageWindow={showEditMessageWindow} />
+                    <MessageListItemComponent
+                        key={message.id}
+                        message={message}
+                        onShowEditMessageWindow={showEditMessageWindow}
+                        currentUserID={params.currentUserID}
+                    />
                 ))
             }
             <Modal isOpen={isOpen} onClose={onClose}>

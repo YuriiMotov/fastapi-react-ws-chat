@@ -90,7 +90,11 @@ function App() {
                       </Container>
                     ) : null
                   }
-                  <MessageListComponent messages={selectedChatMessages} onMessageEdit={chatClient.current.editMessage.bind(chatClient.current)} />
+                  <MessageListComponent
+                    messages={selectedChatMessages}
+                    onMessageEdit={chatClient.current.editMessage.bind(chatClient.current)}
+                    currentUserID={clientId}
+                  />
                 </VStack>
               </Box>
               <Spacer />
