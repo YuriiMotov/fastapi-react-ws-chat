@@ -297,6 +297,7 @@ class ChatClient {
                                     this.#updateChatListOnLastMessageUpdate(chatMessageEditedEvent.message);
                                 }
                             } else {
+                                console.log('Chat message updated, but message list is empty. Request messages');
                                 this.#requestChatMessageList(chatMessageEditedEvent.message.chat_id);   // This case hasn't tested yet !
                             }
 
@@ -357,6 +358,7 @@ class ChatClient {
         const chatMessages: ChatMessages = this.#chatMessages.get(chatId)!;
         let minMessageId = Infinity;
         let maxMessageId = 0;
+        let maxIDMessage: ChatMessage | null = null;
 
         messages.forEach(message=>{
             const messageId = parseInt(message.id);
@@ -365,6 +367,7 @@ class ChatClient {
             }
             if (messageId > maxMessageId) {
                 maxMessageId = messageId;
+                maxIDMessage = message;
             }
         });
 
@@ -372,7 +375,6 @@ class ChatClient {
             chatMessages.messages.unshift(...messages);
         } else if (minMessageId  > chatMessages.maxMessageId) {
             chatMessages.messages.push(...messages);
-            this.#updateChatListOnLastMessageUpdate(messages[0]);
         } else {
             console.log("Insert messages to the middle");
             chatMessages.messages.push(...messages);
@@ -380,8 +382,12 @@ class ChatClient {
             console.log("updateChatMessageListInternal is quite slow in inserting messages in the middle of the list.");
             console.log("Consider refactoring to store ID's as a numbers instead of strings to make it faster");
         };
-        if (chatMessages.maxMessageId < maxMessageId)
+
+        if (chatMessages.maxMessageId < maxMessageId) {
+            if (maxIDMessage)
+                this.#updateChatListOnLastMessageUpdate(maxIDMessage);
             chatMessages.maxMessageId = maxMessageId;
+        }
         if (chatMessages.minMessageId > minMessageId)
             chatMessages.minMessageId = minMessageId;
 
