@@ -260,7 +260,8 @@ class ChatClient {
                             const chatListUpdatePacket = chatEvent as ChatListUpdateEvent;
                             switch (chatListUpdatePacket.action_type) {
                                 case "add":
-                                    this.#setChatList(prev=>[...prev, chatListUpdatePacket.chat_data]);
+                                    this.#chatList = [...this.#chatList, chatListUpdatePacket.chat_data]
+                                    this.#setChatList(prev=>[...this.#chatList]);
                                     break;
                                 // case "delete":
                                 //     this.#setChatList(prev=>prev.filter(chat=>chat.id !== chatListUpdatePacket.chat_data.id));

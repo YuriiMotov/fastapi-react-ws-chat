@@ -117,14 +117,26 @@ function App() {
 
           <GridItem>
             <VStack spacing='3' p='4'>
-            <Select placeholder='Select option' onChange={(e)=>setClientId(e.target.value)}>
-              <option value='-'>-</option>
-              <option value='ef376e46-db3b-4beb-8170-82940d849847'>John</option>
-              <option value='ef376e56-db3b-4beb-8170-82940d849847'>Joe</option>
-            </Select>
-              <Button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
-                Add yourself to forth chat
-              </Button>
+              <Select placeholder='Select option' onChange={(e)=>setClientId(e.target.value)}>
+                <option value='-'>-</option>
+                <option value='ef376e46-db3b-4beb-8170-82940d849847'>John</option>
+                <option value='ef376e56-db3b-4beb-8170-82940d849847'>Joe</option>
+              </Select>
+              {
+                ((clientId === "ef376e46-db3b-4beb-8170-82940d849847") && (chatList.length < 4)) ? (
+                  <Button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
+                    Add yourself to forth chat
+                  </Button>
+                ) : null
+              }
+              {
+
+                (clientId === "ef376e46-db3b-4beb-8170-82940d849847") ? (
+                  <Button onClick={()=>chatClient.current.addUserToChat("ef376e56-db3b-4beb-8170-82940d849847", "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
+                    Add Joe to forth chat
+                  </Button>
+                ) : null
+              }
               <Button onClick={()=>setReconnectCount(reconnectCount + 1)}>Reconnect</Button>
             </VStack>
           </GridItem>
