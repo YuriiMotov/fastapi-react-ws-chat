@@ -3,12 +3,12 @@ import { useState, useEffect, useRef } from 'react'
 import { ChatClient, ChatDataExtended, ChatMessage } from './ChatClient';
 import { ChatListComponent } from './ChatUI/ChatList';
 
-import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem, Container, Textarea } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, Input, VStack, Text, Spacer, Grid, GridItem, Container, Textarea, Select } from '@chakra-ui/react';
 import { MessageListComponent } from './ChatUI/MessageList';
 
 function App() {
 
-  const [clientId, setClientId] = useState("ef376e46-db3b-4beb-8170-82940d849847");
+  const [clientId, setClientId] = useState("-");
   const [reconnectCount, setReconnectCount] = useState(0);
   const [chatList, setChatList] = useState<ChatDataExtended[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatDataExtended | null>(null);
@@ -21,17 +21,19 @@ function App() {
 
   useEffect(
       () => {
+        if (clientId.length > 1) {
           connectDelay.current = setTimeout(
             () => {
               chatClient.current.connect(clientId);
             }, 100
           )
-          return () => {
-            if (connectDelay.current) {
-              clearTimeout(connectDelay.current);
-            }
-            chatClient.current.disconnect();
-          };
+        }
+        return () => {
+          if (connectDelay.current) {
+            clearTimeout(connectDelay.current);
+          }
+          chatClient.current.disconnect();
+        };
       },
       [clientId, reconnectCount, ]
   );
@@ -40,7 +42,8 @@ function App() {
     () => {
       if (messageListScrollElementID.current) {
         const ele = document.querySelector('#' + messageListScrollElementID.current) as HTMLDivElement;
-        ele.scrollIntoView();
+        if (ele)
+          ele.scrollIntoView();
       }
     }, [selectedChatMessages, ]
   );
@@ -110,6 +113,11 @@ function App() {
 
           <GridItem>
             <VStack spacing='3' p='4'>
+            <Select placeholder='Select option' onChange={(e)=>setClientId(e.target.value)}>
+              <option value='-'>-</option>
+              <option value='ef376e46-db3b-4beb-8170-82940d849847'>John</option>
+              <option value='ef376e56-db3b-4beb-8170-82940d849847'>Joe</option>
+            </Select>
               <Button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
                 Add yourself to forth chat
               </Button>

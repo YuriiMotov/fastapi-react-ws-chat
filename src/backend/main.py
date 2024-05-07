@@ -20,21 +20,26 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(BaseModel.metadata.create_all)
     sessionmaker = sqla_sessionmaker_dep()
     async with sessionmaker() as session:
-        user = User(id=uuid.UUID("ef376e46-db3b-4beb-8170-82940d849847"), name="I")
+        user_1 = User(id=uuid.UUID("ef376e46-db3b-4beb-8170-82940d849847"), name="John")
+        user_2 = User(id=uuid.UUID("ef376e56-db3b-4beb-8170-82940d849847"), name="Joe")
         chats = [
-            Chat(id=uuid.uuid4(), title=f"Chat {i}", owner_id=user.id) for i in range(3)
+            Chat(id=uuid.uuid4(), title=f"Chat {i}", owner_id=user_1.id)
+            for i in range(3)
         ]
         chats.append(
             Chat(
                 id=uuid.UUID("eccf5b4a-c706-4c05-9ab2-5edc7539daad"),
                 title="One more chat",
-                owner_id=user.id,
+                owner_id=user_1.id,
             )
         )
         user_chat_links = [
-            UserChatLink(user_id=user.id, chat_id=chat.id) for chat in chats[:-1]
+            UserChatLink(user_id=user_1.id, chat_id=chat.id) for chat in chats[:-1]
         ]
-        session.add_all((user, *chats, *user_chat_links))
+        user_chat_links.extend(
+            [UserChatLink(user_id=user_2.id, chat_id=chat.id) for chat in chats[:-1]]
+        )
+        session.add_all((user_1, user_2, *chats, *user_chat_links))
         await session.commit()
 
     yield
