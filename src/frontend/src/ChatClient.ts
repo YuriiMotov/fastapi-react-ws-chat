@@ -36,6 +36,7 @@ interface ChatMessage {
     is_notification: string;
     sender_id?: string;
     params?: string;
+    senderName?: string;
 };
 
 interface ChatEventListPacket extends ServerPacketData {
@@ -77,6 +78,7 @@ class ChatClient {
     #selectedChat: ChatDataExtended | null = null;
     #chatList: ChatDataExtended[] = [];
     #chatMessages: Map<string, ChatMessages>;
+    #userNamesCache: Map<string, string>;
 
     #setChatList: SetState<ChatDataExtended[]>;
     #setSelectedChat: SetState<ChatDataExtended | null>;
@@ -91,6 +93,11 @@ class ChatClient {
         this.#setSelectedChat = setSelectedChat;
         this.#setSelectedChatMessages = setSelectedChatMessages;
         this.#chatMessages = new Map<string, ChatMessages>();
+        this.#userNamesCache = new Map<string, string>();
+
+        // Add some user names for tests
+        this.#userNamesCache.set("ef376e46-db3b-4beb-8170-82940d849847", "John");
+        this.#userNamesCache.set("ef376e56-db3b-4beb-8170-82940d849847", "Joe");
     };
 
     // ................................  Public methods ................................
@@ -392,6 +399,12 @@ class ChatClient {
         if (chatMessages.minMessageId > minMessageId)
             chatMessages.minMessageId = minMessageId;
 
+        // update user names
+        chatMessages.messages.forEach((message: ChatMessage)=> {
+            if (message.sender_id && !message.senderName)
+                message.senderName = this.#userNamesCache.get(message.sender_id)
+        })
+
     };
 
     #updateChatListOnLastMessageUpdate(lastMessage: ChatMessage) {
@@ -400,7 +413,6 @@ class ChatClient {
         })
         this.#setChatList([...this.#chatList]);
     }
-
 }
 
 export {ChatClient, ChatDataExtended, ChatMessage};
