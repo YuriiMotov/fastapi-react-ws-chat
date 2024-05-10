@@ -22,6 +22,12 @@ This is generally my study project, but I hope it can be useful for somebody. **
 ✅ Displaying last messages in the chat list for each chat
 
 
+![chat](doc-resources/chat-ui-1.png)
+
+
+![chat message editing](doc-resources/chat-ui-2.png)
+
+
 **Future plans:**
 
  - Code review and refactoring
