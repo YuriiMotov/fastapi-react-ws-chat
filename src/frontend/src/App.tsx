@@ -77,35 +77,29 @@ function App() {
   }
 
   return (
-        <Grid h='calc(100vh)' templateRows='1fc' templateColumns='250px 1fr 250px' backgroundColor='whitesmoke' >
-          <GridItem>
-            <Container p='4'>
+        <Grid h='calc(100vh)' templateRows='1fc' templateColumns='250px 1fr 250px' backgroundColor='whitesmoke'>
+          <GridItem p={4}>
               <ChatListComponent
                 chatList={chatList}
                 selectedChatId={selectedChat?.id}
                 onChatSelect={chatClient.current.selectChat.bind(chatClient.current)}
               />
-            </Container>
           </GridItem>
 
-          <GridItem>
-            <Flex h='calc(100vh)' direction='column' p='4' backgroundColor='AppWorkspace'>
-              <Box w='100%' h='100%' overflow='scroll' id='chat-messages-scroll-area'>
+          <GridItem backgroundColor='AppWorkspace' p={4}>
+            <Flex h='calc(100vh - 2rem)' direction='column'>
+              <Box overflow='scroll' id='chat-messages-scroll-area'>
                 <VStack spacing='4'>
-                  {
-                    (selectedChat !== null) && (
-                      <Container minW='unset' centerContent>
-                        <Button
-                          colorScheme='telegram'
-                          variant='link'
-                          size='sm'
-                          onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}
-                        >
-                          ⇧ Load prev ⇧
-                        </Button>
-                      </Container>
-                    )
-                  }
+                  {(selectedChat !== null) && (
+                    <Button
+                      colorScheme='telegram'
+                      variant='link'
+                      size='sm'
+                      onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}
+                    >
+                      ⇧ Load prev ⇧
+                    </Button>
+                  )}
                   <MessageListComponent
                     messages={selectedChatMessages}
                     onMessageEdit={chatClient.current.editMessage.bind(chatClient.current)}
@@ -114,27 +108,25 @@ function App() {
                 </VStack>
               </Box>
               <Spacer />
-              {
-                  (selectedChat !== null) && (
-                    <HStack spacing='1'>
-                      <Textarea
-                        colorScheme='telegram'
-                        value={sendMessageText}
-                        onChange={(e)=>setSendMessageText(e.target.value)}
-                        placeholder='Input message to send'
-                        size='sm'
-                      />
-                      <Button colorScheme='telegram' onClick={sendMessageClickHandler}>
-                        Send
-                      </Button>
-                    </HStack>
-                  )
-                }
+              {(selectedChat !== null) && (
+                <HStack spacing='1'>
+                  <Textarea
+                    colorScheme='telegram'
+                    value={sendMessageText}
+                    onChange={(e)=>setSendMessageText(e.target.value)}
+                    placeholder='Input message to send'
+                    size='sm'
+                  />
+                  <Button colorScheme='telegram' onClick={sendMessageClickHandler}>
+                    Send
+                  </Button>
+                </HStack>
+              )}
             </Flex>
           </GridItem>
 
-          <GridItem>
-            <VStack spacing='3' p='4'>
+          <GridItem p={4}>
+            <VStack spacing='3'>
               <Select placeholder='Select option' onChange={(e)=>setClientId(e.target.value)}>
                 <option value='-'>-</option>
                 <option value='ef376e46-db3b-4beb-8170-82940d849847'>John</option>

@@ -10,37 +10,26 @@ import {
     Text,
     VStack,
     LinkBox,
-    LinkOverlay,
 } from '@chakra-ui/react';
-
-const maxChatItemTextLength = 25;
-
-function limitText(text: string, limit: number) {
-    return text.length < limit ? text : (text.slice(0, limit) + '..')
-}
 
 interface ChatListLineComponentParams {
     chat: ChatDataExtended;
     selected: boolean;
-    onClick: React.MouseEventHandler<HTMLAnchorElement>;
+    onClick: React.MouseEventHandler<HTMLDivElement>;
 }
 
 function ChatListLineComponent({chat, selected, onClick}: ChatListLineComponentParams) {
     return (
-        <LinkBox as='button' w='100%' maxH='sm' >
-            <Card variant={selected ? 'filled' : 'elevated'} size='sm' w='100%'>
+        <LinkBox as='button' w='100%' onClick={onClick}>
+            <Card variant={selected ? 'filled' : 'elevated'} size='sm'>
                 <CardHeader>
-                    <Flex flex='1' gap='4' alignItems='left' flexWrap='wrap'>
+                    <Flex gap='4'>
                         <Avatar name={chat.title} src='/public/defaultavatar.png' size='sm' />
                         <Box textAlign='left'>
-                            <LinkOverlay href='#' onClick={onClick} >
-                                {chat.title}
-                            </LinkOverlay>
-                            {chat.last_message_text && (
-                                <Text fontSize='x-small' textColor='gray'>
-                                    {limitText(chat.last_message_text, maxChatItemTextLength)}
-                                </Text>
-                            )}
+                            <Text noOfLines={1}>{chat.title}</Text>
+                            <Text fontSize='x-small' textColor='gray' noOfLines={1}>
+                                {chat.last_message_text}
+                            </Text>
                         </Box>
                     </Flex>
                 </CardHeader>

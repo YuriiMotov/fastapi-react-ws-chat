@@ -34,7 +34,7 @@ function MessageListItemComponent(
 ) {
     // console.log(`repainting message ${params.message.id}`);
     return (
-        <Card minW='md' id={'chat-message-' + message.id}>
+        <Card w='md' id={'chat-message-' + message.id}>
             {(!message.is_notification) && (
                 <CardHeader textColor='lightgray' fontWeight='bold' p='2' paddingBottom='0'>
                     <Flex direction='row'>
@@ -43,12 +43,11 @@ function MessageListItemComponent(
                         </Skeleton>
                         <Spacer />
                         {(currentUserID === message.sender_id) && (
-                                <Button
-                                    rightIcon={<TiEdit />}
-                                    variant='link'
-                                    onClick={()=>onShowEditMessageWindow(message.id, message.text)}
-                                >
-                                </Button>
+                            <Button
+                                rightIcon={<TiEdit />}
+                                variant='link'
+                                onClick={()=>onShowEditMessageWindow(message.id, message.text)}
+                            />
                         )}
                     </Flex>
                 </CardHeader>
@@ -120,7 +119,6 @@ function MessageListComponent(
                     </ModalFooter>
                 </ModalContent>
             </Modal>
-
             <Link id='chat-messages-bottom'></Link>
         </VStack>
     )
