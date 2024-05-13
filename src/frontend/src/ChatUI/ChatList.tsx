@@ -25,20 +25,20 @@ interface ChatListLineComponentParams {
     onClick: React.MouseEventHandler<HTMLAnchorElement>;
 }
 
-function ChatListLineComponent(params: ChatListLineComponentParams) {
+function ChatListLineComponent({chat, selected, onClick}: ChatListLineComponentParams) {
     return (
         <LinkBox as='button' w='100%' maxH='sm' >
-            <Card variant={params.selected ? 'filled' : 'elevated'} size='sm' w='100%'>
+            <Card variant={selected ? 'filled' : 'elevated'} size='sm' w='100%'>
                 <CardHeader>
                     <Flex flex='1' gap='4' alignItems='left' flexWrap='wrap'>
-                        <Avatar name={params.chat.title} src='/public/defaultavatar.png' size='sm' />
+                        <Avatar name={chat.title} src='/public/defaultavatar.png' size='sm' />
                         <Box textAlign='left'>
-                            <LinkOverlay href='#' onClick={params.onClick} >
-                                {params.chat.title}
+                            <LinkOverlay href='#' onClick={onClick} >
+                                {chat.title}
                             </LinkOverlay>
-                            {params.chat.last_message_text && (
+                            {chat.last_message_text && (
                                 <Text fontSize='x-small' textColor='gray'>
-                                    {limitText(params.chat.last_message_text, maxChatItemTextLength)}
+                                    {limitText(chat.last_message_text, maxChatItemTextLength)}
                                 </Text>
                             )}
                         </Box>
@@ -56,16 +56,18 @@ interface ChatListComponentParams {
     onChatSelect: (chat: ChatDataExtended)=>void;
 }
 
-function ChatListComponent(params: ChatListComponentParams) {
+function ChatListComponent(
+    { chatList, selectedChatId, onChatSelect }: ChatListComponentParams
+) {
     return (
         <VStack spacing="1" w='100%'>
             <Heading size='sm'>Chat list:</Heading>
-            {params.chatList.map((chat)=> (
+            {chatList.map((chat)=> (
                 <ChatListLineComponent
                     key={chat.id}
                     chat={chat}
-                    selected={params.selectedChatId === chat.id}
-                    onClick={()=>params.onChatSelect(chat)}
+                    selected={selectedChatId === chat.id}
+                    onClick={()=>onChatSelect(chat)}
                 />
             ))}
         </VStack>
