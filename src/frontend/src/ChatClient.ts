@@ -160,7 +160,6 @@ class ChatClient {
         };
     }
 
-
     editMessage(messageId: string, newText: string): void {
         if (this.#connection) {
             const cmd = {
@@ -251,7 +250,7 @@ class ChatClient {
                 if (messages.length > 0) {
                     const chatId = messages[0].chat_id;
                     this.#updateChatMessageListInternal(chatId, messages.slice().reverse());
-                    const chatMessages: ChatMessage[] = this.#chatMessages.has(chatId) ? this.#chatMessages.get(chatId)!.messages : [];
+                    const chatMessages: ChatMessage[] = this.#chatMessages.get(chatId)?.messages || [];
                     if (this.#selectedChat && (chatId === this.#selectedChat.id)) {
                         this.#setSelectedChatMessages([...chatMessages]);
                     };

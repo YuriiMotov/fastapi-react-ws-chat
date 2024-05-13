@@ -1,6 +1,17 @@
 import React from 'react';
 import { ChatDataExtended } from '../ChatClient';
-import { Card, CardHeader, Avatar, Box, Heading, Flex, Text,VStack, LinkBox, LinkOverlay} from '@chakra-ui/react';
+import {
+    Card,
+    CardHeader,
+    Avatar,
+    Box,
+    Heading,
+    Flex,
+    Text,
+    VStack,
+    LinkBox,
+    LinkOverlay,
+} from '@chakra-ui/react';
 
 const maxChatItemTextLength = 25;
 
@@ -25,11 +36,11 @@ function ChatListLineComponent(params: ChatListLineComponentParams) {
                             <LinkOverlay href='#' onClick={params.onClick} >
                                 {params.chat.title}
                             </LinkOverlay>
-                            {
-                            params.chat.last_message_text ? (
-                                <Text fontSize='x-small' textColor='gray'>{limitText(params.chat.last_message_text, maxChatItemTextLength)}</Text>
-                            ) : null
-                            }
+                            {params.chat.last_message_text && (
+                                <Text fontSize='x-small' textColor='gray'>
+                                    {limitText(params.chat.last_message_text, maxChatItemTextLength)}
+                                </Text>
+                            )}
                         </Box>
                     </Flex>
                 </CardHeader>
@@ -49,11 +60,14 @@ function ChatListComponent(params: ChatListComponentParams) {
     return (
         <VStack spacing="1" w='100%'>
             <Heading size='sm'>Chat list:</Heading>
-            {
-                params.chatList.map((chat)=> (
-                    <ChatListLineComponent key={chat.id} chat={chat} selected={params.selectedChatId === chat.id} onClick={()=>params.onChatSelect(chat)}/>
-                ))
-            }
+            {params.chatList.map((chat)=> (
+                <ChatListLineComponent
+                    key={chat.id}
+                    chat={chat}
+                    selected={params.selectedChatId === chat.id}
+                    onClick={()=>params.onChatSelect(chat)}
+                />
+            ))}
         </VStack>
     )
 }

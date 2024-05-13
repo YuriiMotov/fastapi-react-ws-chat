@@ -19,6 +19,7 @@ function App() {
   const connectDelay = useRef<number | null>(null);
   const messageListScrollElementID = useRef<string | null>("chat-messages-bottom");
 
+  // Connect to WS on user change
   useEffect(
       () => {
         if (clientId.length > 1) {
@@ -38,6 +39,7 @@ function App() {
       [clientId, reconnectCount, ]
   );
 
+  // Scroll message list container on message list update
   useEffect(
     () => {
       if (messageListScrollElementID.current) {
@@ -48,7 +50,10 @@ function App() {
     }, [selectedChatMessages, ]
   );
 
+  // Remember the scroll position before chat message list updating
   function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
+    // messageListScrollElementID.current = getMessageListScrollAnchorElement();
+
     const messageListScrollArea = document.querySelector("#chat-messages-scroll-area") as HTMLDivElement;
     const messageListScrollAreaTopY = messageListScrollArea.scrollTop;
 
@@ -63,8 +68,8 @@ function App() {
     console.log(`messageListScrollElementID = ${messageListScrollElementID.current}`);
 
     setSelectedChatMessages(messages);
-
   }
+
 
   function sendMessageClickHandler() {
     chatClient.current.sendMessage(sendMessageText, selectedChat!.id);
@@ -75,7 +80,11 @@ function App() {
         <Grid h='calc(100vh)' templateRows='1fc' templateColumns='250px 1fr 250px' backgroundColor='whitesmoke' >
           <GridItem>
             <Container p='4'>
-              <ChatListComponent chatList={chatList} selectedChatId={selectedChat?.id} onChatSelect={chatClient.current.selectChat.bind(chatClient.current)} />
+              <ChatListComponent
+                chatList={chatList}
+                selectedChatId={selectedChat?.id}
+                onChatSelect={chatClient.current.selectChat.bind(chatClient.current)}
+              />
             </Container>
           </GridItem>
 
@@ -84,11 +93,18 @@ function App() {
               <Box w='100%' h='100%' overflow='scroll' id='chat-messages-scroll-area'>
                 <VStack spacing='4'>
                   {
-                    (selectedChat !== null) ? (
+                    (selectedChat !== null) && (
                       <Container minW='unset' centerContent>
-                        <Button colorScheme='telegram' variant='link' size='sm' onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}>⇧ Load prev ⇧</Button>
+                        <Button
+                          colorScheme='telegram'
+                          variant='link'
+                          size='sm'
+                          onClick={()=>chatClient.current.loadPreviousMessages(selectedChat.id)}
+                        >
+                          ⇧ Load prev ⇧
+                        </Button>
                       </Container>
-                    ) : null
+                    )
                   }
                   <MessageListComponent
                     messages={selectedChatMessages}
@@ -99,7 +115,7 @@ function App() {
               </Box>
               <Spacer />
               {
-                  (selectedChat !== null) ? (
+                  (selectedChat !== null) && (
                     <HStack spacing='1'>
                       <Textarea
                         colorScheme='telegram'
@@ -108,9 +124,11 @@ function App() {
                         placeholder='Input message to send'
                         size='sm'
                       />
-                      <Button colorScheme='telegram' onClick={sendMessageClickHandler}>Send</Button>
+                      <Button colorScheme='telegram' onClick={sendMessageClickHandler}>
+                        Send
+                      </Button>
                     </HStack>
-                  ): (<b>Chat not selected</b>)
+                  )
                 }
             </Flex>
           </GridItem>
@@ -123,19 +141,18 @@ function App() {
                 <option value='ef376e56-db3b-4beb-8170-82940d849847'>Joe</option>
               </Select>
               {
-                ((clientId === "ef376e46-db3b-4beb-8170-82940d849847") && (chatList.length < 4)) ? (
+                ((clientId === "ef376e46-db3b-4beb-8170-82940d849847") && (chatList.length < 4)) && (
                   <Button onClick={()=>chatClient.current.addUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
                     Add yourself to forth chat
                   </Button>
-                ) : null
+                )
               }
               {
-
-                (clientId === "ef376e46-db3b-4beb-8170-82940d849847") ? (
+                (clientId === "ef376e46-db3b-4beb-8170-82940d849847") && (
                   <Button onClick={()=>chatClient.current.addUserToChat("ef376e56-db3b-4beb-8170-82940d849847", "eccf5b4a-c706-4c05-9ab2-5edc7539daad")}>
                     Add Joe to forth chat
                   </Button>
-                ) : null
+                )
               }
               <Button onClick={()=>setReconnectCount(reconnectCount + 1)}>Reconnect</Button>
             </VStack>

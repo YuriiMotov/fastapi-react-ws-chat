@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
 import { ChatMessage } from '../ChatClient';
-import { Card, CardHeader,Flex, Text,VStack, CardBody, Link, Spacer, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, Textarea, ModalFooter, Skeleton} from '@chakra-ui/react';
+import {
+    Card,
+    CardHeader,
+    Flex,
+    Text,
+    VStack,
+    CardBody,
+    Link,
+    Spacer,
+    Button,
+    Modal,
+    ModalOverlay,
+    ModalContent,
+    ModalHeader,
+    ModalCloseButton,
+    ModalBody,
+    Textarea,
+    ModalFooter,
+    Skeleton,
+} from '@chakra-ui/react';
 import { TiEdit } from "react-icons/ti";
 import { useDisclosure } from '@chakra-ui/react'
 
@@ -15,28 +34,24 @@ function MessageListItemComponent(params: MessageListItemComponentParams) {
     // console.log(`repainting message ${params.message.id}`);
     return (
         <Card minW='md' id={'chat-message-' + params.message.id}>
-            {
-                (!params.message.is_notification) ? (
-                    <CardHeader textColor='lightgray' fontWeight='bold' p='2' paddingBottom='0'>
-                        <Flex direction='row'>
-                            <Skeleton height='20px' isLoaded={params.message.senderName != undefined}>
-                                <Text>{params.message.senderName ? params.message.senderName : 'Loading..'}</Text>
-                            </Skeleton>
-                            <Spacer />
-                            {
-                                (params.currentUserID === params.message.sender_id) ? (
-                                    <Button
-                                        rightIcon={<TiEdit />}
-                                        variant='link'
-                                        onClick={()=>params.onShowEditMessageWindow(params.message.id, params.message.text)}
-                                    >
-                                    </Button>
-                                ) : null
-                            }
-                        </Flex>
-                    </CardHeader>
-                ) : null
-            }
+            {(!params.message.is_notification) && (
+                <CardHeader textColor='lightgray' fontWeight='bold' p='2' paddingBottom='0'>
+                    <Flex direction='row'>
+                        <Skeleton height='20px' isLoaded={params.message.senderName != undefined}>
+                            <Text>{params.message.senderName || 'Loading..'}</Text>
+                        </Skeleton>
+                        <Spacer />
+                        {(params.currentUserID === params.message.sender_id) && (
+                                <Button
+                                    rightIcon={<TiEdit />}
+                                    variant='link'
+                                    onClick={()=>params.onShowEditMessageWindow(params.message.id, params.message.text)}
+                                >
+                                </Button>
+                        )}
+                    </Flex>
+                </CardHeader>
+            )}
             <CardBody>
                 {params.message.text.split('\n').map((l,index)=>(<Text key={index}>{l}</Text>))}
             </CardBody>
@@ -93,7 +108,11 @@ function MessageListComponent(params: MessageListComponentParams) {
                     <ModalHeader>Message editing</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
-                        <Textarea id='message-edit-text' defaultValue={editedMessageText ? editedMessageText : ''} isReadOnly={false} />
+                        <Textarea
+                            id='message-edit-text'
+                            defaultValue={editedMessageText ? editedMessageText : ''}
+                            isReadOnly={false}
+                        />
                     </ModalBody>
                     <ModalFooter>
                         <Button colorScheme='telegram' mr={3} onClick={onSave}>Save</Button>
