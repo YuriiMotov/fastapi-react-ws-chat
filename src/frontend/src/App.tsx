@@ -71,15 +71,20 @@ function App() {
     const messageListScrollArea = document.querySelector(
       "#chat-messages-scroll-area"
     ) as HTMLDivElement;
+    if (!messageListScrollArea) {
+      messageListScrollElementID.current = null;
+      return;
+    }
+
     const messageListScrollAreaTopY = messageListScrollArea.scrollTop;
 
     if (messageListScrollArea.scrollTop < 10) {
       const messageListContainer = document.querySelector(
         "#chat-messages-container"
       ) as HTMLDivElement;
-      messageListScrollElementID.current = (
-        messageListContainer.childNodes[0] as HTMLBaseElement
-      ).id;
+      messageListScrollElementID.current = messageListContainer
+        ? (messageListContainer.childNodes[0] as HTMLBaseElement).id
+        : null;
     } else if (
       messageListScrollArea.scrollHeight -
         messageListScrollArea.clientHeight -
@@ -113,38 +118,29 @@ function App() {
       </GridItem>
 
       <GridItem backgroundColor="AppWorkspace" p={4}>
-        <Flex h="calc(100vh - 2rem)" direction="column">
-          <Box overflowY="auto" id="chat-messages-scroll-area">
-            <VStack spacing="4">
-              {selectedChat !== null && (
-                <Button
-                  colorScheme="telegram"
-                  variant="link"
-                  size="sm"
-                  onClick={() =>
-                    chatClient.current.loadPreviousMessages(selectedChat.id)
-                  }
-                >
-                  ⇧ Load prev ⇧
-                </Button>
-              )}
+        {selectedChat !== null && (
+          <Flex h="calc(100vh - 2rem)" direction="column">
+            <Box overflowY="auto" id="chat-messages-scroll-area">
               <MessageListComponent
                 messages={selectedChatMessages}
                 onMessageEdit={chatClient.current.editMessage.bind(
                   chatClient.current
                 )}
+                onLoadPrevClick={() =>
+                  chatClient.current.loadPreviousMessages(selectedChat.id)
+                }
                 currentUserID={clientId}
               />
-            </VStack>
-          </Box>
-          <Spacer />
-          {selectedChat !== null && (
+            </Box>
+            <Spacer />
             <SendMessageComponent
-              onSendMessage={chatClient.current.sendMessage.bind(chatClient.current)}
+              onSendMessage={chatClient.current.sendMessage.bind(
+                chatClient.current
+              )}
               selectedChatID={selectedChat.id}
             />
-          )}
-        </Flex>
+          </Flex>
+        )}
       </GridItem>
 
       <GridItem p={4}>

@@ -140,12 +140,14 @@ interface MessageListComponentParams {
   messages: ChatMessage[];
   currentUserID: string | null;
   onMessageEdit: (messageId: string, newText: string) => void;
+  onLoadPrevClick: () => void;
 }
 
 function MessageListComponent({
   messages,
   currentUserID,
   onMessageEdit,
+  onLoadPrevClick,
 }: MessageListComponentParams) {
   const [editedMessage, setEditedMessage] = useState<ChatMessage | null>(null);
 
@@ -158,7 +160,15 @@ function MessageListComponent({
   }
 
   return (
-    <VStack spacing="1" paddingBottom="4" id="chat-messages-container">
+    <VStack spacing="4" paddingBottom="4" id="chat-messages-container">
+      <Button
+        colorScheme="telegram"
+        variant="link"
+        size="sm"
+        onClick={onLoadPrevClick}
+      >
+        ⇧ Load prev ⇧
+      </Button>
       {messages.map((message) => (
         <MessageListItemComponent
           key={message.id}
