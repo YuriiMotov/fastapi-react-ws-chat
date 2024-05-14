@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChatMessage } from "../ChatClient";
 import {
   Card,
@@ -26,7 +26,7 @@ import { useDisclosure } from "@chakra-ui/react";
 interface MessageListItemComponentParams {
   message: ChatMessage;
   currentUserID: string | null;
-  onShowEditMessageWindow: (messageId: string, text: string) => void;
+  onShowEditMessageWindow: (message: ChatMessage) => void;
 }
 
 function MessageListItemComponent({
@@ -34,7 +34,7 @@ function MessageListItemComponent({
   currentUserID,
   onShowEditMessageWindow,
 }: MessageListItemComponentParams) {
-  // console.log(`repainting message ${params.message.id}`);
+  console.log(`repainting message ${message.id}`);
   return (
     <Card w="md" id={"chat-message-" + message.id}>
       {!message.is_notification && (
@@ -54,7 +54,7 @@ function MessageListItemComponent({
                 rightIcon={<TiEdit />}
                 variant="link"
                 onClick={() =>
-                  onShowEditMessageWindow(message.id, message.text)
+                  onShowEditMessageWindow(message)
                 }
               />
             )}
@@ -70,6 +70,72 @@ function MessageListItemComponent({
   );
 }
 
+interface MessageEditWindowComponentParams {
+  editedMessage: ChatMessage | null;
+  onMessageEditSave: (messageId: string, newText: string) => void;
+  resetEditedMessageHandler: () => void;
+}
+
+function MessageEditWindowComponent({
+  editedMessage,
+  onMessageEditSave,
+  resetEditedMessageHandler,
+}: MessageEditWindowComponentParams) {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [editedMessageText, setEditedMessageText] = useState<string>("");
+
+  useEffect(() => {
+    if (editedMessage) {
+        setEditedMessageText(editedMessage.text);
+        onOpen();
+    }
+    return () => {
+        setEditedMessageText("");
+        onClose();
+    }
+  }, [editedMessage]);
+
+  function closeModal() {
+    resetEditedMessageHandler();
+    onClose();
+  }
+
+  function saveAndClose() {
+    onMessageEditSave(editedMessage!.id, editedMessageText);
+    closeModal();
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={closeModal}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Message editing</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <Textarea
+            id="message-edit-text"
+            value={editedMessageText}
+            onChange={(e)=>setEditedMessageText(e.target.value)}
+            isReadOnly={false}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            colorScheme="telegram"
+            mr={3}
+            onClick={saveAndClose}
+          >
+            Save
+          </Button>
+          <Button variant="ghost" onClick={closeModal}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
 interface MessageListComponentParams {
   messages: ChatMessage[];
   currentUserID: string | null;
@@ -81,31 +147,14 @@ function MessageListComponent({
   currentUserID,
   onMessageEdit,
 }: MessageListComponentParams) {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [editedMessageId, setEditedMessageId] = useState<string | null>(null);
-  const [editedMessageText, setEditedMessageText] = useState<string | null>(
-    null
-  );
+  const [editedMessage, setEditedMessage] = useState<ChatMessage | null>(null);
 
-  function onSave() {
-    const ele = document.querySelector(
-      "#message-edit-text"
-    ) as HTMLTextAreaElement;
-    if (ele && editedMessageId) {
-      onMessageEdit(editedMessageId, ele.value);
-      onClose();
-    } else {
-      console.log(
-        `Can't save message. ele is ${ele}, editedMessageId is ${editedMessageId}`
-      );
-      onClose();
-    }
+  function showEditMessageWindow(message: ChatMessage) {
+    setEditedMessage(message);
   }
 
-  function showEditMessageWindow(messageId: string, text: string) {
-    setEditedMessageId(messageId);
-    setEditedMessageText(text);
-    onOpen();
+  function resetEditedMessage() {
+    setEditedMessage(null);
   }
 
   return (
@@ -118,29 +167,12 @@ function MessageListComponent({
           currentUserID={currentUserID}
         />
       ))}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Message editing</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Textarea
-              id="message-edit-text"
-              defaultValue={editedMessageText ? editedMessageText : ""}
-              isReadOnly={false}
-            />
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="telegram" mr={3} onClick={onSave}>
-              Save
-            </Button>
-            <Button variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
       <Link id="chat-messages-bottom"></Link>
+      <MessageEditWindowComponent
+        editedMessage={editedMessage}
+        onMessageEditSave={onMessageEdit}
+        resetEditedMessageHandler={resetEditedMessage}
+      />
     </VStack>
   );
 }
