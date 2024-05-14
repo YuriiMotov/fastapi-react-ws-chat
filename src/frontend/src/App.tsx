@@ -7,15 +7,14 @@ import {
   Box,
   Button,
   Flex,
-  HStack,
   VStack,
   Spacer,
   Grid,
   GridItem,
-  Textarea,
   Select,
 } from "@chakra-ui/react";
 import { MessageListComponent } from "./ChatUI/MessageList";
+import { SendMessageComponent } from "./ChatUI/SendMessage";
 
 function App() {
   const [clientId, setClientId] = useState("-");
@@ -27,7 +26,6 @@ function App() {
   const [selectedChatMessages, setSelectedChatMessages] = useState<
     ChatMessage[]
   >([]);
-  const [sendMessageText, setSendMessageText] = useState("");
 
   const chatClient = useRef<ChatClient>(
     new ChatClient(
@@ -99,11 +97,6 @@ function App() {
     setSelectedChatMessages(messages);
   }
 
-  function sendMessageClickHandler() {
-    chatClient.current.sendMessage(sendMessageText, selectedChat!.id);
-    setSendMessageText("");
-  }
-
   return (
     <Grid
       h="calc(100vh)"
@@ -146,18 +139,10 @@ function App() {
           </Box>
           <Spacer />
           {selectedChat !== null && (
-            <HStack spacing="1">
-              <Textarea
-                colorScheme="telegram"
-                value={sendMessageText}
-                onChange={(e) => setSendMessageText(e.target.value)}
-                placeholder="Input message to send"
-                size="sm"
-              />
-              <Button colorScheme="telegram" onClick={sendMessageClickHandler}>
-                Send
-              </Button>
-            </HStack>
+            <SendMessageComponent
+              onSendMessage={chatClient.current.sendMessage.bind(chatClient.current)}
+              selectedChatID={selectedChat.id}
+            />
           )}
         </Flex>
       </GridItem>
