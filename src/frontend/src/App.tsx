@@ -121,7 +121,7 @@ function App() {
 
       <GridItem backgroundColor="AppWorkspace" p={4}>
         <Flex h="calc(100vh - 2rem)" direction="column">
-          <Box overflow="scroll" id="chat-messages-scroll-area">
+          <Box overflowY="auto" id="chat-messages-scroll-area">
             <VStack spacing="4">
               {selectedChat !== null && (
                 <Button
