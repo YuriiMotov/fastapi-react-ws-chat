@@ -325,6 +325,7 @@ class ChatClient {
               console.log(`ChatMessageEdited has been received: ${chatEvent}`);
               const chatMessageEditedEvent =
                 chatEvent as ChatMessageEditedEvent;
+              this.#updateMessageSenderName(chatMessageEditedEvent.message);
               const chatMessages = this.#chatMessages.get(
                 chatMessageEditedEvent.message.chat_id
               );
@@ -457,8 +458,7 @@ class ChatClient {
 
     // update user names
     chatMessages.messages.forEach((message: ChatMessage) => {
-      if (message.sender_id && !message.senderName)
-        message.senderName = this.#userNamesCache.get(message.sender_id);
+      this.#updateMessageSenderName(message);
     });
   }
 
@@ -470,6 +470,13 @@ class ChatClient {
     });
     this.#setChatList([...this.#chatList]);
   }
+
+  #updateMessageSenderName(message: ChatMessage) {
+    if (message.sender_id && !message.senderName)
+      message.senderName = this.#userNamesCache.get(message.sender_id);
+  }
+
 }
+
 
 export { ChatClient, ChatDataExtended, ChatMessage };
