@@ -66,39 +66,10 @@ function App() {
 
   // Remember the scroll position before chat message list updating
   function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
-    // messageListScrollElementID.current = getMessageListScrollAnchorElement();
-
-    const messageListScrollArea = document.querySelector(
-      "#chat-messages-scroll-area"
-    ) as HTMLDivElement;
-    if (!messageListScrollArea) {
-      messageListScrollElementID.current = null;
-      return;
-    }
-
-    const messageListScrollAreaTopY = messageListScrollArea.scrollTop;
-
-    if (messageListScrollArea.scrollTop < 10) {
-      const messageListContainer = document.querySelector(
-        "#chat-messages-container"
-      ) as HTMLDivElement;
-      messageListScrollElementID.current = messageListContainer
-        ? (messageListContainer.childNodes[0] as HTMLBaseElement).id
-        : null;
-    } else if (
-      messageListScrollArea.scrollHeight -
-        messageListScrollArea.clientHeight -
-        messageListScrollAreaTopY <
-      10
-    ) {
-      messageListScrollElementID.current = "chat-messages-bottom";
-    } else {
-      messageListScrollElementID.current = null;
-    }
+    messageListScrollElementID.current = getScrollAnchorElement();
     console.log(
       `messageListScrollElementID = ${messageListScrollElementID.current}`
     );
-
     setSelectedChatMessages(messages);
   }
 
@@ -185,6 +156,31 @@ function App() {
       </GridItem>
     </Grid>
   );
+}
+
+function getScrollAnchorElement(): string | null {
+  const messageListScrollArea = document.querySelector(
+    "#chat-messages-scroll-area"
+  ) as HTMLDivElement;
+
+  if (!messageListScrollArea) return null;
+
+  const scrollPosBottom =
+    messageListScrollArea.scrollHeight -
+    messageListScrollArea.clientHeight -
+    messageListScrollArea.scrollTop;
+  if (messageListScrollArea.scrollTop < 10) {
+    const messageListContainer = document.querySelector(
+      "#chat-messages-container"
+    ) as HTMLDivElement;
+    if (messageListContainer)
+      return (messageListContainer.childNodes[0] as HTMLBaseElement).id;
+    else return null;
+  } else if (scrollPosBottom < 10) {
+    return "chat-messages-bottom";
+  } else {
+    return null;
+  }
 }
 
 export default App;
