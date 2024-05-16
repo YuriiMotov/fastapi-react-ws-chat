@@ -62,9 +62,9 @@ function MessageListItemComponent({
         </CardHeader>
       )}
       <CardBody>
-        {message.text.split("\n").map((l, index) => (
-          <Text key={index}>{l}</Text>
-        ))}
+        <Text whiteSpace='pre-line'>
+          {message.text}
+        </Text>
       </CardBody>
     </Card>
   );
