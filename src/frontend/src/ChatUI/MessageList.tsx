@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import { ChatMessage } from "../ChatClient";
 import {
   Card,
@@ -29,46 +29,48 @@ interface MessageListItemComponentParams {
   onShowEditMessageWindow: (message: ChatMessage) => void;
 }
 
-function MessageListItemComponent({
-  message,
-  currentUserID,
-  onShowEditMessageWindow,
-}: MessageListItemComponentParams) {
-  console.log(`repainting message ${message.id}`);
-  return (
-    <Card w="md" id={"chat-message-" + message.id}>
-      {!message.is_notification && (
-        <CardHeader
-          textColor="lightgray"
-          fontWeight="bold"
-          p="2"
-          paddingBottom="0"
-        >
-          <Flex direction="row">
-            <Skeleton height="20px" isLoaded={message.senderName != undefined}>
-              <Text>{message.senderName || "Loading.."}</Text>
-            </Skeleton>
-            <Spacer />
-            {currentUserID === message.sender_id && (
-              <Button
-                rightIcon={<TiEdit />}
-                variant="link"
-                onClick={() =>
-                  onShowEditMessageWindow(message)
-                }
-              />
-            )}
-          </Flex>
-        </CardHeader>
-      )}
-      <CardBody>
-        <Text whiteSpace='pre-line'>
-          {message.text}
-        </Text>
-      </CardBody>
-    </Card>
-  );
-}
+const MessageListItemComponent = memo(
+  function MessageListItemComponent({
+    message,
+    currentUserID,
+    onShowEditMessageWindow,
+  }: MessageListItemComponentParams) {
+    console.log(`repainting message ${message.id}`);
+    return (
+      <Card w="md" id={"chat-message-" + message.id}>
+        {!message.is_notification && (
+          <CardHeader
+            textColor="lightgray"
+            fontWeight="bold"
+            p="2"
+            paddingBottom="0"
+          >
+            <Flex direction="row">
+              <Skeleton height="20px" isLoaded={message.senderName != undefined}>
+                <Text>{message.senderName || "Loading.."}</Text>
+              </Skeleton>
+              <Spacer />
+              {currentUserID === message.sender_id && (
+                <Button
+                  rightIcon={<TiEdit />}
+                  variant="link"
+                  onClick={() =>
+                    onShowEditMessageWindow(message)
+                  }
+                />
+              )}
+            </Flex>
+          </CardHeader>
+        )}
+        <CardBody>
+          <Text whiteSpace='pre-line'>
+            {message.text}
+          </Text>
+        </CardBody>
+      </Card>
+    );
+  }
+);
 
 interface MessageEditWindowComponentParams {
   editedMessage: ChatMessage | null;
@@ -151,9 +153,10 @@ function MessageListComponent({
 }: MessageListComponentParams) {
   const [editedMessage, setEditedMessage] = useState<ChatMessage | null>(null);
 
-  function showEditMessageWindow(message: ChatMessage) {
-    setEditedMessage(message);
-  }
+  const showEditMessageWindow = useCallback((message: ChatMessage) => {
+      setEditedMessage(message);
+    }, []
+  );
 
   function resetEditedMessage() {
     setEditedMessage(null);
