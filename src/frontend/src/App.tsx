@@ -13,7 +13,7 @@ import {
   GridItem,
   Select,
 } from "@chakra-ui/react";
-import { MessageListComponent } from "./ChatUI/MessageList";
+import { MessageListComponent, getScrollAnchorElement } from "./ChatUI/MessageList";
 import { SendMessageComponent } from "./ChatUI/SendMessage";
 
 function App() {
@@ -54,15 +54,6 @@ function App() {
     };
   }, [clientId, reconnectCount]);
 
-  // Scroll message list container on message list update
-  useEffect(() => {
-    if (messageListScrollElementID.current) {
-      const ele = document.querySelector(
-        "#" + messageListScrollElementID.current
-      ) as HTMLDivElement;
-      if (ele) ele.scrollIntoView();
-    }
-  }, [selectedChatMessages]);
 
   // Remember the scroll position before chat message list updating
   function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
@@ -94,6 +85,7 @@ function App() {
             <Box overflowY="auto" id="chat-messages-scroll-area">
               <MessageListComponent
                 messages={selectedChatMessages}
+                messageListScrollElementID={messageListScrollElementID}
                 onMessageEdit={chatClient.current.editMessage.bind(
                   chatClient.current
                 )}
@@ -156,31 +148,6 @@ function App() {
       </GridItem>
     </Grid>
   );
-}
-
-function getScrollAnchorElement(): string | null {
-  const messageListScrollArea = document.querySelector(
-    "#chat-messages-scroll-area"
-  ) as HTMLDivElement;
-
-  if (!messageListScrollArea) return null;
-
-  const scrollPosBottom =
-    messageListScrollArea.scrollHeight -
-    messageListScrollArea.clientHeight -
-    messageListScrollArea.scrollTop;
-  if (messageListScrollArea.scrollTop < 10) {
-    const messageListContainer = document.querySelector(
-      "#chat-messages-container"
-    ) as HTMLDivElement;
-    if (messageListContainer)
-      return (messageListContainer.childNodes[0] as HTMLBaseElement).id;
-    else return null;
-  } else if (scrollPosBottom < 10) {
-    return "chat-messages-bottom";
-  } else {
-    return null;
-  }
 }
 
 export default App;

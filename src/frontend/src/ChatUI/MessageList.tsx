@@ -141,6 +141,7 @@ function MessageEditWindowComponent({
 interface MessageListComponentParams {
   messages: ChatMessage[];
   currentUserID: string | null;
+  messageListScrollElementID: React.MutableRefObject<string | null>;
   onMessageEdit: (messageId: string, newText: string) => void;
   onLoadPrevClick: () => void;
 }
@@ -148,6 +149,7 @@ interface MessageListComponentParams {
 function MessageListComponent({
   messages,
   currentUserID,
+  messageListScrollElementID,
   onMessageEdit,
   onLoadPrevClick,
 }: MessageListComponentParams) {
@@ -161,6 +163,19 @@ function MessageListComponent({
   function resetEditedMessage() {
     setEditedMessage(null);
   }
+
+
+  // Scroll message list container on message list update
+  useEffect(() => {
+    console.log(`messages updated. messageListScrollElementID is ${messageListScrollElementID.current} `);
+    if (messageListScrollElementID.current) {
+      const ele = document.querySelector(
+        "#" + messageListScrollElementID.current
+      ) as HTMLDivElement;
+
+      if (ele) ele.scrollIntoView();
+    }
+  }, [messages]);
 
   return (
     <VStack spacing="4" paddingBottom="4" id="chat-messages-container">
@@ -190,4 +205,38 @@ function MessageListComponent({
   );
 }
 
-export { MessageListComponent };
+
+function getScrollAnchorElement(): string | null {
+  const messageListScrollArea = document.querySelector(
+    "#chat-messages-scroll-area"
+  ) as HTMLDivElement;
+
+  if (!messageListScrollArea) return null;
+
+  const scrollPosBottom =
+    messageListScrollArea.scrollHeight -
+    messageListScrollArea.clientHeight -
+    messageListScrollArea.scrollTop;
+
+  if (messageListScrollArea.scrollTop < 10) {
+    const messageListContainer = document.querySelector(
+      "#chat-messages-container"
+    ) as HTMLDivElement;
+
+    if (messageListContainer) {
+      const aID = (messageListContainer.childNodes[1] as HTMLBaseElement).id;
+      return aID;
+    } else {
+      console.log('messageListContainer not found');
+      return null
+    };
+
+  } else if (scrollPosBottom < 10) {
+    return "chat-messages-bottom";
+  } else {
+    return null;
+  }
+}
+
+
+export { MessageListComponent, getScrollAnchorElement };
