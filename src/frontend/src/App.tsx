@@ -4,17 +4,13 @@ import { ChatClient, ChatDataExtended, ChatMessage } from "./ChatClient";
 import { ChatListComponent } from "./ChatUI/ChatList";
 
 import {
-  Box,
   Button,
-  Flex,
   VStack,
-  Spacer,
   Grid,
   GridItem,
   Select,
 } from "@chakra-ui/react";
-import { MessageListComponent, getScrollAnchorElement } from "./ChatUI/MessageList";
-import { SendMessageComponent } from "./ChatUI/SendMessage";
+import { ChatComponent, ChatComponentRef } from "./ChatUI/Chat";
 
 function App() {
   const [clientId, setClientId] = useState("-");
@@ -35,9 +31,8 @@ function App() {
     )
   );
   const connectDelay = useRef<number | null>(null);
-  const messageListScrollElementID = useRef<string | null>(
-    "chat-messages-bottom"
-  );
+
+  const chatMessageRef = useRef<ChatComponentRef>(null);
 
   // Connect to WS on user change
   useEffect(() => {
@@ -57,10 +52,7 @@ function App() {
 
   // Remember the scroll position before chat message list updating
   function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
-    messageListScrollElementID.current = getScrollAnchorElement();
-    console.log(
-      `messageListScrollElementID = ${messageListScrollElementID.current}`
-    );
+    chatMessageRef.current?.onBeforMessageListChangeCallback();
     setSelectedChatMessages(messages);
   }
 
@@ -81,28 +73,16 @@ function App() {
 
       <GridItem backgroundColor="AppWorkspace" p={4}>
         {selectedChat !== null && (
-          <Flex h="calc(100vh - 2rem)" direction="column">
-            <Box overflowY="auto" id="chat-messages-scroll-area">
-              <MessageListComponent
-                messages={selectedChatMessages}
-                messageListScrollElementID={messageListScrollElementID}
-                onMessageEdit={chatClient.current.editMessage.bind(
-                  chatClient.current
-                )}
-                onLoadPrevClick={() =>
-                  chatClient.current.loadPreviousMessages(selectedChat.id)
-                }
-                currentUserID={clientId}
-              />
-            </Box>
-            <Spacer />
-            <SendMessageComponent
-              onSendMessage={chatClient.current.sendMessage.bind(
-                chatClient.current
-              )}
-              selectedChatID={selectedChat.id}
-            />
-          </Flex>
+          <ChatComponent
+            h="calc(100vh - 2rem)"
+            chatID={selectedChat.id}
+            currentUserID={clientId}
+            chatMessages={selectedChatMessages}
+            onSendMessage={chatClient.current.sendMessage.bind(chatClient.current)}
+            onEditMessage={chatClient.current.editMessage.bind(chatClient.current)}
+            onLoadPrevMessagesClick={chatClient.current.loadPreviousMessages.bind(chatClient.current)}
+            ref={chatMessageRef}
+          />
         )}
       </GridItem>
 

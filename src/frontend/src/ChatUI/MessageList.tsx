@@ -142,7 +142,7 @@ interface MessageListComponentParams {
   messages: ChatMessage[];
   currentUserID: string | null;
   messageListScrollElementID: React.MutableRefObject<string | null>;
-  onMessageEdit: (messageId: string, newText: string) => void;
+  onEditMessage: (messageId: string, newText: string) => void;
   onLoadPrevClick: () => void;
 }
 
@@ -150,7 +150,7 @@ function MessageListComponent({
   messages,
   currentUserID,
   messageListScrollElementID,
-  onMessageEdit,
+  onEditMessage: onMessageEdit,
   onLoadPrevClick,
 }: MessageListComponentParams) {
   const [editedMessage, setEditedMessage] = useState<ChatMessage | null>(null);
