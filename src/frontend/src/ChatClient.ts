@@ -67,8 +67,8 @@ interface ChatListUpdateEvent extends ChatEventBase {
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
 
 class ChatMessages {
-  minMessageId: number = Infinity;
-  maxMessageId: number = 0;
+  minMessageID: number = Infinity;
+  maxMessageID: number = 0;
   messages: ChatMessage[] = [];
 }
 
@@ -76,8 +76,8 @@ const chatMessageRequestLimit = 5;
 
 class ChatClient {
   #connection: Websocket | null = null;
-  #userId: string | null = null;
-  #lastPacketId: number = 0;
+  #userID: string | null = null;
+  #lastPacketID: number = 0;
   #selectedChat: ChatDataExtended | null = null;
   #chatList: ChatDataExtended[] = [];
   #chatMessages: Map<string, ChatMessages>;
@@ -105,16 +105,16 @@ class ChatClient {
 
   // ................................  Public methods ................................
 
-  connect(userId: string): void {
+  connect(userID: string): void {
     if (this.#connection) {
       console.log(
         "Attempt to call connect() while already connected. Disconnect first"
       );
       return;
     }
-    this.#userId = userId;
+    this.#userID = userID;
     this.#connection = new WebsocketBuilder(
-      `ws://127.0.0.1:8000/ws/chat?user_id=${userId}`
+      `ws://127.0.0.1:8000/ws/chat?user_id=${userID}`
     )
       .onOpen(this.#connectedHandler.bind(this))
       .onClose(this.#disconnectedHandler.bind(this))
@@ -147,16 +147,16 @@ class ChatClient {
     }
   }
 
-  sendMessage(text: string, chatId: string): void {
+  sendMessage(text: string, chatID: string): void {
     if (this.#connection) {
       const cmd = {
-        id: (this.#lastPacketId += 1),
+        id: (this.#lastPacketID += 1),
         data: {
           packet_type: "CMDSendMessage",
           message: {
-            chat_id: chatId,
+            chat_id: chatID,
             text: text,
-            sender_id: this.#userId,
+            sender_id: this.#userID,
           },
         },
       };
@@ -167,13 +167,13 @@ class ChatClient {
     }
   }
 
-  editMessage(messageId: string, newText: string): void {
+  editMessage(messageID: string, newText: string): void {
     if (this.#connection) {
       const cmd = {
-        id: (this.#lastPacketId += 1),
+        id: (this.#lastPacketID += 1),
         data: {
           packet_type: "CMDEditMessage",
-          message_id: messageId,
+          message_id: messageID,
           text: newText,
         },
       };
@@ -184,14 +184,14 @@ class ChatClient {
     }
   }
 
-  addUserToChat(userId: string, chatId: string) {
+  addUserToChat(userID: string, chatID: string) {
     if (this.#connection) {
       const cmd = {
-        id: (this.#lastPacketId += 1),
+        id: (this.#lastPacketID += 1),
         data: {
           packet_type: "CMDAddUserToChat",
-          user_id: userId,
-          chat_id: chatId,
+          user_id: userID,
+          chat_id: chatID,
         },
       };
       this.#connection.send(JSON.stringify(cmd));
@@ -201,11 +201,11 @@ class ChatClient {
     }
   }
 
-  loadPreviousMessages(chatId: string) {
-    if (this.#chatMessages.has(chatId)) {
+  loadPreviousMessages(chatID: string) {
+    if (this.#chatMessages.has(chatID)) {
       this.#requestChatMessageList(
-        chatId,
-        this.#chatMessages.get(chatId)!.minMessageId
+        chatID,
+        this.#chatMessages.get(chatID)!.minMessageID
       );
     } else {
       console.log(
@@ -219,7 +219,7 @@ class ChatClient {
   #acknowledgeEvents() {
     if (this.#connection) {
       const cmd = {
-        id: (this.#lastPacketId += 1),
+        id: (this.#lastPacketID += 1),
         data: {
           packet_type: "CMDAcknowledgeEvents",
         },
@@ -262,14 +262,14 @@ class ChatClient {
           `RespGetMessages has been received: ${srv_p.data}, ${messages}`
         );
         if (messages.length > 0) {
-          const chatId = messages[0].chat_id;
+          const chatID = messages[0].chat_id;
           this.#updateChatMessageListInternal(
-            chatId,
+            chatID,
             messages.slice().reverse()
           );
           const chatMessages: ChatMessage[] =
-            this.#chatMessages.get(chatId)?.messages || [];
-          if (this.#selectedChat && chatId === this.#selectedChat.id) {
+            this.#chatMessages.get(chatID)?.messages || [];
+          if (this.#selectedChat && chatID === this.#selectedChat.id) {
             this.#setSelectedChatMessages([...chatMessages]);
           }
         }
@@ -308,8 +308,8 @@ class ChatClient {
             case "ChatMessageEvent":
               console.log(`ChatMessageEvent has been received: ${chatEvent}`);
               const chatMessageEvent = chatEvent as ChatMessageEvent;
-              const chatId = chatMessageEvent.message.chat_id;
-              this.#updateChatMessageListInternal(chatId, [
+              const chatID = chatMessageEvent.message.chat_id;
+              this.#updateChatMessageListInternal(chatID, [
                 chatMessageEvent.message,
               ]);
               if (
@@ -317,7 +317,7 @@ class ChatClient {
                 chatMessageEvent.message.chat_id === this.#selectedChat.id
               ) {
                 this.#setSelectedChatMessages([
-                  ...this.#chatMessages.get(chatId)!.messages,
+                  ...this.#chatMessages.get(chatID)!.messages,
                 ]);
               }
               break;
@@ -344,7 +344,7 @@ class ChatClient {
                 }
                 if (
                   parseInt(chatMessageEditedEvent.message.id) ===
-                  chatMessages.maxMessageId
+                  chatMessages.maxMessageID
                 ) {
                   this.#updateChatListOnLastMessageUpdate(
                     chatMessageEditedEvent.message
@@ -380,7 +380,7 @@ class ChatClient {
   #requestJoinedChatList(): void {
     if (this.#connection) {
       const cmd = {
-        id: (this.#lastPacketId += 1),
+        id: (this.#lastPacketID += 1),
         data: {
           packet_type: "CMDGetJoinedChats",
         },
@@ -392,17 +392,17 @@ class ChatClient {
   }
 
   #requestChatMessageList(
-    chatId: string,
-    startId: number | null = null,
+    chatID: string,
+    startID: number | null = null,
     limit: number = chatMessageRequestLimit
   ) {
     if (this.#connection) {
       const cmd = {
-        id: (this.#lastPacketId += 1),
+        id: (this.#lastPacketID += 1),
         data: {
           packet_type: "CMDGetMessages",
-          chat_id: chatId,
-          start_id: startId,
+          chat_id: chatID,
+          start_id: startID,
           limit: limit,
         },
       };
@@ -412,30 +412,30 @@ class ChatClient {
     }
   }
 
-  #updateChatMessageListInternal(chatId: string, messages: ChatMessage[]) {
-    console.log(`updateChatMessageListInternal(${chatId})`);
-    if (this.#chatMessages.has(chatId) === false) {
-      this.#chatMessages.set(chatId, new ChatMessages());
+  #updateChatMessageListInternal(chatID: string, messages: ChatMessage[]) {
+    console.log(`updateChatMessageListInternal(${chatID})`);
+    if (this.#chatMessages.has(chatID) === false) {
+      this.#chatMessages.set(chatID, new ChatMessages());
     }
-    const chatMessages: ChatMessages = this.#chatMessages.get(chatId)!;
-    let minMessageId = Infinity;
-    let maxMessageId = 0;
+    const chatMessages: ChatMessages = this.#chatMessages.get(chatID)!;
+    let minMessageID = Infinity;
+    let maxMessageID = 0;
     let maxIDMessage: ChatMessage | null = null;
 
     messages.forEach((message) => {
-      const messageId = parseInt(message.id);
-      if (messageId < minMessageId) {
-        minMessageId = messageId;
+      const messageID = parseInt(message.id);
+      if (messageID < minMessageID) {
+        minMessageID = messageID;
       }
-      if (messageId > maxMessageId) {
-        maxMessageId = messageId;
+      if (messageID > maxMessageID) {
+        maxMessageID = messageID;
         maxIDMessage = message;
       }
     });
 
-    if (maxMessageId < chatMessages.minMessageId) {
+    if (maxMessageID < chatMessages.minMessageID) {
       chatMessages.messages.unshift(...messages);
-    } else if (minMessageId > chatMessages.maxMessageId) {
+    } else if (minMessageID > chatMessages.maxMessageID) {
       chatMessages.messages.push(...messages);
     } else {
       console.log("Insert messages to the middle");
@@ -449,12 +449,12 @@ class ChatClient {
       );
     }
 
-    if (chatMessages.maxMessageId < maxMessageId) {
+    if (chatMessages.maxMessageID < maxMessageID) {
       if (maxIDMessage) this.#updateChatListOnLastMessageUpdate(maxIDMessage);
-      chatMessages.maxMessageId = maxMessageId;
+      chatMessages.maxMessageID = maxMessageID;
     }
-    if (chatMessages.minMessageId > minMessageId)
-      chatMessages.minMessageId = minMessageId;
+    if (chatMessages.minMessageID > minMessageID)
+      chatMessages.minMessageID = minMessageID;
 
     // update user names
     chatMessages.messages.forEach((message: ChatMessage) => {
