@@ -8,7 +8,7 @@ import { Grid, GridItem } from "@chakra-ui/react";
 import { ChatComponent, ChatComponentRef } from "./ChatUI/Chat";
 import { ServiceButtonsBlockCompnent } from "./ChatUI/ServiceButtonsBlockCompnent";
 
-function App() {
+function ChatApp() {
   const [clientID, setClientID] = useState("-");
   const [reconnectCount, setReconnectCount] = useState(0);
   const [chatList, setChatList] = useState<ChatDataExtended[]>([]);
@@ -75,7 +75,9 @@ function App() {
             chatMessages={selectedChatMessages}
             onSendMessage={chatClient.current.sendMessage.bind(chatClient.current)}
             onEditMessage={chatClient.current.editMessage.bind(chatClient.current)}
-            onLoadPrevMessagesClick={chatClient.current.loadPreviousMessages.bind(chatClient.current)}
+            onLoadPrevMessagesClick={
+              chatClient.current.loadPreviousMessages.bind(chatClient.current)
+            }
             ref={chatComponentRef}
           />
         )}
@@ -94,4 +96,4 @@ function App() {
   );
 }
 
-export default App;
+export default ChatApp;
