@@ -11,7 +11,7 @@ interface ChatParams {
     chat: ChatDataExtended;
     chatMessages: ChatMessage[];
     onSendMessage: (messageText: string, chatID: string) => void;
-    onEditMessage: (messageId: string, newText: string) => void;
+    onEditMessage: (messageID: string, newText: string) => void;
     onLoadPrevMessagesClick: (chatID: string) => void;
 }
 

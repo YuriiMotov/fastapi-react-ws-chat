@@ -7,17 +7,17 @@ import {
 } from "@chakra-ui/react";
 
 interface ServiceButtonsBlockCompnentParams {
-    clientId: string;
+    clientID: string;
     chatList: ChatDataExtended[];
-    onSetClientId: (clientID: string) => void;
+    onSetClientID: (clientID: string) => void;
     onAddUserToChat: (userID: string, chatID: string) => void;
     onIncReconnectCount: () => void;
 }
 
 function ServiceButtonsBlockCompnent({
-    clientId,
+    clientID,
     chatList,
-    onSetClientId,
+    onSetClientID,
     onAddUserToChat,
     onIncReconnectCount,
 }: ServiceButtonsBlockCompnentParams) {
@@ -26,23 +26,23 @@ function ServiceButtonsBlockCompnent({
         <VStack spacing="3">
           <Select
             placeholder="Select option"
-            onChange={(e) => onSetClientId(e.target.value)}
+            onChange={(e) => onSetClientID(e.target.value)}
           >
             <option value="-">-</option>
             <option value="ef376e46-db3b-4beb-8170-82940d849847">John</option>
             <option value="ef376e56-db3b-4beb-8170-82940d849847">Joe</option>
           </Select>
-          {clientId === "ef376e46-db3b-4beb-8170-82940d849847" &&
+          {clientID === "ef376e46-db3b-4beb-8170-82940d849847" &&
             chatList.length < 4 && (
               <Button
                 onClick={() =>
-                  onAddUserToChat(clientId, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")
+                  onAddUserToChat(clientID, "eccf5b4a-c706-4c05-9ab2-5edc7539daad")
                 }
               >
                 Add yourself to forth chat
               </Button>
             )}
-          {clientId === "ef376e46-db3b-4beb-8170-82940d849847" && (
+          {clientID === "ef376e46-db3b-4beb-8170-82940d849847" && (
             <Button
               onClick={() =>
                 onAddUserToChat(

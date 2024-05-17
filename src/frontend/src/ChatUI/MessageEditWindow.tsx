@@ -16,7 +16,7 @@ import { useDisclosure } from "@chakra-ui/react";
 
 interface MessageEditWindowComponentParams {
   editedMessage: ChatMessage | null;
-  onMessageEditSave: (messageId: string, newText: string) => void;
+  onMessageEditSave: (messageID: string, newText: string) => void;
   resetEditedMessageHandler: () => void;
 }
 

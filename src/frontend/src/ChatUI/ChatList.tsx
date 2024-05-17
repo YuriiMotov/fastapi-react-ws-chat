@@ -48,13 +48,13 @@ function ChatListLineComponent({
 
 interface ChatListComponentParams {
   chatList: ChatDataExtended[];
-  selectedChatId?: string;
+  selectedChatID?: string;
   onChatSelect: (chat: ChatDataExtended) => void;
 }
 
 function ChatListComponent({
   chatList,
-  selectedChatId,
+  selectedChatID,
   onChatSelect,
 }: ChatListComponentParams) {
   return (
@@ -64,7 +64,7 @@ function ChatListComponent({
         <ChatListLineComponent
           key={chat.id}
           chat={chat}
-          selected={selectedChatId === chat.id}
+          selected={selectedChatID === chat.id}
           onClick={() => onChatSelect(chat)}
         />
       ))}

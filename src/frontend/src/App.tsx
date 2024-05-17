@@ -8,7 +8,7 @@ import { ChatComponent, ChatComponentRef } from "./ChatUI/Chat";
 import { ServiceButtonsBlockCompnent } from "./ChatUI/ServiceButtonsBlockCompnent";
 
 function App() {
-  const [clientId, setClientId] = useState("-");
+  const [clientID, setClientID] = useState("-");
   const [reconnectCount, setReconnectCount] = useState(0);
   const [chatList, setChatList] = useState<ChatDataExtended[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatDataExtended | null>(
@@ -31,9 +31,9 @@ function App() {
 
   // Connect to WS on user change
   useEffect(() => {
-    if (clientId.length > 1) {
+    if (clientID.length > 1) {
       connectDelay.current = setTimeout(() => {
-        chatClient.current.connect(clientId);
+        chatClient.current.connect(clientID);
       }, 100);
     }
     return () => {
@@ -42,7 +42,7 @@ function App() {
       }
       chatClient.current.disconnect();
     };
-  }, [clientId, reconnectCount]);
+  }, [clientID, reconnectCount]);
 
 
   function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
@@ -60,7 +60,7 @@ function App() {
       <GridItem p={4}>
         <ChatListComponent
           chatList={chatList}
-          selectedChatId={selectedChat?.id}
+          selectedChatID={selectedChat?.id}
           onChatSelect={chatClient.current.selectChat.bind(chatClient.current)}
         />
       </GridItem>
@@ -70,7 +70,7 @@ function App() {
           <ChatComponent
             h="calc(100vh - 2rem)"
             chat={selectedChat}
-            currentUserID={clientId}
+            currentUserID={clientID}
             chatMessages={selectedChatMessages}
             onSendMessage={chatClient.current.sendMessage.bind(chatClient.current)}
             onEditMessage={chatClient.current.editMessage.bind(chatClient.current)}
@@ -82,10 +82,10 @@ function App() {
 
       <GridItem p={4}>
         <ServiceButtonsBlockCompnent
-          clientId={clientId}
+          clientID={clientID}
           chatList={chatList}
           onAddUserToChat={chatClient.current.addUserToChat.bind(chatClient.current)}
-          onSetClientId={setClientId}
+          onSetClientID={setClientID}
           onIncReconnectCount={()=>setReconnectCount(prev=>prev+1)}
         />
       </GridItem>

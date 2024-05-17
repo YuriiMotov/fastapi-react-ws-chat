@@ -3,7 +3,7 @@ import { Button, Textarea, HStack } from "@chakra-ui/react";
 
 interface SendMessageComponentParams {
   selectedChatID: string;
-  onSendMessage: (messageText: string, chatId: string) => void;
+  onSendMessage: (messageText: string, chatID: string) => void;
 }
 
 function SendMessageComponent({

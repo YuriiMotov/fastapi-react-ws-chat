@@ -10,7 +10,7 @@ interface MessageListComponentParams {
   currentUserID: string | null;
   chatID: string;
   messageListScrollElementID: React.MutableRefObject<string | null>;
-  onEditMessage: (messageId: string, newText: string) => void;
+  onEditMessage: (messageID: string, newText: string) => void;
   onLoadPrevClick: () => void;
 }
 
