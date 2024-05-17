@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo } from "react";
+import React, { useEffect, useState, useCallback, memo, useRef } from "react";
 import { ChatMessage } from "../ChatClient";
 import {
   Card,
@@ -141,6 +141,7 @@ function MessageEditWindowComponent({
 interface MessageListComponentParams {
   messages: ChatMessage[];
   currentUserID: string | null;
+  chatID: string;
   messageListScrollElementID: React.MutableRefObject<string | null>;
   onEditMessage: (messageId: string, newText: string) => void;
   onLoadPrevClick: () => void;
@@ -149,11 +150,14 @@ interface MessageListComponentParams {
 function MessageListComponent({
   messages,
   currentUserID,
+  chatID,
   messageListScrollElementID,
   onEditMessage: onMessageEdit,
   onLoadPrevClick,
 }: MessageListComponentParams) {
   const [editedMessage, setEditedMessage] = useState<ChatMessage | null>(null);
+  const prevChatID = useRef(chatID);
+
 
   const showEditMessageWindow = useCallback((message: ChatMessage) => {
       setEditedMessage(message);
@@ -167,15 +171,24 @@ function MessageListComponent({
 
   // Scroll message list container on message list update
   useEffect(() => {
-    console.log(`messages updated. messageListScrollElementID is ${messageListScrollElementID.current} `);
+
+    if (chatID !== prevChatID.current) {
+      console.log('ChatID changed! Scroll to the bottom!');
+      messageListScrollElementID.current = "chat-messages-bottom";
+      prevChatID.current = chatID;
+    }
+
     if (messageListScrollElementID.current) {
+      console.log(`messages updated. messageListScrollElementID is ${messageListScrollElementID.current} `);
+
       const ele = document.querySelector(
         "#" + messageListScrollElementID.current
       ) as HTMLDivElement;
 
       if (ele) ele.scrollIntoView();
     }
-  }, [messages]);
+
+  }, [messages, chatID]);
 
   return (
     <VStack spacing="4" paddingBottom="4" id="chat-messages-container">

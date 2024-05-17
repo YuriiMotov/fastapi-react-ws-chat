@@ -2,13 +2,13 @@ import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import { Box, Flex, Spacer } from "@chakra-ui/react";
 import { MessageListComponent, getScrollAnchorElement } from "./MessageList";
 import { SendMessageComponent } from "./SendMessage";
-import { ChatMessage } from "../ChatClient";
+import { ChatDataExtended, ChatMessage } from "../ChatClient";
 
 
 interface ChatParams {
     h: string;
     currentUserID: string;
-    chatID: string;
+    chat: ChatDataExtended;
     chatMessages: ChatMessage[];
     onSendMessage: (messageText: string, chatID: string) => void;
     onEditMessage: (messageId: string, newText: string) => void;
@@ -30,9 +30,9 @@ const ChatComponent = forwardRef<ChatComponentRef, ChatParams>((params, ref) => 
     useImperativeHandle(ref, () => {
         return {
           onBeforMessageListChangeCallback() {
-            console.log("callba is called!");
+            console.log('onBeforMessageListChangeCallback is called');
             messageListScrollElementID.current = getScrollAnchorElement();
-          }
+          },
         };
       }, []);
 
@@ -41,16 +41,17 @@ const ChatComponent = forwardRef<ChatComponentRef, ChatParams>((params, ref) => 
         <Box overflowY="auto" id="chat-messages-scroll-area">
           <MessageListComponent
             messages={params.chatMessages}
+            chatID={params.chat.id}
             messageListScrollElementID={messageListScrollElementID}
             onEditMessage={params.onEditMessage}
-            onLoadPrevClick={()=>params.onLoadPrevMessagesClick(params.chatID)}
+            onLoadPrevClick={()=>params.onLoadPrevMessagesClick(params.chat.id)}
             currentUserID={params.currentUserID}
           />
         </Box>
         <Spacer />
         <SendMessageComponent
           onSendMessage={params.onSendMessage}
-          selectedChatID={params.chatID}
+          selectedChatID={params.chat.id}
         />
       </Flex>
     )

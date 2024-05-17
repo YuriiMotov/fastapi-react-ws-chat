@@ -32,7 +32,7 @@ function App() {
   );
   const connectDelay = useRef<number | null>(null);
 
-  const chatMessageRef = useRef<ChatComponentRef>(null);
+  const chatComponentRef = useRef<ChatComponentRef>(null);
 
   // Connect to WS on user change
   useEffect(() => {
@@ -52,7 +52,7 @@ function App() {
 
   // Remember the scroll position before chat message list updating
   function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
-    chatMessageRef.current?.onBeforMessageListChangeCallback();
+    chatComponentRef.current?.onBeforMessageListChangeCallback();
     setSelectedChatMessages(messages);
   }
 
@@ -75,13 +75,13 @@ function App() {
         {selectedChat !== null && (
           <ChatComponent
             h="calc(100vh - 2rem)"
-            chatID={selectedChat.id}
+            chat={selectedChat}
             currentUserID={clientId}
             chatMessages={selectedChatMessages}
             onSendMessage={chatClient.current.sendMessage.bind(chatClient.current)}
             onEditMessage={chatClient.current.editMessage.bind(chatClient.current)}
             onLoadPrevMessagesClick={chatClient.current.loadPreviousMessages.bind(chatClient.current)}
-            ref={chatMessageRef}
+            ref={chatComponentRef}
           />
         )}
       </GridItem>
