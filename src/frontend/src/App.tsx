@@ -3,14 +3,9 @@ import { useState, useEffect, useRef } from "react";
 import { ChatClient, ChatDataExtended, ChatMessage } from "./ChatClient";
 import { ChatListComponent } from "./ChatUI/ChatList";
 
-import {
-  Button,
-  VStack,
-  Grid,
-  GridItem,
-  Select,
-} from "@chakra-ui/react";
+import { Grid, GridItem } from "@chakra-ui/react";
 import { ChatComponent, ChatComponentRef } from "./ChatUI/Chat";
+import { ServiceButtonsBlockCompnent } from "./ChatUI/ServiceButtonsBlockCompnent";
 
 function App() {
   const [clientId, setClientId] = useState("-");
@@ -50,7 +45,6 @@ function App() {
   }, [clientId, reconnectCount]);
 
 
-  // Remember the scroll position before chat message list updating
   function setChatMessageListStoreScrollPos(messages: ChatMessage[]) {
     chatComponentRef.current?.onBeforMessageListChangeCallback();
     setSelectedChatMessages(messages);
@@ -87,44 +81,13 @@ function App() {
       </GridItem>
 
       <GridItem p={4}>
-        <VStack spacing="3">
-          <Select
-            placeholder="Select option"
-            onChange={(e) => setClientId(e.target.value)}
-          >
-            <option value="-">-</option>
-            <option value="ef376e46-db3b-4beb-8170-82940d849847">John</option>
-            <option value="ef376e56-db3b-4beb-8170-82940d849847">Joe</option>
-          </Select>
-          {clientId === "ef376e46-db3b-4beb-8170-82940d849847" &&
-            chatList.length < 4 && (
-              <Button
-                onClick={() =>
-                  chatClient.current.addUserToChat(
-                    clientId,
-                    "eccf5b4a-c706-4c05-9ab2-5edc7539daad"
-                  )
-                }
-              >
-                Add yourself to forth chat
-              </Button>
-            )}
-          {clientId === "ef376e46-db3b-4beb-8170-82940d849847" && (
-            <Button
-              onClick={() =>
-                chatClient.current.addUserToChat(
-                  "ef376e56-db3b-4beb-8170-82940d849847",
-                  "eccf5b4a-c706-4c05-9ab2-5edc7539daad"
-                )
-              }
-            >
-              Add Joe to forth chat
-            </Button>
-          )}
-          <Button onClick={() => setReconnectCount(reconnectCount + 1)}>
-            Reconnect
-          </Button>
-        </VStack>
+        <ServiceButtonsBlockCompnent
+          clientId={clientId}
+          chatList={chatList}
+          onAddUserToChat={chatClient.current.addUserToChat.bind(chatClient.current)}
+          onSetClientId={setClientId}
+          onIncReconnectCount={()=>setReconnectCount(prev=>prev+1)}
+        />
       </GridItem>
     </Grid>
   );
