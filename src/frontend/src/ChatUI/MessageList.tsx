@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { ChatMessage } from "../ChatClient";
+import { ChatMessage } from "../ChatDataTypes";
 import { VStack, Link, Button } from "@chakra-ui/react";
 import { MessageListItemComponent } from "./MessageListItem";
 import { MessageEditWindowComponent } from "./MessageEditWindow";

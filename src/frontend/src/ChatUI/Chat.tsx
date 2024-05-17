@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import { Box, Flex, Spacer } from "@chakra-ui/react";
 import { MessageListComponent, getScrollAnchorElement } from "./MessageList";
 import { SendMessageComponent } from "./SendMessage";
-import { ChatDataExtended, ChatMessage } from "../ChatClient";
+import { ChatDataExtended, ChatMessage } from "../ChatDataTypes";
 
 
 interface ChatParams {

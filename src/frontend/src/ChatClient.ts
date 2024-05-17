@@ -1,68 +1,16 @@
 import { ConstantBackoff, Websocket, WebsocketBuilder } from "websocket-ts";
 import React from "react";
-
-interface ServerPacketData {
-  packet_type:
-    | "RespError"
-    | "RespSuccessNoBody"
-    | "RespGetJoinedChatList"
-    | "RespGetMessages"
-    | "SrvEventList"
-    | "SrvRespError";
-}
-
-interface ServerPacket {
-  request_packet_id: boolean | null;
-  data: ServerPacketData;
-}
-
-interface ChatDataExtended {
-  id: string;
-  title: string;
-  owner_id: string;
-  last_message_text: string | null;
-  members_count: number;
-}
-
-interface JoinedChatListPacket extends ServerPacketData {
-  chats: ChatDataExtended[];
-}
-
-interface ChatMessagesResponsePacket extends ServerPacketData {
-  messages: ChatMessage[];
-}
-
-interface ChatMessage {
-  id: string;
-  chat_id: string;
-  dt: string;
-  text: string;
-  is_notification: string;
-  sender_id?: string;
-  params?: string;
-  senderName?: string;
-}
-
-interface ChatEventListPacket extends ServerPacketData {
-  events: ChatEventBase[];
-}
-
-interface ChatEventBase {
-  event_type: string;
-}
-
-interface ChatMessageEvent extends ChatEventBase {
-  message: ChatMessage;
-}
-
-interface ChatMessageEditedEvent extends ChatEventBase {
-  message: ChatMessage;
-}
-
-interface ChatListUpdateEvent extends ChatEventBase {
-  action_type: string;
-  chat_data: ChatDataExtended;
-}
+import { ChatDataExtended, ChatMessage } from "./ChatDataTypes";
+import {
+  ChatEventBase,
+  ChatEventListPacket,
+  ChatListUpdateEvent,
+  ChatMessageEditedEvent,
+  ChatMessageEvent,
+  ChatMessagesResponsePacket,
+  JoinedChatListPacket,
+  ServerPacket,
+} from "./ChatProtocolTypes";
 
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
 
@@ -248,132 +196,100 @@ class ChatClient {
 
   #messageReceiveHandler(ws: Websocket, event: MessageEvent): void {
     const srv_p: ServerPacket = JSON.parse(event.data) as ServerPacket;
+    console.log(`${srv_p.data.packet_type} has been received: ${srv_p.data}`);
+
     switch (srv_p.data.packet_type) {
       case "RespGetJoinedChatList":
-        const chatListPacket: JoinedChatListPacket =
-          srv_p.data as JoinedChatListPacket;
-        console.log("List of chats has been received");
+        const chatListPacket = srv_p.data as JoinedChatListPacket;
         this.#chatList = chatListPacket.chats;
         this.#setChatList([...chatListPacket.chats]);
         break;
       case "RespGetMessages":
         const messages = (srv_p.data as ChatMessagesResponsePacket).messages;
-        console.log(
-          `RespGetMessages has been received: ${srv_p.data}, ${messages}`
-        );
         if (messages.length > 0) {
           const chatID = messages[0].chat_id;
           this.#updateChatMessageListInternal(
             chatID,
             messages.slice().reverse()
           );
-          const chatMessages: ChatMessage[] =
-            this.#chatMessages.get(chatID)?.messages || [];
-          if (this.#selectedChat && chatID === this.#selectedChat.id) {
-            this.#setSelectedChatMessages([...chatMessages]);
-          }
         }
         break;
       case "SrvEventList":
-        console.log(`SrvEventList has been received: ${srv_p.data}`);
         const chatEventsPacket = srv_p.data as ChatEventListPacket;
-        for (const chatEvent of chatEventsPacket.events) {
-          switch (chatEvent.event_type) {
-            case "ChatListUpdate":
-              console.log(
-                `ChatListUpdateEvent has been received: ${chatEvent}`
-              );
-              const chatListUpdatePacket = chatEvent as ChatListUpdateEvent;
-              switch (chatListUpdatePacket.action_type) {
-                case "add":
-                  this.#chatList = [
-                    ...this.#chatList,
-                    chatListUpdatePacket.chat_data,
-                  ];
-                  this.#setChatList((prev) => [...this.#chatList]);
-                  break;
-                // case "delete":
-                //     this.#setChatList(prev=>prev.filter(chat=>chat.id !== chatListUpdatePacket.chat_data.id));
-                //     break;
-                // case "update":
-                //     this.#setChatList(prev=>prev.map(chat=>(chat.id === chatListUpdatePacket.chat_data.id) ? chatListUpdatePacket.chat_data : chat));
-                //     break;
-                default:
-                  console.log(
-                    `ChatListUpdateEvent with action_type=${chatListUpdatePacket.action_type} is not supported yet`
-                  );
-                  break;
-              }
-              break;
-            case "ChatMessageEvent":
-              console.log(`ChatMessageEvent has been received: ${chatEvent}`);
-              const chatMessageEvent = chatEvent as ChatMessageEvent;
-              const chatID = chatMessageEvent.message.chat_id;
-              this.#updateChatMessageListInternal(chatID, [
-                chatMessageEvent.message,
-              ]);
-              if (
-                this.#selectedChat &&
-                chatMessageEvent.message.chat_id === this.#selectedChat.id
-              ) {
-                this.#setSelectedChatMessages([
-                  ...this.#chatMessages.get(chatID)!.messages,
-                ]);
-              }
-              break;
-            case "ChatMessageEdited":
-              console.log(`ChatMessageEdited has been received: ${chatEvent}`);
-              const chatMessageEditedEvent =
-                chatEvent as ChatMessageEditedEvent;
-              this.#updateMessageSenderName(chatMessageEditedEvent.message);
-              const chatMessages = this.#chatMessages.get(
-                chatMessageEditedEvent.message.chat_id
-              );
-              if (chatMessages) {
-                chatMessages.messages = chatMessages.messages.map((message) => {
-                  return message.id === chatMessageEditedEvent.message.id
-                    ? chatMessageEditedEvent.message
-                    : message;
-                });
-                if (
-                  this.#selectedChat &&
-                  chatMessageEditedEvent.message.chat_id ===
-                    this.#selectedChat.id
-                ) {
-                  this.#setSelectedChatMessages([...chatMessages.messages]);
-                }
-                if (
-                  parseInt(chatMessageEditedEvent.message.id) ===
-                  chatMessages.maxMessageID
-                ) {
-                  this.#updateChatListOnLastMessageUpdate(
-                    chatMessageEditedEvent.message
-                  );
-                }
-              } else {
-                console.log(
-                  "Chat message updated, but message list is empty. Request messages"
-                );
-                this.#requestChatMessageList(
-                  chatMessageEditedEvent.message.chat_id
-                ); // This case hasn't tested yet !
-              }
-
-              break;
-            default:
-              console.log(`Unknown chat event ${chatEvent}.`);
-          }
-        }
+        for (const chatEvent of chatEventsPacket.events)
+          this.#processServerEventPacket(chatEvent);
         this.#acknowledgeEvents();
         break;
       case "RespSuccessNoBody":
-        console.log("RespSuccessNoBody has been received");
         break;
       case "SrvRespError":
-        console.log(`SrvRespError has been received: ${srv_p.data}`);
+        // ToDo: add error processing
         break;
       default:
         console.log(`Unknown server packet ${event.data}.`);
+    }
+  }
+
+  #processServerEventPacket(chatEvent: ChatEventBase) {
+    switch (chatEvent.event_type) {
+      case "ChatListUpdate": {
+        const chatListUpdatePacket = chatEvent as ChatListUpdateEvent;
+        switch (chatListUpdatePacket.action_type) {
+          case "add":
+            this.#chatList = [
+              ...this.#chatList,
+              chatListUpdatePacket.chat_data,
+            ];
+            this.#setChatList([...this.#chatList]);
+            break;
+          // case "delete":
+          //     this.#setChatList(prev=>prev.filter(chat=>chat.id !== chatListUpdatePacket.chat_data.id));
+          //     break;
+          // case "update":
+          //     this.#setChatList(prev=>prev.map(chat=>(chat.id === chatListUpdatePacket.chat_data.id) ? chatListUpdatePacket.chat_data : chat));
+          //     break;
+          default:
+            console.log(
+              `ChatListUpdateEvent with action_type=${chatListUpdatePacket.action_type} is not supported yet`
+            );
+            break;
+        }
+        break;
+      }
+      case "ChatMessageEvent": {
+        const chatMessageEvent = chatEvent as ChatMessageEvent;
+        const chatID = chatMessageEvent.message.chat_id;
+        this.#updateChatMessageListInternal(chatID, [chatMessageEvent.message]);
+        break;
+      }
+      case "ChatMessageEdited": {
+        const chatMessageEditedEvent = chatEvent as ChatMessageEditedEvent;
+        const editedMessage = chatMessageEditedEvent.message;
+        const chatID = editedMessage.chat_id;
+        const chatMessages = this.#chatMessages.get(chatID);
+        this.#updateMessageSenderName(editedMessage);
+        if (chatMessages) {
+          chatMessages.messages = chatMessages.messages.map((message) => {
+            return message.id === editedMessage.id ? editedMessage : message;
+          });
+
+          if (this.#selectedChat && chatID === this.#selectedChat.id)
+            this.#setSelectedChatMessages([...chatMessages.messages]);
+
+          const messageIDAsNum = parseInt(editedMessage.id);
+          if (messageIDAsNum === chatMessages.maxMessageID) {
+            this.#updateChatListOnLastMessageUpdate(editedMessage);
+          }
+        } else {
+          console.log(
+            "Chat message updated, but message list is empty. Request messages"
+          );
+          this.#requestChatMessageList(chatMessageEditedEvent.message.chat_id);
+        }
+        break;
+      }
+      default:
+        console.log(`Unknown chat event ${chatEvent}.`);
     }
   }
 
@@ -460,6 +376,10 @@ class ChatClient {
     chatMessages.messages.forEach((message: ChatMessage) => {
       this.#updateMessageSenderName(message);
     });
+
+    // Update message list in the UI if current chat's messages were changed
+    if (this.#selectedChat && chatID === this.#selectedChat.id)
+      this.#setSelectedChatMessages([...chatMessages.messages]);
   }
 
   #updateChatListOnLastMessageUpdate(lastMessage: ChatMessage) {
@@ -475,8 +395,6 @@ class ChatClient {
     if (message.sender_id && !message.senderName)
       message.senderName = this.#userNamesCache.get(message.sender_id);
   }
-
 }
 
-
-export { ChatClient, ChatDataExtended, ChatMessage };
+export { ChatClient };

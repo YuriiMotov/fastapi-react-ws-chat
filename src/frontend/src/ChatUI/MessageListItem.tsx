@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { ChatMessage } from "../ChatClient";
+import { ChatMessage } from "../ChatDataTypes";
 import {
   Card,
   CardHeader,

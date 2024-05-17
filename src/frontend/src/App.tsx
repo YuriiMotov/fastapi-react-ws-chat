@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
-import { ChatClient, ChatDataExtended, ChatMessage } from "./ChatClient";
+import { ChatClient } from "./ChatClient";
+import { ChatDataExtended, ChatMessage } from "./ChatDataTypes";
 import { ChatListComponent } from "./ChatUI/ChatList";
 
 import { Grid, GridItem } from "@chakra-ui/react";

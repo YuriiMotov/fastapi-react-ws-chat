@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ChatMessage } from "../ChatClient";
+import { ChatMessage } from "../ChatDataTypes";
 import {
   Button,
   Modal,

@@ -1,5 +1,5 @@
 import React from "react";
-import { ChatDataExtended } from "../ChatClient";
+import { ChatDataExtended } from "../ChatDataTypes";
 import {
   Card,
   CardHeader,
