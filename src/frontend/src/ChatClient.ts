@@ -339,6 +339,9 @@ class ChatClient {
     let maxIDMessage: ChatMessage | null = null;
 
     messages.forEach((message) => {
+      if (message.is_notification)
+        message.text = this.#getNotificationText(message.text, message.params || "-")
+
       const messageID = parseInt(message.id);
       if (messageID < minMessageID) {
         minMessageID = messageID;
@@ -395,6 +398,25 @@ class ChatClient {
     if (message.sender_id && !message.senderName)
       message.senderName = this.#userNamesCache.get(message.sender_id);
   }
+
+  #getNotificationText(messageText: string, params: string): string {
+    switch (messageText) {
+      case "USER_JOINED_CHAT_MSG":
+        const userName = this.#userNamesCache.get(params) || "Unknown user"
+        return `${userName} joined chat`;
+      default:
+        return `Unknown event (${messageText})`;
+    }
+  }
+
 }
+
+
+
+
+
+
+
+
 
 export { ChatClient };
