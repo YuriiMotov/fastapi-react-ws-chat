@@ -12,3 +12,5 @@ class User(BaseModel):
         nullable=False,
     )
     name: Mapped[str]
+    hashed_password: Mapped[str] = mapped_column(default="")  # Default val is temporary
+    scope: Mapped[str] = mapped_column(default="")
