@@ -17,13 +17,13 @@ class AbstractAuth(ABC):
 
     @abstractmethod
     async def get_token_with_pwd(
-        self, user_name: str, password: str, scopes: list[str]
+        self, user_name: str, password: str, requested_scopes: list[str]
     ) -> TokensResponse:
         raise NotImplementedError()
 
     @abstractmethod
     async def get_token_with_refresh_token(
-        self, refresh_token: str, scopes: list[str]
+        self, refresh_token: str, requested_scopes: list[str]
     ) -> TokensResponse:
         raise NotImplementedError()
 

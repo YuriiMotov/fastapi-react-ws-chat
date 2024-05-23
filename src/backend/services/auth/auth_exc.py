@@ -19,9 +19,9 @@ class AuthBadCredentialsError(AuthBadRequestParametersError):
 
 @dataclass
 class AuthBadTokenError(AuthBadRequestParametersError):
-    headers: dict[str, str] = {}
+    headers: dict[str, str] | None = None
 
 
 @dataclass
 class AuthUnauthorizedError(AuthException):
-    headers: dict[str, str] = {}
+    headers: dict[str, str] | None = None

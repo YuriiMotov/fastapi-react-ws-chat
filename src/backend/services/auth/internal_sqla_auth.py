@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
@@ -40,14 +39,19 @@ class InternalSQLAAuth(AbstractAuth):
         self, user_name: str, password: str, requested_scopes: list[str]
     ) -> TokensResponse:
         user = await self.session.scalar(select(User).where(User.name == user_name))
-        if (not user) or (not pwd_context.verify(password, user.hashed_password)):
+        if not user:
+            raise AuthBadCredentialsError(detail="Incorrect username or password")
+        is_password_correct = pwd_context.verify(password, user.hashed_password)
+        if not is_password_correct:
             raise AuthBadCredentialsError(detail="Incorrect username or password")
         user_scopes = user.scope.split(" ")
         if not set(requested_scopes).issubset(set(user_scopes)):
             raise AuthBadRequestParametersError(detail="Incorrect requested scopes")
 
         tokens = self._create_token_pair(
-            user_uuid=user.id, user_name=user.name, requested_scopes=requested_scopes
+            user_uuid=user.id.hex,
+            user_name=user.name,
+            requested_scopes=requested_scopes,
         )
         return tokens
 
@@ -67,7 +71,9 @@ class InternalSQLAAuth(AbstractAuth):
             raise AuthBadRequestParametersError(detail="Incorrect requested scopes")
 
         tokens = self._create_token_pair(
-            user_uuid=user.id, user_name=user.name, requested_scopes=requested_scopes
+            user_uuid=user.id.hex,
+            user_name=user.name,
+            requested_scopes=requested_scopes,
         )
         return tokens
 
@@ -123,7 +129,7 @@ class InternalSQLAAuth(AbstractAuth):
         return encoded_jwt
 
     def _create_token_pair(
-        self, user_uuid: uuid.UUID, user_name: str, requested_scopes: list[str]
+        self, user_uuid: str, user_name: str, requested_scopes: list[str]
     ) -> TokensResponse:
         token_data = TokenData(
             user_uuid=user_uuid, user_name=user_name, scopes=requested_scopes
