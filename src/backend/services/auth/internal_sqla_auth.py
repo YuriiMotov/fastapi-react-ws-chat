@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
@@ -61,7 +62,7 @@ class InternalSQLAAuth(AbstractAuth):
         refresh_token_decoded = await self.validate_token(
             token=refresh_token, required_scopes=None
         )
-        user = await self.session.get(User, refresh_token_decoded.user_uuid)
+        user = await self.session.get(User, uuid.UUID(refresh_token_decoded.sub))
         if not user:
             raise AuthBadCredentialsError(detail="Incorrect refresh token data")
         user_scopes = user.scope.split(" ")
@@ -96,11 +97,11 @@ class InternalSQLAAuth(AbstractAuth):
                     options={"require": ["exp", "aud", "sub"]},
                 ),
             )
-            user_uuid: str = cast(str, payload.get("sub", ""))
+            sub: str = cast(str, payload.get("sub", ""))
             user_name: str = cast(str, payload.get("user_name", ""))
             token_scopes = cast(list[str], payload.get("scopes", []))
             token_data = TokenData.model_validate(
-                {"scopes": token_scopes, "user_uuid": user_uuid, "user_name": user_name}
+                {"scopes": token_scopes, "sub": sub, "user_name": user_name}
             )
         except (jwt.InvalidTokenError, ValidationError):
             raise AuthBadTokenError(
@@ -114,7 +115,7 @@ class InternalSQLAAuth(AbstractAuth):
         return token_data
 
     async def get_current_user(self, access_token_decoded: TokenData) -> UserSchema:
-        user = await self.session.get(User, access_token_decoded.user_uuid)
+        user = await self.session.get(User, uuid.UUID(access_token_decoded.sub))
         if not user:
             raise AuthBadTokenError(detail="Invalid user id")
         return UserSchema.model_validate(user)
@@ -132,7 +133,7 @@ class InternalSQLAAuth(AbstractAuth):
         self, user_uuid: str, user_name: str, requested_scopes: list[str]
     ) -> TokensResponse:
         token_data = TokenData(
-            user_uuid=user_uuid, user_name=user_name, scopes=requested_scopes
+            sub=user_uuid, user_name=user_name, scopes=requested_scopes
         )
         access_token = self._create_token(token_data, ACCESS_TOKEN_EXPIRE_MINUTES)
         refresh_token = self._create_token(token_data, REFRESH_TOKEN_EXPIRE_MINUTES)
