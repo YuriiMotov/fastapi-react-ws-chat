@@ -19,14 +19,14 @@ class TestInternalSQLAAuth(AuthServiceTestBase):
     async def user_data(self, async_session: AsyncSession):
         password = str(uuid.uuid4())
         user_data = {
-            "id": uuid.uuid4(),
+            "id": uuid.uuid4().hex,
             "name": f"User_{uuid.uuid4()}",
             "password": password,
             "scope": " ".join([e.value for e in Scopes]),
         }
         hashed_password = pwd_context.hash(password)
         user = User(
-            id=user_data["id"],
+            id=uuid.UUID(user_data["id"]),
             name=user_data["name"],
             hashed_password=hashed_password,
             scope=user_data["scope"],
