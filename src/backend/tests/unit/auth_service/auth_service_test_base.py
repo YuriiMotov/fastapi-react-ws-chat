@@ -13,6 +13,7 @@ from backend.auth_setups import (
 )
 from backend.schemas.token_data import TokenData
 from backend.schemas.tokens_response import TokensResponse
+from backend.schemas.user import UserSchema
 from backend.services.auth.abstract_auth import AbstractAuth
 from backend.services.auth.auth_exc import (
     AuthBadCredentialsError,
@@ -232,3 +233,21 @@ class AuthServiceTestBase:
             await auth_service.validate_token(
                 token=access_token, required_scopes=required_scopes
             )
+
+    # Get current user
+
+    async def test_current_user__success(
+        self, auth_service: AbstractAuth, user_data: dict[str, str]
+    ):
+        token_decoded = TokenData(sub=user_data["id"], user_name=user_data["name"])
+        user = await auth_service.get_current_user(access_token_decoded=token_decoded)
+        assert isinstance(user, UserSchema)
+        assert user.id.hex == user_data["id"]
+        assert user.name == user_data["name"]
+
+    async def test_current_user__wrong_sub(
+        self, auth_service: AbstractAuth, user_data: dict[str, str]
+    ):
+        token_decoded = TokenData(sub=uuid.uuid4().hex, user_name=user_data["name"])
+        with pytest.raises(AuthBadTokenError, match="Invalid user id"):
+            await auth_service.get_current_user(access_token_decoded=token_decoded)
