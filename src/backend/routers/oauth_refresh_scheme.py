@@ -10,7 +10,7 @@ class OAuth2RefreshRequestForm:
     def __init__(
         self,
         *,
-        grant_type: Literal["refresh_token"],
+        grant_type: Literal["refresh_token"] = Form(...),
         refresh_token: Annotated[
             str,
             Form(...),

@@ -9,10 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth_setups import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ACCESS_TOKEN_EXPIRE_TIMEDELTA,
     ALGORITHM,
     JWT_AUD,
-    REFRESH_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_TIMEDELTA,
     SECRET_KEY,
     pwd_context,
 )
@@ -135,8 +135,8 @@ class InternalSQLAAuth(AbstractAuth):
         token_data = TokenData(
             sub=user_uuid, user_name=user_name, scopes=requested_scopes
         )
-        access_token = self._create_token(token_data, ACCESS_TOKEN_EXPIRE_MINUTES)
-        refresh_token = self._create_token(token_data, REFRESH_TOKEN_EXPIRE_MINUTES)
+        access_token = self._create_token(token_data, ACCESS_TOKEN_EXPIRE_TIMEDELTA)
+        refresh_token = self._create_token(token_data, REFRESH_TOKEN_EXPIRE_TIMEDELTA)
         return TokensResponse(
             access_token=access_token,
             refresh_token=refresh_token,

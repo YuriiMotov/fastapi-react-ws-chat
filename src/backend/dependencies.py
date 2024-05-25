@@ -1,7 +1,8 @@
 import uuid
 from typing import Annotated, AsyncGenerator
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, WebSocket
+from fastapi.requests import HTTPConnection
 from fastapi.security import SecurityScopes
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -9,6 +10,11 @@ from backend.auth_setups import oauth2_scheme
 from backend.database import async_session_maker
 from backend.schemas.user import UserSchema
 from backend.services.auth.abstract_auth import AbstractAuth
+from backend.services.auth.auth_exc import (
+    AuthBadRequestParametersError,
+    AuthUnauthorizedError,
+)
+from backend.services.auth.internal_sqla_auth import InternalSQLAAuth
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
 from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
@@ -55,16 +61,25 @@ def chat_manager_dep(
 def get_auth_service(
     session: Annotated[AsyncSession, Depends(sqla_session_dep)],
 ) -> AbstractAuth:
-    raise NotImplementedError()
-    # return InternalSQLAAuth(session=session)
+    return InternalSQLAAuth(session=session)
 
 
 async def get_current_user_with_token(
+    connection: HTTPConnection,
     security_scopes: SecurityScopes,
     auth_service: Annotated[AbstractAuth, Depends(get_auth_service)],
     access_token: Annotated[str, Depends(oauth2_scheme)],
 ) -> UserSchema:
-    access_token_decoded = await auth_service.validate_token(
-        access_token, security_scopes
-    )
-    return await auth_service.get_current_user(access_token_decoded)
+    try:
+        access_token_decoded = await auth_service.validate_token(
+            access_token, security_scopes
+        )
+        return await auth_service.get_current_user(access_token_decoded)
+    except AuthBadRequestParametersError as exc:
+        if isinstance(connection, WebSocket):
+            await connection.close()
+        raise HTTPException(status_code=400, detail=exc.detail)
+    except AuthUnauthorizedError as exc:
+        if isinstance(connection, WebSocket):
+            await connection.close()
+        raise HTTPException(status_code=403, detail=exc.detail, headers=exc.headers)
