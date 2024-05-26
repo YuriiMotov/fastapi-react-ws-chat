@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from backend.auth_setups import Scopes, pwd_context
 from backend.dependencies import (
     event_broker_dep,
     get_current_user,
@@ -18,6 +19,7 @@ from backend.dependencies import (
 )
 from backend.main import app
 from backend.models.base import BaseModel
+from backend.models.user import User
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 from backend.services.uow.sqla_uow import SQLAlchemyUnitOfWork
@@ -101,3 +103,24 @@ def get_test_client(
 
     app.dependency_overrides.pop(sqla_sessionmaker_dep)
     app.dependency_overrides.pop(event_broker_dep)
+
+
+@pytest.fixture()
+async def registered_user_data(async_session: AsyncSession):
+    password = str(uuid.uuid4())
+    user_data = {
+        "id": uuid.uuid4().hex,
+        "name": f"User_{uuid.uuid4()}",
+        "password": password,
+        "scope": " ".join([e.value for e in Scopes]),
+    }
+    hashed_password = pwd_context.hash(password)
+    user = User(
+        id=uuid.UUID(user_data["id"]),
+        name=user_data["name"],
+        hashed_password=hashed_password,
+        scope=user_data["scope"],
+    )
+    async_session.add(user)
+    await async_session.commit()
+    yield user_data

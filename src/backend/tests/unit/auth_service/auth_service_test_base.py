@@ -155,6 +155,24 @@ class AuthServiceTestBase:
                 requested_scopes=[Scopes.chat_user.value],
             )
 
+    @pytest.mark.xfail(reason="It's needed to add token type check")
+    async def test_get_token_with_refresh__wrong_token_type(
+        self, auth_service: AbstractAuth, user_data: dict[str, str]
+    ):
+        tokens = await auth_service.get_token_with_pwd(
+            user_name=user_data["name"],
+            password=user_data["password"],
+            requested_scopes=[Scopes.chat_user.value],
+        )
+        assert isinstance(tokens, TokensResponse)
+        refresh_token = tokens.refresh_token
+
+        with pytest.raises(AuthBadTokenError, match="Invalid token"):
+            await auth_service.get_token_with_refresh_token(
+                refresh_token=refresh_token,
+                requested_scopes=[Scopes.chat_user.value],
+            )
+
     # Validate token
 
     async def test_vaidate_token__success(
