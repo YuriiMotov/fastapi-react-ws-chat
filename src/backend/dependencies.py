@@ -12,6 +12,7 @@ from backend.schemas.user import UserSchema
 from backend.services.auth.abstract_auth import AbstractAuth
 from backend.services.auth.auth_exc import (
     AuthBadRequestParametersError,
+    AuthBadTokenError,
     AuthUnauthorizedError,
 )
 from backend.services.auth.internal_sqla_auth import InternalSQLAAuth
@@ -75,11 +76,11 @@ async def get_current_user_with_token(
             access_token, security_scopes
         )
         return await auth_service.get_current_user(access_token_decoded)
+    except (AuthUnauthorizedError, AuthBadTokenError) as exc:
+        if isinstance(connection, WebSocket):
+            await connection.close()
+        raise HTTPException(status_code=403, detail=exc.detail, headers=exc.headers)
     except AuthBadRequestParametersError as exc:
         if isinstance(connection, WebSocket):
             await connection.close()
         raise HTTPException(status_code=400, detail=exc.detail)
-    except AuthUnauthorizedError as exc:
-        if isinstance(connection, WebSocket):
-            await connection.close()
-        raise HTTPException(status_code=403, detail=exc.detail, headers=exc.headers)

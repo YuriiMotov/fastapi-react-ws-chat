@@ -2,8 +2,9 @@ import logging
 from datetime import timedelta
 from enum import Enum
 
-from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+
+from backend.extended_security.auth2_password_bearer import OAuth2PasswordBearerWsHttp
 
 logger = logging.getLogger("passlib")
 logger.setLevel(logging.ERROR)
@@ -35,6 +36,6 @@ app_scopes = {
     Scopes.chat_user.value: "WS chat user",
 }
 
-oauth2_scheme = OAuth2PasswordBearer(
+oauth2_scheme = OAuth2PasswordBearerWsHttp(
     tokenUrl=f"{AUTH_ROUTER_PATH}{TOKEN_PATH_WITH_PWD}", scopes=app_scopes
 )

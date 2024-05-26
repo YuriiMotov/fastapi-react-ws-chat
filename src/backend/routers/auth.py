@@ -9,7 +9,7 @@ from backend.auth_setups import (
     TOKEN_PATH_WITH_REFRESH,
 )
 from backend.dependencies import get_auth_service
-from backend.routers.oauth_refresh_scheme import OAuth2RefreshRequestForm
+from backend.extended_security.oauth_refresh_scheme import OAuth2RefreshRequestForm
 from backend.schemas.tokens_response import TokensResponse
 from backend.services.auth.abstract_auth import AbstractAuth
 from backend.services.auth.auth_exc import (
