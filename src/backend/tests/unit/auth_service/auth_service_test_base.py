@@ -13,13 +13,14 @@ from backend.auth_setups import (
 )
 from backend.schemas.token_data import TokenData
 from backend.schemas.tokens_response import TokensResponse
-from backend.schemas.user import UserSchema
+from backend.schemas.user import UserCreateSchema, UserSchema
 from backend.services.auth.abstract_auth import AbstractAuth
 from backend.services.auth.auth_exc import (
     AuthBadCredentialsError,
     AuthBadRequestParametersError,
     AuthBadTokenError,
     AuthUnauthorizedError,
+    UserCreationError,
 )
 
 
@@ -269,3 +270,34 @@ class AuthServiceTestBase:
         token_decoded = TokenData(sub=uuid.uuid4().hex, user_name=user_data["name"])
         with pytest.raises(AuthBadTokenError, match="Invalid user id"):
             await auth_service.get_current_user(access_token_decoded=token_decoded)
+
+    # Register user
+
+    async def test_register_user__success(self, auth_service: AbstractAuth):
+        user_data = UserCreateSchema(
+            name=f"user_{uuid.uuid4().hex[:5]}", password=uuid.uuid4().hex[:7]
+        )
+        user = await auth_service.register_user(user_data=user_data)
+        assert isinstance(user, UserSchema)
+        assert user.name == user_data.name
+
+        # Check that the user has been created and can be authorized
+        tokens = await auth_service.get_token_with_pwd(
+            user_name=user_data.name,
+            password=user_data.password,
+            requested_scopes=[Scopes.chat_user.value],
+        )
+        assert isinstance(tokens, TokensResponse)
+
+    async def test_register_user__duplicate_uid_error(self, auth_service: AbstractAuth):
+        user_data = UserCreateSchema(
+            name=f"user_{uuid.uuid4().hex[:5]}", password=uuid.uuid4().hex[:7]
+        )
+
+        uid = uuid.uuid4()
+        with patch.object(uuid, "uuid4", return_value=uid):
+            await auth_service.register_user(user_data=user_data)
+
+            # Try to create user with the same uuid
+            with pytest.raises(UserCreationError):
+                await auth_service.register_user(user_data=user_data)

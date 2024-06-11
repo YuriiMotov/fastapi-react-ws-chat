@@ -6,6 +6,7 @@ import jwt
 from fastapi.security import SecurityScopes
 from pydantic import ValidationError
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth_setups import (
@@ -19,13 +20,14 @@ from backend.auth_setups import (
 from backend.models.user import User
 from backend.schemas.token_data import TokenData
 from backend.schemas.tokens_response import TokensResponse
-from backend.schemas.user import UserSchema
-from backend.services.auth.abstract_auth import AbstractAuth
+from backend.schemas.user import UserCreateSchema, UserSchema
+from backend.services.auth.abstract_auth import DEFAULT_SCOPES, AbstractAuth
 from backend.services.auth.auth_exc import (
     AuthBadCredentialsError,
     AuthBadRequestParametersError,
     AuthBadTokenError,
     AuthUnauthorizedError,
+    UserCreationError,
 )
 
 
@@ -33,8 +35,21 @@ class InternalSQLAAuth(AbstractAuth):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def register_user(self):
-        raise NotImplementedError()
+    async def register_user(self, user_data: UserCreateSchema) -> UserSchema:
+        try:
+            hashed_password = pwd_context.hash(user_data.password)
+            user = User(
+                id=uuid.uuid4(),
+                name=user_data.name,
+                hashed_password=hashed_password,
+                scope=" ".join(DEFAULT_SCOPES),
+            )
+            self.session.add(user)
+            await self.session.commit()
+            await self.session.refresh(user)
+            return UserSchema.model_validate(user)
+        except SQLAlchemyError as exc:
+            raise UserCreationError(detail=f"Database error: {exc}")
 
     async def get_token_with_pwd(
         self, user_name: str, password: str, requested_scopes: list[str]

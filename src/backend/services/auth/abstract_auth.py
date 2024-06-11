@@ -2,9 +2,12 @@ from abc import ABC, abstractmethod
 
 from fastapi.security import SecurityScopes
 
+from backend.auth_setups import Scopes
 from backend.schemas.token_data import TokenData
 from backend.schemas.tokens_response import TokensResponse
-from backend.schemas.user import UserSchema
+from backend.schemas.user import UserCreateSchema, UserSchema
+
+DEFAULT_SCOPES = [Scopes.chat_user]
 
 
 class AbstractAuth(ABC):
@@ -12,6 +15,7 @@ class AbstractAuth(ABC):
     @abstractmethod
     async def register_user(
         self,
+        user_data: UserCreateSchema,
     ):
         raise NotImplementedError()
 

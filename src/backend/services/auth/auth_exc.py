@@ -25,3 +25,8 @@ class AuthBadTokenError(AuthBadRequestParametersError):
 @dataclass
 class AuthUnauthorizedError(AuthException):
     headers: dict[str, str] | None = None
+
+
+@dataclass
+class UserCreationError(AuthException):
+    pass
