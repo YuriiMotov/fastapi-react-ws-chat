@@ -11,6 +11,7 @@ from backend.auth_setups import (
 from backend.dependencies import get_auth_service
 from backend.extended_security.oauth_refresh_scheme import OAuth2RefreshRequestForm
 from backend.schemas.tokens_response import TokensResponse
+from backend.schemas.user import UserCreateSchema, UserSchema
 from backend.services.auth.abstract_auth import AbstractAuth
 from backend.services.auth.auth_exc import (
     AuthBadRequestParametersError,
@@ -20,11 +21,15 @@ from backend.services.auth.auth_exc import (
 auth_router = APIRouter(prefix=AUTH_ROUTER_PATH)
 
 
-@auth_router.post("/register")
+@auth_router.post("/register", status_code=201)
 async def register(
     auth_service: Annotated[AbstractAuth, Depends(get_auth_service)],
-):
-    pass
+    user_data: UserCreateSchema,
+) -> UserSchema:
+    try:
+        return await auth_service.register_user(user_data=user_data)
+    except AuthBadRequestParametersError as exc:
+        raise HTTPException(status_code=400, detail=f"{exc}: {exc.detail}")
 
 
 @auth_router.post(TOKEN_PATH_WITH_PWD)

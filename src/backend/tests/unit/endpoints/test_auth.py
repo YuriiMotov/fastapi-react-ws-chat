@@ -1,4 +1,6 @@
+import uuid
 from typing import Annotated
+from unittest.mock import patch
 
 import pytest
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
@@ -12,10 +14,11 @@ from backend.auth_setups import (
 )
 from backend.dependencies import get_current_user_with_token, sqla_sessionmaker_dep
 from backend.routers.auth import auth_router
-from backend.schemas.user import UserSchema
+from backend.schemas.user import UserCreateSchema, UserSchema
 
 PWD_TOKEN_PATH = f"{AUTH_ROUTER_PATH}{TOKEN_PATH_WITH_PWD}"
 REFRESH_TOKEN_PATH = f"{AUTH_ROUTER_PATH}{TOKEN_PATH_WITH_REFRESH}"
+REGISTER_PATH = f"{AUTH_ROUTER_PATH}/register"
 
 # Get token pwd
 
@@ -247,3 +250,42 @@ def test_protected_ws__unauthorized_invalid_token(
     with pytest.raises(WebSocketDisconnect):
         with protected_app_client.websocket_connect("/protected_ws") as ws_connection:
             ws_connection.receive_text()
+
+
+# Register user
+
+
+def test_register_user__success(client: TestClient):
+    user_data = UserCreateSchema(
+        name=f"user_{uuid.uuid4()}", password=uuid.uuid4().hex[:8]
+    )
+    resp = client.post(REGISTER_PATH, json=user_data.model_dump())
+    assert resp.status_code == 201, resp.json()
+    created_user = UserSchema.model_validate(resp.json())
+    assert isinstance(created_user, UserSchema)
+    assert created_user.name == user_data.name
+    assert isinstance(created_user.id, uuid.UUID)
+
+
+def test_register_user__error_diplicated_name(
+    client: TestClient, registered_user_data: dict[str, str]
+):
+    user_data = UserCreateSchema(
+        name=registered_user_data["name"], password=uuid.uuid4().hex[:8]
+    )
+    resp = client.post(REGISTER_PATH, json=user_data.model_dump())
+    assert resp.status_code == 400, resp.json()
+    error = resp.json()
+    assert "Duplicated user name" in error["detail"]
+
+
+def test_register_user__error_diplicated_uid(
+    client: TestClient, registered_user_data: dict[str, str]
+):
+    user_data = UserCreateSchema(
+        name=f"user_{uuid.uuid4()}", password=uuid.uuid4().hex[:8]
+    )
+    uid = uuid.UUID(registered_user_data["id"])
+    with patch.object(uuid, "uuid4", return_value=uid):
+        resp = client.post(REGISTER_PATH, json=user_data.model_dump())
+        assert resp.status_code == 500, resp.json()

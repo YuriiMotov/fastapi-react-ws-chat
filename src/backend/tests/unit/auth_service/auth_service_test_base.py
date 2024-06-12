@@ -318,14 +318,18 @@ class AuthServiceTestBase:
         assert isinstance(tokens, TokensResponse)
 
     async def test_register_user__duplicate_uid_error(self, auth_service: AbstractAuth):
-        user_data = UserCreateSchema(
-            name=f"user_{uuid.uuid4().hex[:5]}", password=uuid.uuid4().hex[:7]
-        )
-
         uid = uuid.uuid4()
+        user_1_name = f"user_{uuid.uuid4().hex[:5]}"
+        user_2_name = f"user_{uuid.uuid4().hex[:5]}"
         with patch.object(uuid, "uuid4", return_value=uid):
+            user_data = UserCreateSchema(
+                name=user_1_name, password=uuid.uuid4().hex[:7]
+            )
             await auth_service.register_user(user_data=user_data)
 
             # Try to create user with the same uuid
+            user_data = UserCreateSchema(
+                name=user_2_name, password=uuid.uuid4().hex[:7]
+            )
             with pytest.raises(UserCreationError):
                 await auth_service.register_user(user_data=user_data)

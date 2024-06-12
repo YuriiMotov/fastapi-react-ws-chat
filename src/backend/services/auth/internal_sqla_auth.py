@@ -37,6 +37,11 @@ class InternalSQLAAuth(AbstractAuth):
 
     async def register_user(self, user_data: UserCreateSchema) -> UserSchema:
         try:
+            existed_user = await self.session.scalar(
+                select(User).where(User.name == user_data.name)
+            )
+            if existed_user:
+                raise AuthBadRequestParametersError(detail="Duplicated user name")
             hashed_password = pwd_context.hash(user_data.password)
             user = User(
                 id=uuid.uuid4(),

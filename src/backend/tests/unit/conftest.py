@@ -98,7 +98,7 @@ def get_test_client(
 
     app.dependency_overrides[sqla_sessionmaker_dep] = get_sessionmaker
     app.dependency_overrides[event_broker_dep] = get_event_broker
-    client = TestClient(app)
+    client = TestClient(app, raise_server_exceptions=False)
     yield client
 
     app.dependency_overrides.pop(sqla_sessionmaker_dep)
