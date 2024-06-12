@@ -21,7 +21,7 @@ from backend.models.user import User
 from backend.schemas.token_data import TokenData
 from backend.schemas.tokens_response import TokensResponse
 from backend.schemas.user import UserCreateSchema, UserSchema
-from backend.services.auth.abstract_auth import DEFAULT_SCOPES, AbstractAuth
+from backend.services.auth.abstract_auth import DEFAULT_SCOPES, AbstractAuth, TokenType
 from backend.services.auth.auth_exc import (
     AuthBadCredentialsError,
     AuthBadRequestParametersError,
@@ -75,7 +75,7 @@ class InternalSQLAAuth(AbstractAuth):
         self, refresh_token: str, requested_scopes: list[str]
     ) -> TokensResponse:
         refresh_token_decoded = await self.validate_token(
-            token=refresh_token, required_scopes=None
+            token=refresh_token, token_type="refresh", required_scopes=None
         )
         user = await self.session.get(User, uuid.UUID(refresh_token_decoded.sub))
         if not user:
@@ -94,7 +94,7 @@ class InternalSQLAAuth(AbstractAuth):
         return tokens
 
     async def validate_token(
-        self, token: str, required_scopes: SecurityScopes | None
+        self, token: str, token_type: TokenType, required_scopes: SecurityScopes | None
     ) -> TokenData:
         authenticate_value = (
             f'Bearer scope="{required_scopes.scope_str}"'
@@ -115,10 +115,15 @@ class InternalSQLAAuth(AbstractAuth):
             sub: str = cast(str, payload.get("sub", ""))
             user_name: str = cast(str, payload.get("user_name", ""))
             token_scopes = cast(list[str], payload.get("scopes", []))
+            decoded_token_type = cast(str, payload.get("token_type", ""))
             token_data = TokenData.model_validate(
                 {"scopes": token_scopes, "sub": sub, "user_name": user_name}
             )
         except (jwt.InvalidTokenError, ValidationError):
+            raise AuthBadTokenError(
+                detail="Invalid token", headers={"WWW-Authenticate": authenticate_value}
+            )
+        if decoded_token_type != token_type:
             raise AuthBadTokenError(
                 detail="Invalid token", headers={"WWW-Authenticate": authenticate_value}
             )
@@ -137,10 +142,12 @@ class InternalSQLAAuth(AbstractAuth):
 
     # Private methods
 
-    def _create_token(self, data: TokenData, expires_delta: timedelta):
+    def _create_token(
+        self, data: TokenData, expires_delta: timedelta, token_type: TokenType
+    ):
         to_encode = data.model_dump()
         expire = datetime.now(timezone.utc) + expires_delta
-        to_encode.update({"exp": expire, "aud": JWT_AUD})
+        to_encode.update({"exp": expire, "aud": JWT_AUD, "token_type": token_type})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
 
@@ -150,8 +157,16 @@ class InternalSQLAAuth(AbstractAuth):
         token_data = TokenData(
             sub=user_uuid, user_name=user_name, scopes=requested_scopes
         )
-        access_token = self._create_token(token_data, ACCESS_TOKEN_EXPIRE_TIMEDELTA)
-        refresh_token = self._create_token(token_data, REFRESH_TOKEN_EXPIRE_TIMEDELTA)
+        access_token = self._create_token(
+            data=token_data,
+            expires_delta=ACCESS_TOKEN_EXPIRE_TIMEDELTA,
+            token_type="access",
+        )
+        refresh_token = self._create_token(
+            data=token_data,
+            expires_delta=REFRESH_TOKEN_EXPIRE_TIMEDELTA,
+            token_type="refresh",
+        )
         return TokensResponse(
             access_token=access_token,
             refresh_token=refresh_token,

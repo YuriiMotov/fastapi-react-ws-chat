@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Literal, TypeAlias
 
 from fastapi.security import SecurityScopes
 
@@ -8,6 +9,8 @@ from backend.schemas.tokens_response import TokensResponse
 from backend.schemas.user import UserCreateSchema, UserSchema
 
 DEFAULT_SCOPES = [Scopes.chat_user]
+
+TokenType: TypeAlias = Literal["access", "refresh"]
 
 
 class AbstractAuth(ABC):
@@ -33,7 +36,7 @@ class AbstractAuth(ABC):
 
     @abstractmethod
     async def validate_token(
-        self, token: str, required_scopes: SecurityScopes | None
+        self, token: str, token_type: TokenType, required_scopes: SecurityScopes | None
     ) -> TokenData:
         raise NotImplementedError()
 

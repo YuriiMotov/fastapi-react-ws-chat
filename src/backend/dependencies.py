@@ -73,7 +73,7 @@ async def get_current_user_with_token(
 ) -> UserSchema:
     try:
         access_token_decoded = await auth_service.validate_token(
-            access_token, security_scopes
+            token=access_token, token_type="access", required_scopes=security_scopes
         )
         return await auth_service.get_current_user(access_token_decoded)
     except (AuthUnauthorizedError, AuthBadTokenError) as exc:

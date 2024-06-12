@@ -156,7 +156,6 @@ class AuthServiceTestBase:
                 requested_scopes=[Scopes.chat_user.value],
             )
 
-    @pytest.mark.xfail(reason="It's needed to add token type check")
     async def test_get_token_with_refresh__wrong_token_type(
         self, auth_service: AbstractAuth, user_data: dict[str, str]
     ):
@@ -166,11 +165,11 @@ class AuthServiceTestBase:
             requested_scopes=[Scopes.chat_user.value],
         )
         assert isinstance(tokens, TokensResponse)
-        refresh_token = tokens.refresh_token
+        access_token = tokens.access_token
 
         with pytest.raises(AuthBadTokenError, match="Invalid token"):
             await auth_service.get_token_with_refresh_token(
-                refresh_token=refresh_token,
+                refresh_token=access_token,
                 requested_scopes=[Scopes.chat_user.value],
             )
 
@@ -188,7 +187,7 @@ class AuthServiceTestBase:
         access_token = tokens.access_token
         required_scopes = SecurityScopes([Scopes.chat_user.value])
         token_decoded = await auth_service.validate_token(
-            token=access_token, required_scopes=required_scopes
+            token=access_token, token_type="access", required_scopes=required_scopes
         )
         assert isinstance(token_decoded, TokenData)
         assert (
@@ -213,7 +212,9 @@ class AuthServiceTestBase:
         ):
             with pytest.raises(AuthBadTokenError):
                 await auth_service.validate_token(
-                    token=access_token, required_scopes=required_scopes
+                    token=access_token,
+                    token_type="access",
+                    required_scopes=required_scopes,
                 )
 
     async def test_vaidate_token__wrong_scopes(
@@ -230,7 +231,7 @@ class AuthServiceTestBase:
 
         with pytest.raises(AuthUnauthorizedError):
             await auth_service.validate_token(
-                token=access_token, required_scopes=required_scopes
+                token=access_token, token_type="access", required_scopes=required_scopes
             )
 
     @pytest.mark.xfail(reason="Need to group settings into config object")
@@ -250,7 +251,34 @@ class AuthServiceTestBase:
 
         with pytest.raises(AuthBadTokenError):
             await auth_service.validate_token(
-                token=access_token, required_scopes=required_scopes
+                token=access_token, token_type="access", required_scopes=required_scopes
+            )
+
+    async def test_vaidate_token__wrong_token_type(
+        self, auth_service: AbstractAuth, user_data: dict[str, str]
+    ):
+        tokens = await auth_service.get_token_with_pwd(
+            user_name=user_data["name"],
+            password=user_data["password"],
+            requested_scopes=[Scopes.chat_user.value],
+        )
+        assert isinstance(tokens, TokensResponse)
+        access_token = tokens.access_token
+        refresh_token = tokens.refresh_token
+        required_scopes = SecurityScopes([Scopes.chat_user.value])
+
+        with pytest.raises(AuthBadTokenError, match="Invalid token"):
+            await auth_service.validate_token(
+                token=access_token,  # Passing access token instead of refresh token
+                token_type="refresh",
+                required_scopes=required_scopes,
+            )
+
+        with pytest.raises(AuthBadTokenError, match="Invalid token"):
+            await auth_service.validate_token(
+                token=refresh_token,  # Passing refresh token instead of access token
+                token_type="access",
+                required_scopes=required_scopes,
             )
 
     # Get current user
