@@ -1,4 +1,5 @@
 import { ConstantBackoff, Websocket, WebsocketBuilder } from "websocket-ts";
+import { jwtDecode } from "jwt-decode";
 import React from "react";
 import { ChatDataExtended, ChatMessage } from "./ChatDataTypes";
 import {
@@ -24,7 +25,8 @@ const chatMessageRequestLimit = 5;
 
 class ChatClient {
   #connection: Websocket | null = null;
-  #userID: string | null = null;
+  #accessToken: string | null = null;
+  #user_id: string | null = null;
   #lastPacketID: number = 0;
   #selectedChat: ChatDataExtended | null = null;
   #chatList: ChatDataExtended[] = [];
@@ -53,16 +55,18 @@ class ChatClient {
 
   // ................................  Public methods ................................
 
-  connect(userID: string): void {
+  connect(accessToken: string): void {
     if (this.#connection) {
       console.log(
         "Attempt to call connect() while already connected. Disconnect first"
       );
       return;
     }
-    this.#userID = userID;
+    this.#accessToken = accessToken;
+    const decoded_token = jwtDecode(accessToken);
+    this.#user_id = decoded_token.sub!;
     this.#connection = new WebsocketBuilder(
-      `ws://127.0.0.1:8000/ws/chat?user_id=${userID}`
+      `ws://127.0.0.1:8000/ws/chat?access_token=${accessToken}`
     )
       .onOpen(this.#connectedHandler.bind(this))
       .onClose(this.#disconnectedHandler.bind(this))
@@ -104,7 +108,7 @@ class ChatClient {
           message: {
             chat_id: chatID,
             text: text,
-            sender_id: this.#userID,
+            sender_id: this.#user_id,
           },
         },
       };
