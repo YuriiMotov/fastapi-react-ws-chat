@@ -1,9 +1,9 @@
-import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend.dependencies import chat_manager_dep, get_current_user
+from backend.schemas.user import UserSchema
 from backend.services import ws_chat_server
 from backend.services.chat_manager.chat_manager import ChatManager
 
@@ -14,23 +14,23 @@ ws_chat_router = APIRouter(prefix="/ws", tags=["websocket"])
 async def ws_chat(
     websocket: WebSocket,
     chat_manager: Annotated[ChatManager, Depends(chat_manager_dep)],
-    current_user_id: Annotated[uuid.UUID, Depends(get_current_user)],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],
 ):
     await websocket.accept()
-    await chat_manager.subscribe_for_updates(current_user_id=current_user_id)
+    await chat_manager.subscribe_for_updates(current_user_id=current_user.id)
     try:
         while True:
             # Receive packet from websocket and process it
             await ws_chat_server.process_ws_client_packets(
                 chat_manager=chat_manager,
-                current_user_id=current_user_id,
+                current_user_id=current_user.id,
                 websocket=websocket,
             )
 
             # Check for new events and send via websocket
             await ws_chat_server.send_events_to_ws_client(
                 chat_manager=chat_manager,
-                current_user_id=current_user_id,
+                current_user_id=current_user.id,
                 websocket=websocket,
             )
 

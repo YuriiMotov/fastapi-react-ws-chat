@@ -13,8 +13,8 @@ from backend.services.uow.uow_exc import UnitOfWorkException
 class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
     _session: AsyncSession | None
 
-    def __init__(self, async_session_maker: async_sessionmaker):
-        self._session_factory = async_session_maker
+    def __init__(self, session_maker: async_sessionmaker):
+        self._session_factory = session_maker
 
     async def __aenter__(self):
         session = self._session_factory()

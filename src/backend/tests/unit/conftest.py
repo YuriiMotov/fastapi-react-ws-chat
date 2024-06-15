@@ -20,6 +20,7 @@ from backend.dependencies import (
 from backend.main import app
 from backend.models.base import BaseModel
 from backend.models.user import User
+from backend.schemas.user import UserSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.event_broker.in_memory_event_broker import InMemoryEventBroker
 from backend.services.uow.sqla_uow import SQLAlchemyUnitOfWork
@@ -91,9 +92,9 @@ def get_test_client(
         return async_session_maker
 
     async def get_event_broker(
-        current_user_id: Annotated[uuid.UUID, Depends(get_current_user)]
+        current_user: Annotated[UserSchema, Depends(get_current_user)]
     ):
-        async with event_broker.session(current_user_id):
+        async with event_broker.session(current_user.id):
             yield event_broker
 
     app.dependency_overrides[sqla_sessionmaker_dep] = get_sessionmaker
@@ -105,8 +106,7 @@ def get_test_client(
     app.dependency_overrides.pop(event_broker_dep)
 
 
-@pytest.fixture()
-async def registered_user_data(async_session: AsyncSession):
+async def _registered_user_data(async_session: AsyncSession):
     password = str(uuid.uuid4())
     user_data = {
         "id": uuid.uuid4().hex,
@@ -123,4 +123,14 @@ async def registered_user_data(async_session: AsyncSession):
     )
     async_session.add(user)
     await async_session.commit()
-    yield user_data
+    return user_data
+
+
+@pytest.fixture()
+async def registered_user_data(async_session: AsyncSession):
+    return await _registered_user_data(async_session)
+
+
+@pytest.fixture()
+async def registered_user_data_2(async_session: AsyncSession):
+    return await _registered_user_data(async_session)

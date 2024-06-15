@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends, HTTPException, WebSocket
@@ -23,58 +22,41 @@ from backend.services.uow.abstract_uow import AbstractUnitOfWork
 from backend.services.uow.sqla_uow import SQLAlchemyUnitOfWork
 
 
-def sqla_sessionmaker_dep():
+async def sqla_sessionmaker_dep():
     return async_session_maker
 
 
 async def sqla_session_dep(
-    async_session_maker: Annotated[async_sessionmaker, Depends(sqla_sessionmaker_dep)],
+    session_maker: Annotated[async_sessionmaker, Depends(sqla_sessionmaker_dep)],
 ) -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_maker() as session:
+    async with session_maker() as session:
         yield session
 
 
-def uow_dep(
-    async_session_maker: Annotated[async_sessionmaker, Depends(sqla_sessionmaker_dep)]
+async def uow_dep(
+    session_maker: Annotated[async_sessionmaker, Depends(sqla_sessionmaker_dep)]
 ) -> AbstractUnitOfWork:
-    return SQLAlchemyUnitOfWork(async_session_maker=async_session_maker)
+    return SQLAlchemyUnitOfWork(session_maker=session_maker)
 
 
-def get_current_user(user_id: uuid.UUID):
-    return user_id
-
-
-async def event_broker_dep(
-    current_user: Annotated[uuid.UUID, Depends(get_current_user)]
-) -> AsyncGenerator[AbstractEventBroker, None]:
-    event_broker = InMemoryEventBroker()
-    async with event_broker.session(current_user):
-        yield event_broker
-
-
-def chat_manager_dep(
-    uow: Annotated[AbstractUnitOfWork, Depends(uow_dep)],
-    event_broker: Annotated[AbstractEventBroker, Depends(event_broker_dep)],
-) -> ChatManager:
-    return ChatManager(uow=uow, event_broker=event_broker)
-
-
-def get_auth_service(
-    session: Annotated[AsyncSession, Depends(sqla_session_dep)],
+async def get_auth_service(
+    session_maker: Annotated[async_sessionmaker, Depends(sqla_sessionmaker_dep)],
 ) -> AbstractAuth:
-    return InternalSQLAAuth(session=session)
+    return InternalSQLAAuth(session_maker=session_maker)
 
 
-async def get_current_user_with_token(
+async def get_current_user(
     connection: HTTPConnection,
     security_scopes: SecurityScopes,
     auth_service: Annotated[AbstractAuth, Depends(get_auth_service)],
     access_token: Annotated[str, Depends(oauth2_scheme)],
 ) -> UserSchema:
+
     try:
         access_token_decoded = await auth_service.validate_token(
             token=access_token, token_type="access", required_scopes=security_scopes
         )
+        # return UserSchema(name="FakeName", id=uuid.UUID(access_token_decoded.sub))
         return await auth_service.get_current_user(access_token_decoded)
     except (AuthUnauthorizedError, AuthBadTokenError) as exc:
         if isinstance(connection, WebSocket):
@@ -84,3 +66,18 @@ async def get_current_user_with_token(
         if isinstance(connection, WebSocket):
             await connection.close()
         raise HTTPException(status_code=400, detail=exc.detail)
+
+
+async def event_broker_dep(
+    current_user: Annotated[UserSchema, Depends(get_current_user)]
+) -> AsyncGenerator[AbstractEventBroker, None]:
+    event_broker = InMemoryEventBroker()
+    async with event_broker.session(current_user.id):
+        yield event_broker
+
+
+async def chat_manager_dep(
+    uow: Annotated[AbstractUnitOfWork, Depends(uow_dep)],
+    event_broker: Annotated[AbstractEventBroker, Depends(event_broker_dep)],
+) -> ChatManager:
+    return ChatManager(uow=uow, event_broker=event_broker)

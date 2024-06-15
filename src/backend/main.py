@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     # Create DB tables and fill by test data
     async with engine.begin() as conn:
         await conn.run_sync(BaseModel.metadata.create_all)
-    sessionmaker = sqla_sessionmaker_dep()
+    sessionmaker = await sqla_sessionmaker_dep()
     async with sessionmaker() as session:
         user_1 = User(
             id=uuid.UUID("ef376e46-db3b-4beb-8170-82940d849847"),

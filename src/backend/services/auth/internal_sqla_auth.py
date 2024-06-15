@@ -7,7 +7,7 @@ from fastapi.security import SecurityScopes
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from backend.auth_setups import (
     ACCESS_TOKEN_EXPIRE_TIMEDELTA,
@@ -32,26 +32,27 @@ from backend.services.auth.auth_exc import (
 
 
 class InternalSQLAAuth(AbstractAuth):
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    def __init__(self, session_maker: async_sessionmaker):
+        self.session_maker = session_maker
 
     async def register_user(self, user_data: UserCreateSchema) -> UserSchema:
         try:
-            existed_user = await self.session.scalar(
-                select(User).where(User.name == user_data.name)
-            )
-            if existed_user:
-                raise AuthBadRequestParametersError(detail="Duplicated user name")
-            hashed_password = pwd_context.hash(user_data.password)
-            user = User(
-                id=uuid.uuid4(),
-                name=user_data.name,
-                hashed_password=hashed_password,
-                scope=" ".join(DEFAULT_SCOPES),
-            )
-            self.session.add(user)
-            await self.session.commit()
-            await self.session.refresh(user)
+            async with self.session_maker() as session:
+                existed_user = await session.scalar(
+                    select(User).where(User.name == user_data.name)
+                )
+                if existed_user:
+                    raise AuthBadRequestParametersError(detail="Duplicated user name")
+                hashed_password = pwd_context.hash(user_data.password)
+                user = User(
+                    id=uuid.uuid4(),
+                    name=user_data.name,
+                    hashed_password=hashed_password,
+                    scope=" ".join(DEFAULT_SCOPES),
+                )
+                session.add(user)
+                await session.commit()
+                await session.refresh(user)
             return UserSchema.model_validate(user)
         except SQLAlchemyError as exc:
             raise UserCreationError(detail=f"Database error: {exc}")
@@ -59,7 +60,8 @@ class InternalSQLAAuth(AbstractAuth):
     async def get_token_with_pwd(
         self, user_name: str, password: str, requested_scopes: list[str]
     ) -> TokensResponse:
-        user = await self.session.scalar(select(User).where(User.name == user_name))
+        async with self.session_maker() as session:
+            user = await session.scalar(select(User).where(User.name == user_name))
         if not user:
             raise AuthBadCredentialsError(detail="Incorrect username or password")
         is_password_correct = pwd_context.verify(password, user.hashed_password)
@@ -82,7 +84,8 @@ class InternalSQLAAuth(AbstractAuth):
         refresh_token_decoded = await self.validate_token(
             token=refresh_token, token_type="refresh", required_scopes=None
         )
-        user = await self.session.get(User, uuid.UUID(refresh_token_decoded.sub))
+        async with self.session_maker() as session:
+            user = await session.get(User, uuid.UUID(refresh_token_decoded.sub))
         if not user:
             raise AuthBadCredentialsError(detail="Incorrect refresh token data")
         user_scopes = user.scope.split(" ")
@@ -140,7 +143,8 @@ class InternalSQLAAuth(AbstractAuth):
         return token_data
 
     async def get_current_user(self, access_token_decoded: TokenData) -> UserSchema:
-        user = await self.session.get(User, uuid.UUID(access_token_decoded.sub))
+        async with self.session_maker() as session:
+            user = await session.get(User, uuid.UUID(access_token_decoded.sub))
         if not user:
             raise AuthBadTokenError(detail="Invalid user id")
         return UserSchema.model_validate(user)

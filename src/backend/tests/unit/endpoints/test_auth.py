@@ -12,7 +12,7 @@ from backend.auth_setups import (
     TOKEN_PATH_WITH_PWD,
     TOKEN_PATH_WITH_REFRESH,
 )
-from backend.dependencies import get_current_user_with_token, sqla_sessionmaker_dep
+from backend.dependencies import get_current_user, sqla_sessionmaker_dep
 from backend.routers.auth import auth_router
 from backend.schemas.user import UserCreateSchema, UserSchema
 
@@ -139,15 +139,13 @@ def protected_app_client(async_session_maker: async_sessionmaker):
     app_protected.include_router(auth_router)
 
     @app_protected.get("/protected_get")
-    def protected_get(
-        user: Annotated[UserSchema, Depends(get_current_user_with_token)]
-    ):
+    def protected_get(user: Annotated[UserSchema, Depends(get_current_user)]):
         return user.id.hex
 
     @app_protected.websocket("/protected_ws")
     async def protected_ws(
         websocket: WebSocket,
-        user: Annotated[UserSchema, Depends(get_current_user_with_token)],
+        user: Annotated[UserSchema, Depends(get_current_user)],
     ):
         await websocket.accept()
         try:

@@ -1,7 +1,7 @@
 import uuid
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.auth_setups import Scopes, pwd_context
 from backend.models.user import User
@@ -12,8 +12,8 @@ from backend.tests.unit.auth_service.auth_service_test_base import AuthServiceTe
 class TestInternalSQLAAuth(AuthServiceTestBase):
 
     @pytest.fixture()
-    def auth_service(self, async_session: AsyncSession):
-        yield InternalSQLAAuth(session=async_session)
+    def auth_service(self, async_session_maker: async_sessionmaker):
+        yield InternalSQLAAuth(session_maker=async_session_maker)
 
     @pytest.fixture()
     async def user_data(self, async_session: AsyncSession):
