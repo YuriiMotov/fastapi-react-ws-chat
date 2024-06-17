@@ -1,5 +1,6 @@
 import uuid
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Optional
 
 from backend.schemas.chat import ChatExtSchema
@@ -16,6 +17,7 @@ from backend.schemas.event import (
     ChatMessageEvent,
     UserAddedToChatNotification,
 )
+from backend.schemas.user import UserSchema
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
     EventBrokerError,
@@ -54,6 +56,8 @@ class ChatManager:
         self.uow = uow
         self.event_broker = event_broker
         self._user_chat_ids_cached: Optional[list[uuid.UUID]] = None
+        self._first_circle_user_id_list: list[uuid.UUID] = []
+        self._first_circle_user_list_updated: datetime = datetime.now()
 
     async def subscribe_for_updates(self, current_user_id: uuid.UUID):
         """
@@ -280,6 +284,21 @@ class ChatManager:
                 current_user_id=current_user_id,
                 events=events,
             )
+
+    async def get_first_circle_user_list(
+        self, current_user_id: uuid.UUID
+    ) -> list[UserSchema]:
+        """
+        Get list of users that have mutual chats with current user.
+        That list includes current user itself.
+
+        Raises:
+         - RepositoryError on repository failure
+        """
+        with process_exceptions():
+            chat_ids = await self._get_joined_chat_ids(current_user_id=current_user_id)
+            async with self.uow:
+                return await self.uow.chat_repo.get_user_list(chat_list=chat_ids)
 
     async def _process_events_before_send(
         self, current_user_id: uuid.UUID, events: list[AnyEvent]
