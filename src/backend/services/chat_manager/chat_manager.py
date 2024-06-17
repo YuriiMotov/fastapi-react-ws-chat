@@ -162,13 +162,9 @@ class ChatManager:
                 raise UnauthorizedAction(
                     detail="Can't send message on behalf of another user"
                 )
-            if self._user_chat_ids_cached is not None:
-                user_chats = self._user_chat_ids_cached
-            else:
-                async with self.uow:
-                    user_chats = await self.uow.chat_repo.get_joined_chat_ids(
-                        user_id=current_user_id
-                    )  # TODO: Add user_chats caching
+            user_chats = await self._get_joined_chat_ids(
+                current_user_id=current_user_id
+            )
             chat_id = message.chat_id
             if chat_id not in user_chats:
                 raise UnauthorizedAction(
@@ -253,13 +249,10 @@ class ChatManager:
         """
 
         with process_exceptions():
+            user_chats = await self._get_joined_chat_ids(
+                current_user_id=current_user_id
+            )
             async with self.uow:
-                if self._user_chat_ids_cached is not None:
-                    user_chats = self._user_chat_ids_cached
-                else:
-                    user_chats = await self.uow.chat_repo.get_joined_chat_ids(
-                        user_id=current_user_id
-                    )
                 if chat_id not in user_chats:
                     raise UnauthorizedAction(
                         detail=(
@@ -354,3 +347,12 @@ class ChatManager:
                         user_chat_state_dict=user_chat_state_dict,
                     )
                     await self.uow.commit()
+
+    async def _get_joined_chat_ids(self, current_user_id: uuid.UUID) -> list[uuid.UUID]:
+        async with self.uow:
+            if self._user_chat_ids_cached is not None:
+                return self._user_chat_ids_cached
+            else:
+                return await self.uow.chat_repo.get_joined_chat_ids(
+                    user_id=current_user_id
+                )
