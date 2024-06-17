@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.chat import Chat, ChatExt
 from backend.models.chat_message import ChatMessage, ChatNotification, ChatUserMessage
+from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.models.user_chat_state import UserChatState
 from backend.schemas.chat import ChatExtSchema, ChatSchema
@@ -19,6 +20,7 @@ from backend.schemas.chat_message import (
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
+from backend.schemas.user import UserSchema
 from backend.schemas.user_chat_state import UserChatStateSchema
 from backend.services.chat_repo.abstract_chat_repo import (
     MAX_MESSAGE_COUNT_PER_PAGE,
@@ -225,3 +227,13 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         ]
         with sqla_exceptions_to_repo_exc():
             await self._session.execute(insert(UserChatState), insert_data)
+
+    async def get_user_list(self, chat_list: list[uuid.UUID]) -> list[UserSchema]:
+        user_id_list_st = select(UserChatLink.user_id).where(
+            UserChatLink.chat_id.in_(chat_list)
+        )
+        with sqla_exceptions_to_repo_exc():
+            res = await self._session.scalars(
+                select(User).where(User.id.in_(user_id_list_st))
+            )
+        return [UserSchema.model_validate(user) for user in res.all()]

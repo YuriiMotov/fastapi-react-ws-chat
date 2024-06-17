@@ -680,6 +680,55 @@ class ChatRepoTestBase:
         assert real_data_set == expected_data_set
 
     # ---------------------------------------------------------------------------------
+    # Tests for get_message_list() method
+
+    async def test_get_user_list__success(self):
+        """
+        get_user_list() returns list of chat members.
+        """
+        data = await self.create_users_and_chats()
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_3"].id)
+        # U1 and U2 have 2 mutual chats (1, 2), U2 and U3 have 1 mutual chat (3),
+        # U1 and U3 have no mutual chats
+
+        users = await self.repo.get_user_list([data["chat_1"].id, data["chat_2"].id])
+        assert len(users) == 2
+        user_ids = [user.id for user in users]
+        assert data["user_1"].id in user_ids
+        assert data["user_2"].id in user_ids
+
+    async def test_get_user_list__empty_list(self):
+        """
+        get_user_list() returns empty list if the input chat list is empty or
+        there are no users in chats.
+        """
+        data = await self.create_users_and_chats()
+
+        users = await self.repo.get_user_list([])
+        assert len(users) == 0
+        users = await self.repo.get_user_list([data["chat_1"].id])
+        assert len(users) == 0
+
+    async def test_get_user_list__database_failure(self):
+        """
+        get_user_list() raises ChatRepoDatabaseError in case of
+        DB failure.
+        """
+        data = await self.create_users_and_chats()
+
+        # Mock DB connection to make it always return error
+        await self._break_connection()
+
+        # Attempt to call `get_user_list` with no DB connection
+        with pytest.raises(ChatRepoDatabaseError):
+            await self.repo.get_user_list([data["chat_1"].id])
+
+    # ---------------------------------------------------------------------------------
     # Methods below should be implemented in the descendant class
 
     async def _check_if_chat_has_persisted(self, chat_id: uuid.UUID) -> bool:
@@ -699,9 +748,40 @@ class ChatRepoTestBase:
     async def _break_connection(self):
         raise NotImplementedError()
 
+    # ---------------------------------------------------------------------------------
+    # Helper methods
+
+    async def create_users_and_chats(self) -> dict[str, User | ChatSchema]:
+        """
+        Create 3 users and 3 chats
+        """
+        user_1 = await self._create_user(uuid.uuid4())
+        user_2 = await self._create_user(uuid.uuid4())
+        user_3 = await self._create_user(uuid.uuid4())
+        chat_1_id = uuid.uuid4()
+        chat_1 = await self.repo.add_chat(
+            ChatSchema(id=chat_1_id, title=f"chat_{chat_1_id}", owner_id=user_3.id)
+        )
+        chat_2_id = uuid.uuid4()
+        chat_2 = await self.repo.add_chat(
+            ChatSchema(id=chat_2_id, title=f"chat_{chat_2_id}", owner_id=user_3.id)
+        )
+        chat_3_id = uuid.uuid4()
+        chat_3 = await self.repo.add_chat(
+            ChatSchema(id=chat_3_id, title=f"chat_{chat_3_id}", owner_id=user_3.id)
+        )
+        return dict(
+            user_1=user_1,
+            user_2=user_2,
+            user_3=user_3,
+            chat_1=chat_1,
+            chat_2=chat_2,
+            chat_3=chat_3,
+        )
+
 
 # ---------------------------------------------------------------------------------
-# Helpers
+# Helper functions
 
 
 def filter_and_sort_messages(
