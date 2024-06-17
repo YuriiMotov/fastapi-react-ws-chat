@@ -1,6 +1,6 @@
 import uuid
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from backend.schemas.chat import ChatExtSchema
@@ -17,7 +17,7 @@ from backend.schemas.event import (
     ChatMessageEvent,
     UserAddedToChatNotification,
 )
-from backend.schemas.user import UserSchema
+from backend.schemas.user import UserSchemaExt
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
     EventBrokerError,
@@ -57,7 +57,9 @@ class ChatManager:
         self.event_broker = event_broker
         self._user_chat_ids_cached: Optional[list[uuid.UUID]] = None
         self._first_circle_user_id_list: list[uuid.UUID] = []
-        self._first_circle_user_list_updated: datetime = datetime.now()
+        self._first_circle_user_list_updated: datetime = datetime.now() - timedelta(
+            days=10 * 365
+        )
 
     async def subscribe_for_updates(self, current_user_id: uuid.UUID):
         """
@@ -285,11 +287,11 @@ class ChatManager:
                 events=events,
             )
 
-    async def get_first_circle_user_list(
+    async def get_first_circle_user_list_updates(
         self, current_user_id: uuid.UUID
-    ) -> list[UserSchema]:
+    ) -> list[UserSchemaExt]:
         """
-        Get list of users that have mutual chats with current user.
+        Get updates of the list of users that have mutual chats with current user.
         That list includes current user itself.
 
         Raises:
@@ -298,7 +300,21 @@ class ChatManager:
         with process_exceptions():
             chat_ids = await self._get_joined_chat_ids(current_user_id=current_user_id)
             async with self.uow:
-                return await self.uow.chat_repo.get_user_list(chat_list=chat_ids)
+                user_list = await self.uow.chat_repo.get_user_list(chat_list=chat_ids)
+            res: list[UserSchemaExt] = []
+            first_circle_user_id_list: list[uuid.UUID] = []
+            for user in user_list:
+                if user.id in self._first_circle_user_id_list:
+                    if user.updated_at > self._first_circle_user_list_updated:
+                        res.append(user)
+                else:
+                    res.append(user)
+                self._first_circle_user_list_updated = max(
+                    self._first_circle_user_list_updated, user.updated_at
+                )
+                first_circle_user_id_list.append(user.id)
+            self._first_circle_user_id_list = first_circle_user_id_list
+            return res
 
     async def _process_events_before_send(
         self, current_user_id: uuid.UUID, events: list[AnyEvent]

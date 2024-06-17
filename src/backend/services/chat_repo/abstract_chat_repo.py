@@ -9,7 +9,7 @@ from backend.schemas.chat_message import (
     ChatUserMessageCreateSchema,
     ChatUserMessageSchema,
 )
-from backend.schemas.user import UserSchema
+from backend.schemas.user import UserSchemaExt
 from backend.schemas.user_chat_state import UserChatStateSchema
 
 MAX_MESSAGE_COUNT_PER_PAGE: int = 50
@@ -184,7 +184,7 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_user_list(self, chat_list: list[uuid.UUID]) -> list[UserSchema]:
+    async def get_user_list(self, chat_list: list[uuid.UUID]) -> list[UserSchemaExt]:
         """
         Get the list of users that are members of chats from the list
 
