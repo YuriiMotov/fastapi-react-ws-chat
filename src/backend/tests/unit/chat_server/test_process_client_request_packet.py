@@ -275,3 +275,39 @@ async def test_process_ws_client_request__acknowledge_events__failure(
         patched.assert_awaited_once_with(current_user_id=current_user_id)
 
     assert isinstance(response.data, srv_p.SrvRespError) is True
+
+
+# ---------------------------------------------------------------------------------
+# CMDGetFirstCircleListUpdates
+
+
+async def test_process_ws_client_request_get_first_circle_list(
+    chat_manager: ChatManager,
+    async_session: AsyncSession,
+    event_broker_user_id_list: list[uuid.UUID],
+):
+    user_id = event_broker_user_id_list[0]
+    chat_id = uuid.uuid4()
+    current_user_id = user_id
+
+    user = User(id=user_id, name="user 1", hashed_password="")
+    chat = Chat(id=chat_id, title="my chat", owner_id=current_user_id)
+    user_chat_link = UserChatLink(user_id=user_id, chat_id=chat_id)
+    async_session.add_all((user, chat, user_chat_link))
+    await async_session.commit()
+
+    request = cli_p.ClientPacket(
+        id=random.randint(1, 10000),
+        data=cli_p.CMDGetFirstCircleListUpdates(),
+    )
+
+    with patch.object(chat_manager, "get_first_circle_user_list") as patched:
+        response = await _process_ws_client_request_packet(
+            chat_manager=chat_manager, packet=request, current_user_id=current_user_id
+        )
+
+        assert isinstance(response.data, srv_p.SrvRespSucessNoBody) is True
+        patched.assert_awaited_once_with(
+            current_user_id=current_user_id,
+            full=True,
+        )

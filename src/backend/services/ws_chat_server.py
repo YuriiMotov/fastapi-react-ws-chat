@@ -3,11 +3,12 @@ import uuid
 
 from fastapi import WebSocket
 
-from backend.schemas.client_packet import (  # CMDEditMessage,
+from backend.schemas.client_packet import (
     ClientPacket,
     CMDAcknowledgeEvents,
     CMDAddUserToChat,
     CMDEditMessage,
+    CMDGetFirstCircleListUpdates,
     CMDGetJoinedChats,
     CMDGetMessages,
     CMDSendMessage,
@@ -65,6 +66,12 @@ async def _process_ws_client_request_packet(
         elif isinstance(packet.data, CMDAcknowledgeEvents):
             await chat_manager.acknowledge_events(current_user_id=current_user_id)
             response_data = SrvRespSucessNoBody()
+        elif isinstance(packet.data, CMDGetFirstCircleListUpdates):
+            await chat_manager.get_first_circle_user_list(
+                current_user_id=current_user_id, full=True
+            )
+            response_data = SrvRespSucessNoBody()
+
     except ChatManagerException as exc:
         response_data = SrvRespError(error_data=exc)
 
