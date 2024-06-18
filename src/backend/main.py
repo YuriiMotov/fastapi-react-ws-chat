@@ -28,7 +28,11 @@ async def lifespan(app: FastAPI):
             name="John",
             hashed_password=pwd_context.hash("123"),
         )
-        user_2 = User(id=uuid.UUID("ef376e56-db3b-4beb-8170-82940d849847"), name="Joe")
+        user_2 = User(
+            id=uuid.UUID("ef376e56-db3b-4beb-8170-82940d849847"),
+            name="Joe",
+            hashed_password=pwd_context.hash("123"),
+        )
         chats = [
             Chat(id=uuid.uuid4(), title=f"Chat {i}", owner_id=user_1.id)
             for i in range(3)

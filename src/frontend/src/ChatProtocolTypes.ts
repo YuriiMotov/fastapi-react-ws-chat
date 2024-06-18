@@ -1,6 +1,6 @@
 // Server packets
 
-import { ChatDataExtended, ChatMessage } from "./ChatDataTypes";
+import { ChatDataExtended, ChatMessage, User } from "./ChatDataTypes";
 
 interface ServerPacketData {
     packet_type:
@@ -49,6 +49,11 @@ interface ChatListUpdateEvent extends ChatEventBase {
   chat_data: ChatDataExtended;
 }
 
+interface FirstCircleListUpdateEvent extends ChatEventBase {
+  users: User[];
+  is_full: boolean;
+}
+
 
 export {
     ServerPacket,
@@ -59,4 +64,5 @@ export {
     ChatMessageEvent,
     ChatMessageEditedEvent,
     ChatListUpdateEvent,
+    FirstCircleListUpdateEvent,
 };

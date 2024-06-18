@@ -17,4 +17,10 @@ interface ChatMessage {
   senderName?: string;
 }
 
-export { ChatDataExtended, ChatMessage };
+interface User {
+  id: string;
+  name: string;
+}
+
+
+export { ChatDataExtended, ChatMessage, User };

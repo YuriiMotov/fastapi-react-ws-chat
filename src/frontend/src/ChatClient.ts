@@ -9,6 +9,7 @@ import {
   ChatMessageEditedEvent,
   ChatMessageEvent,
   ChatMessagesResponsePacket,
+  FirstCircleListUpdateEvent,
   JoinedChatListPacket,
   ServerPacket,
 } from "./ChatProtocolTypes";
@@ -47,10 +48,6 @@ class ChatClient {
     this.#setSelectedChatMessages = setSelectedChatMessages;
     this.#chatMessages = new Map<string, ChatMessages>();
     this.#userNamesCache = new Map<string, string>();
-
-    // Add some user names for tests
-    this.#userNamesCache.set("ef376e46-db3b-4beb-8170-82940d849847", "John");
-    this.#userNamesCache.set("ef376e56-db3b-4beb-8170-82940d849847", "Joe");
   }
 
   // ................................  Public methods ................................
@@ -187,6 +184,7 @@ class ChatClient {
     console.log("Connected to WebSocket server");
     this.#chatMessages.clear();
     this.#requestJoinedChatList();
+    this.#requestFirstCircleList();
     if (this.#selectedChat) this.#requestChatMessageList(this.#selectedChat.id);
   }
 
@@ -292,6 +290,15 @@ class ChatClient {
         }
         break;
       }
+      case "FirstCircleUserListUpdate": {
+        const firstCircleUpdateEvent = chatEvent as FirstCircleListUpdateEvent;
+        if (firstCircleUpdateEvent.is_full)
+          this.#userNamesCache.clear();
+        for (let user of firstCircleUpdateEvent.users) {
+          this.#userNamesCache.set(user.id, user.name);
+        }
+        break;
+      }
       default:
         console.log(`Unknown chat event ${chatEvent}.`);
     }
@@ -308,6 +315,20 @@ class ChatClient {
       this.#connection.send(JSON.stringify(cmd));
     } else {
       console.log("Attempt to call requestJoinedChatList while disconnected");
+    }
+  }
+
+  #requestFirstCircleList(): void {
+    if (this.#connection) {
+      const cmd = {
+        id: (this.#lastPacketID += 1),
+        data: {
+          packet_type: "CMDGetFirstCircleListUpdates",
+        },
+      };
+      this.#connection.send(JSON.stringify(cmd));
+    } else {
+      console.log("Attempt to call requestFirstCircleList while disconnected");
     }
   }
 
