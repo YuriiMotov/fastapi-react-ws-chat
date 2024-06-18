@@ -14,7 +14,7 @@ async def test_get_first_circle_user_list_updates__success(
     u_c: dict[str, Any],
 ):
     """
-    get_first_circle_user_list_updates() returns updates in list of users in chats,
+    _get_first_circle_user_list_updates() returns updates in list of users in chats,
     where this user is a member.
     """
     user_1 = u_c["user_1"]
@@ -28,17 +28,17 @@ async def test_get_first_circle_user_list_updates__success(
         current_user_id=user_1.id, user_id=u_c["user_2"].id, chat_id=u_c["chat_1"].id
     )
 
-    # Call get_first_circle_user_list_updates()
-    first_circle_user_list = await chat_manager.get_first_circle_user_list_updates(
+    # Call _get_first_circle_user_list_updates()
+    first_circle_user_list = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1.id
     )
     assert len(first_circle_user_list) == 2
 
-    # Add one more user to the first circle and call get_first_circle_user_list_updates
+    # Add one more user to the first circle and call _get_first_circle_user_list_updates
     await chat_manager.add_user_to_chat(
         current_user_id=user_1.id, user_id=u_c["user_3"].id, chat_id=u_c["chat_1"].id
     )
-    list_updates = await chat_manager.get_first_circle_user_list_updates(
+    list_updates = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1.id
     )
     assert len(list_updates) == 1
@@ -50,7 +50,7 @@ async def test_get_first_circle_user_list_updates__empty_list(
     u_c: dict[str, Any],
 ):
     """
-    get_first_circle_user_list_updates() returns empty list if nothing has changed
+    _get_first_circle_user_list_updates() returns empty list if nothing has changed
     since last call.
     """
     user_1 = u_c["user_1"]
@@ -61,13 +61,13 @@ async def test_get_first_circle_user_list_updates__empty_list(
         current_user_id=user_1.id, user_id=u_c["user_2"].id, chat_id=u_c["chat_1"].id
     )
 
-    # Call get_first_circle_user_list_updates()
-    first_circle_user_list = await chat_manager.get_first_circle_user_list_updates(
+    # Call _get_first_circle_user_list_updates()
+    first_circle_user_list = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1.id
     )
     assert len(first_circle_user_list) == 2
 
-    list_updates = await chat_manager.get_first_circle_user_list_updates(
+    list_updates = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1.id
     )
     assert len(list_updates) == 0
@@ -78,7 +78,7 @@ async def test_get_first_circle_user_list_updates__third_call(
     u_c: dict[str, Any],
 ):
     """
-    get_first_circle_user_list_updates() returns updates in list of users in chats,
+    _get_first_circle_user_list_updates() returns updates in list of users in chats,
     where this user is a member.
     Check first circle user list three times, adding one more user every time.
     """
@@ -87,27 +87,27 @@ async def test_get_first_circle_user_list_updates__third_call(
         current_user_id=user_1.id, user_id=u_c["user_1"].id, chat_id=u_c["chat_1"].id
     )
 
-    # Call get_first_circle_user_list_updates()
-    first_circle_user_list = await chat_manager.get_first_circle_user_list_updates(
+    # Call _get_first_circle_user_list_updates()
+    first_circle_user_list = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1.id
     )
     assert len(first_circle_user_list) == 1
 
-    # Add one more user to the first circle and call get_first_circle_user_list_updates
+    # Add one more user to the first circle and call _get_first_circle_user_list_updates
     await chat_manager.add_user_to_chat(
         current_user_id=user_1.id, user_id=u_c["user_2"].id, chat_id=u_c["chat_1"].id
     )
-    list_updates = await chat_manager.get_first_circle_user_list_updates(
+    list_updates = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1.id
     )
     assert len(list_updates) == 1
     assert list_updates[0].id == u_c["user_2"].id
 
-    # Add one more user to the first circle and call get_first_circle_user_list_updates
+    # Add one more user to the first circle and call _get_first_circle_user_list_updates
     await chat_manager.add_user_to_chat(
         current_user_id=user_1.id, user_id=u_c["user_3"].id, chat_id=u_c["chat_1"].id
     )
-    list_updates = await chat_manager.get_first_circle_user_list_updates(
+    list_updates = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1.id
     )
     assert len(list_updates) == 1
@@ -121,7 +121,7 @@ async def test_get_first_circle_user_list_updates__repo_failure(
     failure_method: str,
 ):
     """
-    get_first_circle_user_list_updates() raises RepositoryError in case of
+    _get_first_circle_user_list_updates() raises RepositoryError in case of
     repository failure.
     """
     user_1 = u_c["user_1"]
@@ -136,9 +136,9 @@ async def test_get_first_circle_user_list_updates__repo_failure(
         failure_method,
         new=Mock(side_effect=ChatRepoException()),
     ):
-        # Call get_first_circle_user_list_updates() and check that it
+        # Call _get_first_circle_user_list_updates() and check that it
         # raises RepositoryError
         with pytest.raises(RepositoryError):
-            await chat_manager.get_first_circle_user_list_updates(
+            await chat_manager._get_first_circle_user_list_updates(
                 current_user_id=user_1.id
             )

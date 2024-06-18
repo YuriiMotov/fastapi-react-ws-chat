@@ -34,7 +34,7 @@ async def test_first_circle_updates_events__join_new_chat(
     await chat_manager.subscribe_for_updates(current_user_id=user_1_id)
 
     # Get list of users in the first circle (should be empty)
-    first_circle = await chat_manager.get_first_circle_user_list_updates(
+    first_circle = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1_id
     )
     assert len(first_circle) == 0
@@ -103,7 +103,7 @@ async def test_first_circle_updates_events__join_new_chat_no_new_users(
     await chat_manager.subscribe_for_updates(current_user_id=user_1_id)
 
     # Get list of users in the first circle (should be 2 users)
-    first_circle = await chat_manager.get_first_circle_user_list_updates(
+    first_circle = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1_id
     )
     assert len(first_circle) == 2
@@ -150,7 +150,7 @@ async def test_first_circle_updates_events__new_user_joined_mutual_chat(
     await chat_manager.subscribe_for_updates(current_user_id=user_1_id)
 
     # Get list of users in the first circle (should be only that user itself)
-    first_circle = await chat_manager.get_first_circle_user_list_updates(
+    first_circle = await chat_manager._get_first_circle_user_list_updates(
         current_user_id=user_1_id
     )
     assert len(first_circle) == 1

@@ -293,8 +293,33 @@ class ChatManager:
                 events=events,
             )
 
-    async def get_first_circle_user_list_updates(
-        self, current_user_id: uuid.UUID
+    async def get_first_circle_user_list(
+        self, current_user_id: uuid.UUID, full: bool = False
+    ):
+        """
+        Sends via EventBroker the FirstCircleUserListUpdate event with the list of
+        users that have mutual chats with current user.
+        That list includes current user itself.
+
+        Raises:
+         - RepositoryError on repository failure
+         - EventBrokerError on Event broker failure
+        """
+        with process_exceptions():
+            u_list_upd = await self._get_first_circle_user_list_updates(
+                current_user_id=current_user_id, full=full
+            )
+            if u_list_upd:
+                await self.event_broker.post_event(
+                    channel=channel_code("user", current_user_id),
+                    event=FirstCircleUserListUpdate(
+                        is_full=False,
+                        users=[UserSchema.model_validate(user) for user in u_list_upd],
+                    ),
+                )
+
+    async def _get_first_circle_user_list_updates(
+        self, current_user_id: uuid.UUID, full: bool = False
     ) -> list[UserSchemaExt]:
         """
         Get updates of the list of users that have mutual chats with current user.
@@ -302,7 +327,10 @@ class ChatManager:
 
         Raises:
          - RepositoryError on repository failure
+         - EventBrokerError on Event broker failure
         """
+        if full:
+            self._first_circle_user_id_list = []
         with process_exceptions():
             chat_ids = await self._get_joined_chat_ids(current_user_id=current_user_id)
             async with self.uow:
@@ -359,21 +387,9 @@ class ChatManager:
                 if isinstance(event, UserAddedToChatNotification) or isinstance(
                     event, AnotherUserJoinedChatNotification
                 ):
-                    # Send first circle list update data
-                    u_list_upd = await self.get_first_circle_user_list_updates(
+                    await self.get_first_circle_user_list(
                         current_user_id=current_user_id
                     )
-                    if u_list_upd:
-                        await self.event_broker.post_event(
-                            channel=channel_code("user", current_user_id),
-                            event=FirstCircleUserListUpdate(
-                                is_full=False,
-                                users=[
-                                    UserSchema.model_validate(user)
-                                    for user in u_list_upd
-                                ],
-                            ),
-                        )
 
     async def _process_events_after_acknowledgement(
         self, current_user_id: uuid.UUID, events: list[AnyEvent]
