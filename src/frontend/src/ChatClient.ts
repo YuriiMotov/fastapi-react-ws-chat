@@ -34,15 +34,18 @@ class ChatClient {
   #chatMessages: Map<string, ChatMessages>;
   #userNamesCache: Map<string, string>;
 
+  #setClientID: SetState<string>;
   #setChatList: SetState<ChatDataExtended[]>;
   #setSelectedChat: SetState<ChatDataExtended | null>;
   #setSelectedChatMessages: (messages: ChatMessage[]) => void;
 
   constructor(
+    setClientID: SetState<string>,
     setChatList: SetState<ChatDataExtended[]>,
     setSelectedChat: SetState<ChatDataExtended | null>,
     setSelectedChatMessages: (messages: ChatMessage[]) => void
   ) {
+    this.#setClientID = setClientID;
     this.#setChatList = setChatList;
     this.#setSelectedChat = setSelectedChat;
     this.#setSelectedChatMessages = setSelectedChatMessages;
@@ -61,7 +64,8 @@ class ChatClient {
     }
     this.#accessToken = accessToken;
     const decoded_token = jwtDecode(accessToken);
-    this.#user_id = decoded_token.sub!;
+    this.#user_id = fixUUID(decoded_token.sub!);
+    this.#setClientID(this.#user_id);
     this.#connection = new WebsocketBuilder(
       `ws://127.0.0.1:8000/ws/chat?access_token=${accessToken}`
     )
@@ -438,6 +442,9 @@ class ChatClient {
 
 
 
+function fixUUID(uuidString: string): string {
+  return `${uuidString.substring(0, 8)}-${uuidString.substring(8, 12)}-${uuidString.substring(12, 16)}-${uuidString.substring(16, 20)}-${uuidString.substring(20)}`;
+}
 
 
 

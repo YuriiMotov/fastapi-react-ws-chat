@@ -11,6 +11,7 @@ import { LoginFormComponent } from "./ChatUI/LoginForm";
 
 function ChatApp() {
   const [accessToken, setAccessToken] = useState("-");
+  const [clientID, setClientID] = useState("-");
   const [refreshToken, setRefreshToken] = useState("");
   const [reconnectCount, setReconnectCount] = useState(0);
   const [chatList, setChatList] = useState<ChatDataExtended[]>([]);
@@ -23,6 +24,7 @@ function ChatApp() {
 
   const chatClient = useRef<ChatClient>(
     new ChatClient(
+      setClientID,
       setChatList,
       setSelectedChat,
       setChatMessageListStoreScrollPos
@@ -61,7 +63,7 @@ function ChatApp() {
 
   return (
     <>
-      { (accessToken.length > 1) ? (
+      { (clientID.length > 1) ? (
         <Grid
           h="calc(100vh)"
           templateRows="1fc"
@@ -81,7 +83,7 @@ function ChatApp() {
               <ChatComponent
                 h="calc(100vh - 2rem)"
                 chat={selectedChat}
-                currentUserID={accessToken}
+                currentUserID={clientID}
                 chatMessages={selectedChatMessages}
                 onSendMessage={chatClient.current.sendMessage.bind(chatClient.current)}
                 onEditMessage={chatClient.current.editMessage.bind(chatClient.current)}
@@ -95,16 +97,14 @@ function ChatApp() {
 
           <GridItem p={4}>
             <ServiceButtonsBlockCompnent
-              clientID={accessToken}
+              clientID={clientID}
               chatList={chatList}
               onAddUserToChat={chatClient.current.addUserToChat.bind(chatClient.current)}
-              onSetClientID={setAccessToken}
               onIncReconnectCount={()=>setReconnectCount(prev=>prev+1)}
             />
           </GridItem>
         </Grid>
       ) : (
-        // <Text >huhuhuh</Text>
         <LoginFormComponent setTokens={setTokens} />
       )}
     </>
