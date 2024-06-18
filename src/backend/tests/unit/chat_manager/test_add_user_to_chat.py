@@ -9,7 +9,13 @@ from backend.models.chat import Chat
 from backend.models.chat_message import ChatNotification, ChatUserMessage
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
-from backend.schemas.event import ChatListUpdate, UserAddedToChatNotification
+from backend.schemas.event import (
+    AnotherUserJoinedChatNotification,
+    ChatListUpdate,
+    ChatMessageEvent,
+    FirstCircleUserListUpdate,
+    UserAddedToChatNotification,
+)
 from backend.services.chat_manager.chat_manager import (
     USER_JOINED_CHAT_NOTIFICATION,
     ChatManager,
@@ -94,7 +100,7 @@ async def test_add_user_to_chat_notification_added_to_db(
     assert notifications[0].params == str(user_id)
 
 
-async def test_add_user_to_chat_notification_posted_to_mb(
+async def test_add_user_to_chat_notifications_posted_to_mb(
     async_session: AsyncSession,
     chat_manager: ChatManager,
     event_broker_user_id_list: list[uuid.UUID],
@@ -123,10 +129,12 @@ async def test_add_user_to_chat_notification_posted_to_mb(
 
     # Check that notification event was posted
     events = await chat_manager.event_broker.get_events(user_id=other_user_id)
-    assert len(events) == 1
+    assert len(events) == 2
+    assert isinstance(events[0], ChatMessageEvent)
     event_json = events[0].model_dump_json()
     assert USER_JOINED_CHAT_NOTIFICATION in event_json
     assert str(user_id) in event_json
+    assert isinstance(events[1], AnotherUserJoinedChatNotification)
 
 
 async def test_add_user_to_chat__user_gets_subscribet_for_chat_updates(
@@ -168,14 +176,14 @@ async def test_add_user_to_chat__user_gets_subscribet_for_chat_updates(
         )
 
 
-async def test_add_user_to_chat__chat_list_update_event_sent(
+async def test_add_user_to_chat__update_events_sent(
     async_session: AsyncSession,
     chat_manager: ChatManager,
     event_broker_user_id_list: list[uuid.UUID],
 ):
     """
-    After successful execution of add_user_to_chat(), ChatListUpdate event with
-    appropriate chat data is sent to user.
+    After successful execution of add_user_to_chat(), ChatListUpdate and
+    FirstCircleUserListUpdate events are sent to user.
     """
     # Create User and Chat, ChatUserMessage, subscribe user for updates
     chat_owner_id = event_broker_user_id_list[0]
@@ -203,13 +211,19 @@ async def test_add_user_to_chat__chat_list_update_event_sent(
 
     # Check that added user receives ChatListUpdate event
     events = await chat_manager.get_events(current_user_id=user_id)
-    assert len(events) == 1
-    event = events[0]
-    assert isinstance(event, ChatListUpdate)
-    if isinstance(event, ChatListUpdate):
-        assert event.chat_data.id == chat_id
-        assert event.chat_data.members_count == 1
-        assert event.chat_data.last_message_text == message.text
+    assert len(events) == 2
+    event_1 = events[0]
+    assert isinstance(event_1, ChatListUpdate)
+    if isinstance(event_1, ChatListUpdate):
+        assert event_1.chat_data.id == chat_id
+        assert event_1.chat_data.members_count == 1
+        assert event_1.chat_data.last_message_text == message.text
+    event_2 = events[1]
+    assert isinstance(event_2, FirstCircleUserListUpdate)
+    if isinstance(event_2, FirstCircleUserListUpdate):
+        assert event_2.is_full is False
+        assert len(event_2.users) == 1
+        assert event_2.users[0].id == user_id
 
 
 async def test_add_user_to_chat_wrong_chat_id(

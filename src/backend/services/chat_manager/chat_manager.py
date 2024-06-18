@@ -11,13 +11,15 @@ from backend.schemas.chat_message import (
     ChatUserMessageSchema,
 )
 from backend.schemas.event import (
+    AnotherUserJoinedChatNotification,
     AnyEvent,
     ChatListUpdate,
     ChatMessageEdited,
     ChatMessageEvent,
+    FirstCircleUserListUpdate,
     UserAddedToChatNotification,
 )
-from backend.schemas.user import UserSchemaExt
+from backend.schemas.user import UserSchema, UserSchemaExt
 from backend.services.chat_manager.chat_manager_exc import (
     BadRequest,
     EventBrokerError,
@@ -136,12 +138,16 @@ class ChatManager:
                     notification_create
                 )
                 await self.uow.commit()
-            # Post notification to the chat's channel and to the user's channel via
+            # Post notifications to the chat's channel and to the user's channel via
             # Event broker
             # TODO: catch exceptions during post_event() and retry or log
             await self.event_broker.post_event(
                 channel=channel_code("chat", chat_id),
                 event=ChatMessageEvent(message=notification),
+            )
+            await self.event_broker.post_event(
+                channel=channel_code("chat", chat_id),
+                event=AnotherUserJoinedChatNotification(),
             )
             await self.event_broker.post_event(
                 channel=channel_code("user", user_id),
@@ -350,6 +356,24 @@ class ChatManager:
                         channel=channel_code("user", current_user_id),
                         event=ChatListUpdate(action_type="add", chat_data=chats[0]),
                     )
+                if isinstance(event, UserAddedToChatNotification) or isinstance(
+                    event, AnotherUserJoinedChatNotification
+                ):
+                    # Send first circle list update data
+                    u_list_upd = await self.get_first_circle_user_list_updates(
+                        current_user_id=current_user_id
+                    )
+                    if u_list_upd:
+                        await self.event_broker.post_event(
+                            channel=channel_code("user", current_user_id),
+                            event=FirstCircleUserListUpdate(
+                                is_full=False,
+                                users=[
+                                    UserSchema.model_validate(user)
+                                    for user in u_list_upd
+                                ],
+                            ),
+                        )
 
     async def _process_events_after_acknowledgement(
         self, current_user_id: uuid.UUID, events: list[AnyEvent]

@@ -5,6 +5,7 @@ from pydantic import Field
 
 from backend.schemas.chat import ChatExtSchema
 from backend.schemas.chat_message import ChatMessageAny, ChatUserMessageSchema
+from backend.schemas.user import UserSchema
 
 from .base import BaseSchema
 
@@ -19,6 +20,12 @@ class UserAddedToChatNotification(BaseSchema):
     chat_id: uuid.UUID
 
 
+class AnotherUserJoinedChatNotification(BaseSchema):
+    event_type: Literal["AnotherUserJoinedChatNotification"] = (
+        "AnotherUserJoinedChatNotification"
+    )
+
+
 class ChatListUpdate(BaseSchema):
     event_type: Literal["ChatListUpdate"] = "ChatListUpdate"
     action_type: Literal["add", "delete", "update"]
@@ -30,10 +37,21 @@ class ChatMessageEdited(BaseSchema):
     message: ChatUserMessageSchema
 
 
+class FirstCircleUserListUpdate(BaseSchema):
+    event_type: Literal["FirstCircleUserListUpdate"] = "FirstCircleUserListUpdate"
+    is_full: bool
+    users: list[UserSchema]
+
+
 # Discriminated union type
 
 AnyEvent: TypeAlias = Union[
-    ChatMessageEvent, UserAddedToChatNotification, ChatListUpdate, ChatMessageEdited
+    ChatMessageEvent,
+    UserAddedToChatNotification,
+    AnotherUserJoinedChatNotification,
+    ChatListUpdate,
+    ChatMessageEdited,
+    FirstCircleUserListUpdate,
 ]
 
 AnyEventDiscr: TypeAlias = Annotated[
