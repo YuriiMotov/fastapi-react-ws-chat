@@ -327,7 +327,6 @@ class ChatManager:
 
         Raises:
          - RepositoryError on repository failure
-         - EventBrokerError on Event broker failure
         """
         if full:
             self._first_circle_user_id_list = []
