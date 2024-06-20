@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Optional
 
-from backend.schemas.chat import ChatExtSchema
+from backend.schemas.chat import ChatExtSchema, ChatSchemaCreate
 from backend.schemas.chat_message import (
     ChatMessageAny,
     ChatNotificationCreateSchema,
@@ -336,6 +336,28 @@ class ChatManager:
                     name_filter=name_filter, limit=limit, offset=offset
                 )
                 return [UserSchema.model_validate(user) for user in users]
+
+    async def create_chat(
+        self,
+        current_user_id: uuid.UUID,
+        chat_data: ChatSchemaCreate,
+    ):
+        """
+        Create chat with specified parameters. Add owner to that chat.
+
+        Raises:
+         - RepositoryError on repository failure
+         - EventBrokerError on Event broker failure
+        """
+        with process_exceptions():
+            async with self.uow:
+                chat = await self.uow.chat_repo.add_chat(chat=chat_data)
+                await self.uow.commit()
+            await self.add_user_to_chat(
+                current_user_id=current_user_id,
+                user_id=current_user_id,
+                chat_id=chat.id,
+            )
 
     async def _get_first_circle_user_list_updates(
         self, current_user_id: uuid.UUID, full: bool = False
