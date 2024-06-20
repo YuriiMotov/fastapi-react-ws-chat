@@ -13,6 +13,7 @@ from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.schemas import client_packet as cli_p
 from backend.schemas import server_packet as srv_p
+from backend.schemas.chat import ChatSchemaCreate
 from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
@@ -368,3 +369,40 @@ async def test_process_ws_client_request_get_user_list__limit_offset(
             chat_manager=chat_manager, packet=request, current_user_id=uuid.uuid4()
         )
         patched.assert_awaited_once_with(**input_json)
+
+
+# ---------------------------------------------------------------------------------
+# CMDCreateChat
+
+
+async def test_process_ws_client_request_create_chat(
+    chat_manager: ChatManager,
+    async_session: AsyncSession,
+    event_broker_user_id_list: list[uuid.UUID],
+):
+    user_id = event_broker_user_id_list[0]
+    current_user_id = user_id
+
+    user = User(id=user_id, name="user 1", hashed_password="")
+    async_session.add(user)
+    await async_session.commit()
+
+    chat_data = ChatSchemaCreate(
+        id=uuid.uuid4(),
+        title=f"chat_{uuid.uuid4()}",
+        owner_id=user_id,
+    )
+    request = cli_p.ClientPacket(
+        id=random.randint(1, 10000),
+        data=cli_p.CMDCreateChat(chat_data=chat_data),
+    )
+
+    with patch.object(chat_manager, "create_chat") as patched:
+        response = await _process_ws_client_request_packet(
+            chat_manager=chat_manager, packet=request, current_user_id=current_user_id
+        )
+        assert isinstance(response.data, srv_p.SrvRespSucessNoBody) is True
+        patched.assert_awaited_once_with(
+            current_user_id=user_id,
+            chat_data=chat_data,
+        )

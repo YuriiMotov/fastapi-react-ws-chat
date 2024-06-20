@@ -7,6 +7,7 @@ from backend.schemas.client_packet import (
     ClientPacket,
     CMDAcknowledgeEvents,
     CMDAddUserToChat,
+    CMDCreateChat,
     CMDEditMessage,
     CMDGetFirstCircleListUpdates,
     CMDGetJoinedChats,
@@ -78,6 +79,11 @@ async def _process_ws_client_request_packet(
                 **packet.data.model_dump(exclude_none=True, exclude={"packet_type"}),
             )
             response_data = SrvRespGetUserList(users=users)
+        elif isinstance(packet.data, CMDCreateChat):
+            await chat_manager.create_chat(
+                current_user_id=current_user_id, chat_data=packet.data.chat_data
+            )
+            response_data = SrvRespSucessNoBody()
 
     except ChatManagerException as exc:
         response_data = SrvRespError(error_data=exc)
