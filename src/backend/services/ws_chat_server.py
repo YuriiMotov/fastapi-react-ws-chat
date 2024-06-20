@@ -11,6 +11,7 @@ from backend.schemas.client_packet import (
     CMDGetFirstCircleListUpdates,
     CMDGetJoinedChats,
     CMDGetMessages,
+    CMDGetUserList,
     CMDSendMessage,
 )
 from backend.schemas.server_packet import (
@@ -20,6 +21,7 @@ from backend.schemas.server_packet import (
     SrvRespError,
     SrvRespGetJoinedChatList,
     SrvRespGetMessages,
+    SrvRespGetUserList,
     SrvRespSucessNoBody,
 )
 from backend.services.chat_manager.chat_manager import ChatManager
@@ -71,6 +73,11 @@ async def _process_ws_client_request_packet(
                 current_user_id=current_user_id, full=True
             )
             response_data = SrvRespSucessNoBody()
+        elif isinstance(packet.data, CMDGetUserList):
+            users = await chat_manager.get_user_list(
+                **packet.data.model_dump(exclude_none=True, exclude={"packet_type"}),
+            )
+            response_data = SrvRespGetUserList(users=users)
 
     except ChatManagerException as exc:
         response_data = SrvRespError(error_data=exc)

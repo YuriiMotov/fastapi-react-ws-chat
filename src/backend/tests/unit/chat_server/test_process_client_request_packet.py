@@ -1,5 +1,6 @@
 import random
 import uuid
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -311,3 +312,59 @@ async def test_process_ws_client_request_get_first_circle_list(
             current_user_id=current_user_id,
             full=True,
         )
+
+
+# ---------------------------------------------------------------------------------
+# CMDGetUserList
+
+
+async def test_process_ws_client_request_get_user_list(
+    chat_manager: ChatManager,
+    async_session: AsyncSession,
+    event_broker_user_id_list: list[uuid.UUID],
+):
+    user_id = event_broker_user_id_list[0]
+    current_user_id = user_id
+
+    user = User(id=user_id, name="user 1", hashed_password="")
+    async_session.add(user)
+    await async_session.commit()
+
+    request = cli_p.ClientPacket(
+        id=random.randint(1, 10000),
+        data=cli_p.CMDGetUserList(name_filter="user 1"),
+    )
+
+    response = await _process_ws_client_request_packet(
+        chat_manager=chat_manager, packet=request, current_user_id=current_user_id
+    )
+
+    assert isinstance(response.data, srv_p.SrvRespGetUserList) is True
+    if isinstance(response.data, srv_p.SrvRespGetUserList):
+        assert len(response.data.users) == 1
+        assert response.data.users[0].id == user_id
+
+
+@pytest.mark.parametrize("offset", (None, 1))
+@pytest.mark.parametrize("limit", (None, 1))
+async def test_process_ws_client_request_get_user_list__limit_offset(
+    chat_manager: ChatManager,
+    limit: int | None,
+    offset: int | None,
+):
+    input_json: dict[str, Any] = {"name_filter": "name"}
+    if limit is not None:
+        input_json["limit"] = limit
+    if offset is not None:
+        input_json["offset"] = offset
+
+    request = cli_p.ClientPacket(
+        id=random.randint(1, 10000),
+        data=cli_p.CMDGetUserList.model_validate(input_json),
+    )
+
+    with patch.object(chat_manager, "get_user_list") as patched:
+        await _process_ws_client_request_packet(
+            chat_manager=chat_manager, packet=request, current_user_id=uuid.uuid4()
+        )
+        patched.assert_awaited_once_with(**input_json)

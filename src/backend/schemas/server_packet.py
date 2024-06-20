@@ -5,6 +5,7 @@ from pydantic import Field
 from backend.schemas.chat import ChatExtSchema
 from backend.schemas.chat_message import ChatMessageAny
 from backend.schemas.event import AnyEventDiscr
+from backend.schemas.user import UserSchema
 from backend.services.chat_manager.chat_manager_exc import ChatManagerException
 
 from .base import BaseSchema
@@ -15,6 +16,7 @@ ServerPacketData: TypeAlias = Union[
     "SrvRespGetJoinedChatList",
     "SrvRespGetMessages",
     "SrvEventList",
+    "SrvRespGetUserList",
 ]
 
 
@@ -76,6 +78,16 @@ class SrvRespGetMessages(SrvRespSuccess):
 
     packet_type: Literal["RespGetMessages"] = "RespGetMessages"
     messages: list[ChatMessageAny]
+
+
+class SrvRespGetUserList(SrvRespSuccess):
+    """
+    Response for CMDGetUserList command.
+    Contains list of users by filter
+    """
+
+    packet_type: Literal["SrvRespGetUserList"] = "SrvRespGetUserList"
+    users: list[UserSchema]
 
 
 # Events

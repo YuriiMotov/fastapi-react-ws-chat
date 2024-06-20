@@ -15,6 +15,7 @@ ClientPacketData: TypeAlias = Union[
     "CMDEditMessage",
     "CMDAcknowledgeEvents",
     "CMDGetFirstCircleListUpdates",
+    "CMDGetUserList",
 ]
 
 
@@ -59,6 +60,13 @@ class CMDEditMessage(BaseSchema):
 
 class CMDAcknowledgeEvents(BaseSchema):
     packet_type: Literal["CMDAcknowledgeEvents"] = "CMDAcknowledgeEvents"
+
+
+class CMDGetUserList(BaseSchema):
+    packet_type: Literal["CMDGetUserList"] = "CMDGetUserList"
+    name_filter: str
+    limit: int | None = None
+    offset: int | None = None
 
 
 class CMDGetFirstCircleListUpdates(BaseSchema):
