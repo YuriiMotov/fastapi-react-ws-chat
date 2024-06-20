@@ -184,9 +184,14 @@ class AbstractChatRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_user_list(self, chat_list: list[uuid.UUID]) -> list[UserSchemaExt]:
+    async def get_user_list(
+        self,
+        chat_list_filter: list[uuid.UUID] | None = None,
+        name_filter: str | None = None,
+    ) -> list[UserSchemaExt]:
         """
-        Get the list of users that are members of chats from the list
+        Get the list of users filtered by chat_list and name filters.
+        If the filter value is None, this filter doesn't have impact on results.
 
         Raises:
          - ChatRepoDatabaseError if the database fails

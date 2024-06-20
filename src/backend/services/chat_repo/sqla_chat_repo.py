@@ -228,12 +228,24 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         with sqla_exceptions_to_repo_exc():
             await self._session.execute(insert(UserChatState), insert_data)
 
-    async def get_user_list(self, chat_list: list[uuid.UUID]) -> list[UserSchemaExt]:
-        user_id_list_st = select(UserChatLink.user_id).where(
-            UserChatLink.chat_id.in_(chat_list)
-        )
-        with sqla_exceptions_to_repo_exc():
-            res = await self._session.scalars(
-                select(User).where(User.id.in_(user_id_list_st))
+    async def get_user_list(
+        self,
+        chat_list_filter: list[uuid.UUID] | None = None,
+        name_filter: str | None = None,
+    ) -> list[UserSchemaExt]:
+        user_id_list_st = select(UserChatLink.user_id)
+
+        if chat_list_filter is not None:
+            user_id_list_st = user_id_list_st.where(
+                UserChatLink.chat_id.in_(chat_list_filter)
             )
+
+        user_list_st = select(User)
+        if chat_list_filter is not None:
+            user_list_st = user_list_st.where(User.id.in_(user_id_list_st))
+        if name_filter is not None:
+            user_list_st = user_list_st.where(User.name.like(f"{name_filter}%"))
+
+        with sqla_exceptions_to_repo_exc():
+            res = await self._session.scalars(user_list_st)
         return [UserSchemaExt.model_validate(user) for user in res.all()]

@@ -680,11 +680,31 @@ class ChatRepoTestBase:
         assert real_data_set == expected_data_set
 
     # ---------------------------------------------------------------------------------
-    # Tests for get_message_list() method
+    # Tests for get_user_list() method
 
-    async def test_get_user_list__success(self):
+    async def test_get_user_list__whithout_filters__success(self):
         """
-        get_user_list() returns list of chat members.
+        get_user_list() without filters returns the list of all users.
+        """
+        data = await self.create_users_and_chats()
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_3"].id)
+
+        users = await self.repo.get_user_list()
+        assert len(users) == 3
+        user_ids = [user.id for user in users]
+        assert data["user_1"].id in user_ids
+        assert data["user_2"].id in user_ids
+        assert data["user_3"].id in user_ids
+
+    async def test_get_user_list__filter_by_chat_list__success(self):
+        """
+        get_user_list() with not None chat_list_filter paramater returns list of
+        members of those chats.
         """
         data = await self.create_users_and_chats()
         await self.repo.add_user_to_chat(data["chat_1"].id, data["user_1"].id)
@@ -696,22 +716,96 @@ class ChatRepoTestBase:
         # U1 and U2 have 2 mutual chats (1, 2), U2 and U3 have 1 mutual chat (3),
         # U1 and U3 have no mutual chats
 
-        users = await self.repo.get_user_list([data["chat_1"].id, data["chat_2"].id])
+        users = await self.repo.get_user_list(
+            chat_list_filter=[data["chat_1"].id, data["chat_2"].id]
+        )
         assert len(users) == 2
         user_ids = [user.id for user in users]
         assert data["user_1"].id in user_ids
         assert data["user_2"].id in user_ids
 
-    async def test_get_user_list__empty_list(self):
+    async def test_get_user_list__filter_by_chat_list__empty_list(self):
         """
-        get_user_list() returns empty list if the input chat list is empty or
-        there are no users in chats.
+        get_user_list() returns empty list if the chat_list_filter parameter is
+        empty list or there are no users in specified chats.
         """
         data = await self.create_users_and_chats()
 
-        users = await self.repo.get_user_list([])
+        users = await self.repo.get_user_list(chat_list_filter=[])
         assert len(users) == 0
-        users = await self.repo.get_user_list([data["chat_1"].id])
+        users = await self.repo.get_user_list(chat_list_filter=[data["chat_1"].id])
+        assert len(users) == 0
+
+    async def test_get_user_list__filter_by_name__success_all(self):
+        """
+        get_user_list() with not None name_filter paramater returns list of users
+        with names that match the filter.
+        All users match the filter.
+        """
+        data = await self.create_users_and_chats()
+
+        users = await self.repo.get_user_list(name_filter="user")
+        assert len(users) == 3
+        user_ids = [user.id for user in users]
+        assert data["user_1"].id in user_ids
+        assert data["user_2"].id in user_ids
+        assert data["user_3"].id in user_ids
+
+    async def test_get_user_list__filter_by_name__success_one(self):
+        """
+        get_user_list() with not None name_filter paramater returns list of users
+        with names that match the filter.
+        Only one user matches the filter.
+        """
+        data = await self.create_users_and_chats()
+
+        users = await self.repo.get_user_list(name_filter="user 2")
+        assert len(users) == 1
+        assert users[0].id == data["user_2"].id
+
+    async def test_get_user_list__filter_by_chat_list_and_name__success_two(self):
+        """
+        get_user_list() with not None name_filter paramater returns list of users
+        with names that match the filter.
+        Two users match the filter.
+        """
+        data = await self.create_users_and_chats()
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_3"].id)
+        # U1 and U2 have 2 mutual chats (1, 2), U2 and U3 have 1 mutual chat (3),
+        # U1 and U3 have no mutual chats
+
+        users = await self.repo.get_user_list(
+            chat_list_filter=[data["chat_2"].id], name_filter="user"
+        )
+        assert len(users) == 2
+        user_ids = [user.id for user in users]
+        assert data["user_1"].id in user_ids
+        assert data["user_2"].id in user_ids
+
+    async def test_get_user_list__filter_by_chat_list_and_name__success_empty(self):
+        """
+        get_user_list() with not None name_filter paramater returns list of users
+        with names that match the filter.
+        None of users match the filter.
+        """
+        data = await self.create_users_and_chats()
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_1"].id)
+        await self.repo.add_user_to_chat(data["chat_1"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_2"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_2"].id)
+        await self.repo.add_user_to_chat(data["chat_3"].id, data["user_3"].id)
+        # U1 and U2 have 2 mutual chats (1, 2), U2 and U3 have 1 mutual chat (3),
+        # U1 and U3 have no mutual chats
+
+        users = await self.repo.get_user_list(
+            chat_list_filter=[data["chat_2"].id], name_filter="user 3"
+        )
         assert len(users) == 0
 
     async def test_get_user_list__database_failure(self):
@@ -719,14 +813,13 @@ class ChatRepoTestBase:
         get_user_list() raises ChatRepoDatabaseError in case of
         DB failure.
         """
-        data = await self.create_users_and_chats()
 
         # Mock DB connection to make it always return error
         await self._break_connection()
 
         # Attempt to call `get_user_list` with no DB connection
         with pytest.raises(ChatRepoDatabaseError):
-            await self.repo.get_user_list([data["chat_1"].id])
+            await self.repo.get_user_list()
 
     # ---------------------------------------------------------------------------------
     # Methods below should be implemented in the descendant class
@@ -742,7 +835,7 @@ class ChatRepoTestBase:
     ) -> bool:
         raise NotImplementedError()
 
-    async def _create_user(self, user_id: uuid.UUID) -> User:
+    async def _create_user(self, user_id: uuid.UUID, name: str = "user") -> User:
         raise NotImplementedError()
 
     async def _break_connection(self):
@@ -755,9 +848,9 @@ class ChatRepoTestBase:
         """
         Create 3 users and 3 chats
         """
-        user_1 = await self._create_user(uuid.uuid4())
-        user_2 = await self._create_user(uuid.uuid4())
-        user_3 = await self._create_user(uuid.uuid4())
+        user_1 = await self._create_user(uuid.uuid4(), "user 1")
+        user_2 = await self._create_user(uuid.uuid4(), "user 2")
+        user_3 = await self._create_user(uuid.uuid4(), "user 3")
         chat_1_id = uuid.uuid4()
         chat_1 = await self.repo.add_chat(
             ChatSchema(id=chat_1_id, title=f"chat_{chat_1_id}", owner_id=user_3.id)

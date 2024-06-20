@@ -46,10 +46,10 @@ class TestChatRepoMemory(ChatRepoTestBase):
         )
         return user_chat_link is not None
 
-    async def _create_user(self, user_id: uuid.UUID) -> User:
+    async def _create_user(self, user_id: uuid.UUID, name: str = "user") -> User:
         user = await self._session.scalar(
             insert(User).returning(User),
-            {"id": user_id, "name": "user"},
+            {"id": user_id, "name": name},
         )
         if user is None:
             raise Exception()

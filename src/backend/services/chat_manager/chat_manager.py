@@ -333,7 +333,9 @@ class ChatManager:
         with process_exceptions():
             chat_ids = await self._get_joined_chat_ids(current_user_id=current_user_id)
             async with self.uow:
-                user_list = await self.uow.chat_repo.get_user_list(chat_list=chat_ids)
+                user_list = await self.uow.chat_repo.get_user_list(
+                    chat_list_filter=chat_ids
+                )
             res: list[UserSchemaExt] = []
             first_circle_user_id_list: list[uuid.UUID] = []
             for user in user_list:
