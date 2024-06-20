@@ -232,6 +232,8 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         self,
         chat_list_filter: list[uuid.UUID] | None = None,
         name_filter: str | None = None,
+        offset: int = 0,
+        limit: int | None = None,
     ) -> list[UserSchemaExt]:
         user_id_list_st = select(UserChatLink.user_id)
 
@@ -240,7 +242,9 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
                 UserChatLink.chat_id.in_(chat_list_filter)
             )
 
-        user_list_st = select(User)
+        user_list_st = select(User).offset(offset)
+        if limit is not None:
+            user_list_st = user_list_st.limit(limit)
         if chat_list_filter is not None:
             user_list_st = user_list_st.where(User.id.in_(user_id_list_st))
         if name_filter is not None:

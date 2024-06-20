@@ -186,12 +186,16 @@ class AbstractChatRepo(ABC):
     @abstractmethod
     async def get_user_list(
         self,
+        *,
         chat_list_filter: list[uuid.UUID] | None = None,
         name_filter: str | None = None,
+        offset: int = 0,
+        limit: int | None = None,
     ) -> list[UserSchemaExt]:
         """
         Get the list of users filtered by chat_list and name filters.
         If the filter value is None, this filter doesn't have impact on results.
+        Results are paginated.
 
         Raises:
          - ChatRepoDatabaseError if the database fails

@@ -1,5 +1,6 @@
 import random
 import uuid
+from typing import Any
 
 import pytest
 
@@ -807,6 +808,32 @@ class ChatRepoTestBase:
             chat_list_filter=[data["chat_2"].id], name_filter="user 3"
         )
         assert len(users) == 0
+
+    @pytest.mark.parametrize("limit", (None, 1, 2))
+    @pytest.mark.parametrize("offset", (None, 1, 2))
+    async def test_get_user_list__limit_offset__limit_1(
+        self, limit: int | None, offset: int | None
+    ):
+        """
+        get_user_list() returns results with pagination.
+        """
+        offset_real = offset if (offset is not None) else 0
+        limit_real = limit if (limit is not None) else 1_000_000
+        await self.create_users_and_chats()
+
+        users_all = await self.repo.get_user_list()
+        expected_res = users_all[offset_real : (offset_real + limit_real)]  # noqa: E203
+        params: dict[str, Any] = {}
+        if offset is not None:
+            params["offset"] = offset
+        if limit is not None:
+            params["limit"] = limit
+        users_paginated = await self.repo.get_user_list(**params)
+
+        assert len(users_paginated) == len(expected_res)
+        assert {user.id for user in users_paginated} == {
+            user.id for user in expected_res
+        }
 
     async def test_get_user_list__database_failure(self):
         """
