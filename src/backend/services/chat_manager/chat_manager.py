@@ -318,6 +318,25 @@ class ChatManager:
                     ),
                 )
 
+    async def get_user_list(
+        self,
+        name_filter: str,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[UserSchema]:
+        """
+        Get list of users filtered by name with pagination.
+
+        Raises:
+         - RepositoryError on repository failure
+        """
+        with process_exceptions():
+            async with self.uow:
+                users = await self.uow.chat_repo.get_user_list(
+                    name_filter=name_filter, limit=limit, offset=offset
+                )
+                return [UserSchema.model_validate(user) for user in users]
+
     async def _get_first_circle_user_list_updates(
         self, current_user_id: uuid.UUID, full: bool = False
     ) -> list[UserSchemaExt]:
