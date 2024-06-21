@@ -9,7 +9,7 @@ class ChatSchema(BaseSchema):
     owner_id: uuid.UUID
 
 
-class ChatSchemaCreate(ChatSchema):
+class ChatCreateSchema(ChatSchema):
     pass
 
 

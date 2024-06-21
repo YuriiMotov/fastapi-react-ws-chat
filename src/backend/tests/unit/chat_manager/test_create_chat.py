@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from backend.schemas.chat import ChatSchemaCreate
+from backend.schemas.chat import ChatCreateSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     EventBrokerError,
@@ -24,7 +24,7 @@ async def test_create_chat__evokes_add_chat_and_add_user_to_chat(
     methods with corresponding params.
     """
     current_user_id = uuid.uuid4()
-    chat_data = ChatSchemaCreate(
+    chat_data = ChatCreateSchema(
         id=uuid.uuid4(),
         title=f"chat {uuid.uuid4()}",
         owner_id=current_user_id,
@@ -53,7 +53,7 @@ async def test_create_chat__unauthorized_error(
     current_user_id.
     """
     current_user_id = uuid.uuid4()
-    chat_data = ChatSchemaCreate(
+    chat_data = ChatCreateSchema(
         id=uuid.uuid4(),
         title=f"chat {uuid.uuid4()}",
         owner_id=uuid.uuid4(),
@@ -76,7 +76,7 @@ async def test_create_chat__repo_failure(
     create_chat() raises RepositoryError in case of repository failure
     """
     current_user_id = uuid.uuid4()
-    chat_data = ChatSchemaCreate(
+    chat_data = ChatCreateSchema(
         id=uuid.uuid4(),
         title=f"chat {uuid.uuid4()}",
         owner_id=current_user_id,
@@ -105,7 +105,7 @@ async def test_create_chat__event_broker_failure(
     create_chat() raises EventBrokerError if EventBroker raises error
     """
     current_user_id = uuid.uuid4()
-    chat_data = ChatSchemaCreate(
+    chat_data = ChatCreateSchema(
         id=uuid.uuid4(),
         title=f"chat {uuid.uuid4()}",
         owner_id=current_user_id,

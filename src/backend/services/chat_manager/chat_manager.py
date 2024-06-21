@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Optional
 
-from backend.schemas.chat import ChatExtSchema, ChatSchemaCreate
+from backend.schemas.chat import ChatCreateSchema, ChatExtSchema
 from backend.schemas.chat_message import (
     ChatMessageAny,
     ChatNotificationCreateSchema,
@@ -340,7 +340,7 @@ class ChatManager:
     async def create_chat(
         self,
         current_user_id: uuid.UUID,
-        chat_data: ChatSchemaCreate,
+        chat_data: ChatCreateSchema,
     ):
         """
         Create chat with specified parameters. Add owner to that chat.

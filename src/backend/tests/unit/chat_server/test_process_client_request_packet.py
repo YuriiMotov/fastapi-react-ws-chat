@@ -13,7 +13,7 @@ from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.schemas import client_packet as cli_p
 from backend.schemas import server_packet as srv_p
-from backend.schemas.chat import ChatSchemaCreate
+from backend.schemas.chat import ChatCreateSchema
 from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
@@ -387,7 +387,7 @@ async def test_process_ws_client_request_create_chat(
     async_session.add(user)
     await async_session.commit()
 
-    chat_data = ChatSchemaCreate(
+    chat_data = ChatCreateSchema(
         id=uuid.uuid4(),
         title=f"chat_{uuid.uuid4()}",
         owner_id=user_id,

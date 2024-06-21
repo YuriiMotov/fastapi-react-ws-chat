@@ -3,7 +3,7 @@ from typing import Literal, TypeAlias, Union
 
 from pydantic import Field
 
-from backend.schemas.chat import ChatSchemaCreate
+from backend.schemas.chat import ChatCreateSchema
 from backend.schemas.chat_message import ChatUserMessageCreateSchema
 
 from .base import BaseSchema
@@ -79,4 +79,4 @@ class CMDGetFirstCircleListUpdates(BaseSchema):
 
 class CMDCreateChat(BaseSchema):
     packet_type: Literal["CMDCreateChat"] = "CMDCreateChat"
-    chat_data: ChatSchemaCreate
+    chat_data: ChatCreateSchema
