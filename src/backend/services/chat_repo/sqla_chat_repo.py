@@ -11,7 +11,7 @@ from backend.models.chat_message import ChatMessage, ChatNotification, ChatUserM
 from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.models.user_chat_state import UserChatState
-from backend.schemas.chat import ChatExtSchema, ChatSchema
+from backend.schemas.chat import ChatCreateSchema, ChatExtSchema, ChatSchema
 from backend.schemas.chat_message import (
     AnnotatedChatMessageAny,
     ChatMessageAny,
@@ -52,7 +52,7 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def add_chat(self, chat: ChatSchema) -> ChatSchema:
+    async def add_chat(self, chat: ChatCreateSchema) -> ChatSchema:
         with sqla_exceptions_to_repo_exc():
             chat_db = await self._session.scalar(
                 insert(Chat).returning(Chat), params=chat.model_dump()

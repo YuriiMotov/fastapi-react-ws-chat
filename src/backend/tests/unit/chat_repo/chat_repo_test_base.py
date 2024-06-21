@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from backend.models.user import User
-from backend.schemas.chat import ChatSchema
+from backend.schemas.chat import ChatCreateSchema, ChatSchema
 from backend.schemas.chat_message import (
     ChatNotificationCreateSchema,
     ChatUserMessageCreateSchema,
@@ -42,7 +42,7 @@ class ChatRepoTestBase:
         # Prepare data
         chat_id = uuid.uuid4()
         user_id = uuid.uuid4()
-        chat_before = ChatSchema(id=chat_id, title="my chat", owner_id=user_id)
+        chat_before = ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_id)
 
         # Call repo.add_chat()
         chat_after = await self.repo.add_chat(chat_before)
@@ -65,13 +65,15 @@ class ChatRepoTestBase:
         user_id = uuid.uuid4()
         another_user_id = uuid.uuid4()
         await self.repo.add_chat(
-            ChatSchema(id=chat_id, title="my chat", owner_id=user_id)
+            ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_id)
         )
 
         # Attempt to create chat with the same chat_id lead to the error
         with pytest.raises(ChatRepoRequestError):
             await self.repo.add_chat(
-                ChatSchema(id=chat_id, title="another chat", owner_id=another_user_id)
+                ChatCreateSchema(
+                    id=chat_id, title="another chat", owner_id=another_user_id
+                )
             )
 
     async def test_add_chat_database_failure(self):
@@ -87,7 +89,7 @@ class ChatRepoTestBase:
         # Attempt to create chat with no DB connection
         with pytest.raises(ChatRepoDatabaseError):
             await self.repo.add_chat(
-                ChatSchema(id=chat_id, title="my chat", owner_id=user_id)
+                ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_id)
             )
 
     # ---------------------------------------------------------------------------------
@@ -100,7 +102,7 @@ class ChatRepoTestBase:
         # Prepare data, create chat
         chat_id = uuid.uuid4()
         user_id = uuid.uuid4()
-        chat_before = ChatSchema(id=chat_id, title="my chat", owner_id=user_id)
+        chat_before = ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_id)
         await self.repo.add_chat(chat_before)
         assert (await self._check_if_chat_has_persisted(chat_id)) is True
 
@@ -247,7 +249,7 @@ class ChatRepoTestBase:
         chat_id = uuid.uuid4()
         user_id = uuid.uuid4()
         await self.repo.add_chat(
-            ChatSchema(id=chat_id, title="my chat", owner_id=user_id)
+            ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_id)
         )
         notification_before = ChatNotificationCreateSchema(
             chat_id=chat_id, text="notification", params=str(uuid.uuid4())
@@ -300,11 +302,11 @@ class ChatRepoTestBase:
         # Create chats for user_1 and user_2
         for chat_id in user_1_chat_ids:
             await self.repo.add_chat(
-                ChatSchema(id=chat_id, title="my chat", owner_id=user_1_id)
+                ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_1_id)
             )
         for chat_id in user_2_chat_ids:
             await self.repo.add_chat(
-                ChatSchema(id=chat_id, title="my chat", owner_id=user_2_id)
+                ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_2_id)
             )
 
         # Request and check the list of chats, where user_1 is owner
@@ -346,7 +348,7 @@ class ChatRepoTestBase:
         chat_list = [uuid.uuid4() for _ in range(3)]
         for chat_id in chat_list:
             await self.repo.add_chat(
-                ChatSchema(id=chat_id, title="chat", owner_id=chat_owner_id)
+                ChatCreateSchema(id=chat_id, title="chat", owner_id=chat_owner_id)
             )
 
         # Add user to chats
@@ -447,7 +449,7 @@ class ChatRepoTestBase:
         user_2_id = uuid.uuid4()
         # Create chat, add users to the chat, add message to the chat
         await self.repo.add_chat(
-            ChatSchema(id=chat_id, title="my_chat", owner_id=user_1_id)
+            ChatCreateSchema(id=chat_id, title="my_chat", owner_id=user_1_id)
         )
         await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_1_id)
         await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_2_id)
@@ -475,7 +477,7 @@ class ChatRepoTestBase:
         user_2_id = uuid.uuid4()
         # Create chat, add users to the chat
         await self.repo.add_chat(
-            ChatSchema(id=chat_id, title="my_chat", owner_id=user_1_id)
+            ChatCreateSchema(id=chat_id, title="my_chat", owner_id=user_1_id)
         )
         await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_1_id)
         await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_2_id)
@@ -497,7 +499,9 @@ class ChatRepoTestBase:
         # Create chats, add user to the chat
         for chat_id in chat_id_list:
             await self.repo.add_chat(
-                ChatSchema(id=chat_id, title=f"my_chat {chat_id}", owner_id=user_1_id)
+                ChatCreateSchema(
+                    id=chat_id, title=f"my_chat {chat_id}", owner_id=user_1_id
+                )
             )
             await self.repo.add_user_to_chat(chat_id=chat_id, user_id=user_1_id)
 
@@ -550,7 +554,7 @@ class ChatRepoTestBase:
         )
         # Create chats, add messages and notifications to these chats
         await self.repo.add_chat(
-            ChatSchema(id=first_chat_id, title="my_chat", owner_id=user_id)
+            ChatCreateSchema(id=first_chat_id, title="my_chat", owner_id=user_id)
         )
         for chat_id, chat_messages in messages.items():
             for chat_message in chat_messages:
@@ -587,7 +591,7 @@ class ChatRepoTestBase:
         messages = [f"message {uuid.uuid4()}" for _ in range(3)]
         # Create chat, add messages thшы chat
         await self.repo.add_chat(
-            ChatSchema(id=chat_id, title="my_chat", owner_id=user_id)
+            ChatCreateSchema(id=chat_id, title="my_chat", owner_id=user_id)
         )
         messages_db: list[ChatUserMessageSchema] = []
         for chat_message in messages:
@@ -880,15 +884,21 @@ class ChatRepoTestBase:
         user_3 = await self._create_user(uuid.uuid4(), "user 3")
         chat_1_id = uuid.uuid4()
         chat_1 = await self.repo.add_chat(
-            ChatSchema(id=chat_1_id, title=f"chat_{chat_1_id}", owner_id=user_3.id)
+            ChatCreateSchema(
+                id=chat_1_id, title=f"chat_{chat_1_id}", owner_id=user_3.id
+            )
         )
         chat_2_id = uuid.uuid4()
         chat_2 = await self.repo.add_chat(
-            ChatSchema(id=chat_2_id, title=f"chat_{chat_2_id}", owner_id=user_3.id)
+            ChatCreateSchema(
+                id=chat_2_id, title=f"chat_{chat_2_id}", owner_id=user_3.id
+            )
         )
         chat_3_id = uuid.uuid4()
         chat_3 = await self.repo.add_chat(
-            ChatSchema(id=chat_3_id, title=f"chat_{chat_3_id}", owner_id=user_3.id)
+            ChatCreateSchema(
+                id=chat_3_id, title=f"chat_{chat_3_id}", owner_id=user_3.id
+            )
         )
         return dict(
             user_1=user_1,

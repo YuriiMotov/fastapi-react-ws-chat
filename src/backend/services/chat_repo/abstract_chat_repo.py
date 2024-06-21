@@ -1,7 +1,7 @@
 import uuid
 from abc import ABC, abstractmethod
 
-from backend.schemas.chat import ChatExtSchema, ChatSchema
+from backend.schemas.chat import ChatCreateSchema, ChatExtSchema, ChatSchema
 from backend.schemas.chat_message import (
     ChatMessageAny,
     ChatNotificationCreateSchema,
@@ -18,7 +18,7 @@ MAX_MESSAGE_COUNT_PER_PAGE: int = 50
 class AbstractChatRepo(ABC):
 
     @abstractmethod
-    async def add_chat(self, chat: ChatSchema) -> ChatSchema:
+    async def add_chat(self, chat: ChatCreateSchema) -> ChatSchema:
         """
         Add chat record to the DB.
 
