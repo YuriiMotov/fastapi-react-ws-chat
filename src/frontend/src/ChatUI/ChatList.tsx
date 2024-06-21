@@ -10,6 +10,7 @@ import {
   Text,
   VStack,
   LinkBox,
+  Button,
 } from "@chakra-ui/react";
 
 interface ChatListLineComponentParams {
@@ -50,12 +51,14 @@ interface ChatListComponentParams {
   chatList: ChatDataExtended[];
   selectedChatID?: string;
   onChatSelect: (chat: ChatDataExtended) => void;
+  onChatCreateClick: () => void;
 }
 
 function ChatListComponent({
   chatList,
   selectedChatID,
   onChatSelect,
+  onChatCreateClick,
 }: ChatListComponentParams) {
   return (
     <VStack spacing="1" w="100%">
@@ -68,6 +71,7 @@ function ChatListComponent({
           onClick={() => onChatSelect(chat)}
         />
       ))}
+      <Button onClick={onChatCreateClick}>Create new chat</Button>
     </VStack>
   );
 }

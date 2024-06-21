@@ -1,13 +1,14 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { ChatClient } from "./ChatClient";
-import { ChatDataExtended, ChatMessage } from "./ChatDataTypes";
+import { ChatData, ChatDataExtended, ChatMessage } from "./ChatDataTypes";
 import { ChatListComponent } from "./ChatUI/ChatList";
 
 import { Grid, GridItem } from "@chakra-ui/react";
 import { ChatComponent, ChatComponentRef } from "./ChatUI/Chat";
 import { ServiceButtonsBlockCompnent } from "./ChatUI/ServiceButtonsBlockCompnent";
 import { LoginFormComponent } from "./ChatUI/LoginForm";
+import { ChatCreateComponent, ChatCreateComponentRef } from "./ChatUI/ChatCreate";
 
 function ChatApp() {
   const [accessToken, setAccessToken] = useState("-");
@@ -33,6 +34,8 @@ function ChatApp() {
   const connectDelay = useRef<NodeJS.Timeout | null>(null);
 
   const chatComponentRef = useRef<ChatComponentRef>(null);
+  const chatCreateComponentRef = useRef<ChatCreateComponentRef>(null);
+
 
   // Connect to WS on user change
   useEffect(() => {
@@ -60,10 +63,20 @@ function ChatApp() {
     setRefreshToken(refreshToken);
   }
 
+  function createChat(chat_info: ChatData) {
+    chatClient.current.createChat(chat_info=chat_info);
+  }
+
+  function createChatWindowShow() {
+    if (chatCreateComponentRef.current)
+      chatCreateComponentRef.current.show();
+  }
 
   return (
     <>
       { (clientID.length > 1) ? (
+      <>
+        <ChatCreateComponent currentUserID={clientID} onSubmit={createChat} ref={chatCreateComponentRef} />
         <Grid
           h="calc(100vh)"
           templateRows="1fc"
@@ -75,6 +88,7 @@ function ChatApp() {
               chatList={chatList}
               selectedChatID={selectedChat?.id}
               onChatSelect={chatClient.current.selectChat.bind(chatClient.current)}
+              onChatCreateClick={createChatWindowShow}
             />
           </GridItem>
 
@@ -104,6 +118,7 @@ function ChatApp() {
             />
           </GridItem>
         </Grid>
+      </>
       ) : (
         <LoginFormComponent setTokens={setTokens} />
       )}

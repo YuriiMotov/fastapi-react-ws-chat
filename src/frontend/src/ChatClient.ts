@@ -1,7 +1,7 @@
 import { ConstantBackoff, Websocket, WebsocketBuilder } from "websocket-ts";
 import { jwtDecode } from "jwt-decode";
 import React from "react";
-import { ChatDataExtended, ChatMessage } from "./ChatDataTypes";
+import { ChatData, ChatDataExtended, ChatMessage } from "./ChatDataTypes";
 import {
   ChatEventBase,
   ChatEventListPacket,
@@ -164,6 +164,21 @@ class ChatClient {
       console.log(
         "Error: calling loadPreviousMessages before loading last messages"
       );
+    }
+  }
+
+  createChat(chat_info: ChatData) {
+    if (this.#connection) {
+      const cmd = {
+        id: (this.#lastPacketID += 1),
+        data: {
+          packet_type: "CMDCreateChat",
+          chat_data: chat_info,
+        },
+      };
+      this.#connection.send(JSON.stringify(cmd));
+    } else {
+      console.log("Attempt to call createChat while disconnected");
     }
   }
 

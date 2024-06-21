@@ -1,7 +1,10 @@
-interface ChatDataExtended {
+interface ChatData {
   id: string;
   title: string;
   owner_id: string;
+}
+
+interface ChatDataExtended extends ChatData {
   last_message_text: string | null;
   members_count: number;
 }
@@ -23,4 +26,4 @@ interface User {
 }
 
 
-export { ChatDataExtended, ChatMessage, User };
+export { ChatData, ChatDataExtended, ChatMessage, User };
