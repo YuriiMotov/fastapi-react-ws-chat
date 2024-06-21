@@ -8,6 +8,7 @@ from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
     EventBrokerError,
     RepositoryError,
+    UnauthorizedAction,
 )
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 from backend.services.chat_repo.sqla_chat_repo import SQLAlchemyChatRepo
@@ -42,6 +43,28 @@ async def test_create_chat__evokes_add_chat_and_add_user_to_chat(
                 user_id=current_user_id,
                 chat_id=chat_data.id,
             )
+
+
+async def test_create_chat__unauthorized_error(
+    chat_manager: ChatManager,
+):
+    """
+    create_chat() method raises UnauthorizedAction if the owner_id is not equal to
+    current_user_id.
+    """
+    current_user_id = uuid.uuid4()
+    chat_data = ChatSchemaCreate(
+        id=uuid.uuid4(),
+        title=f"chat {uuid.uuid4()}",
+        owner_id=uuid.uuid4(),
+    )
+
+    with pytest.raises(
+        UnauthorizedAction, match="Can't create chat on behalf of another user"
+    ):
+        await chat_manager.create_chat(
+            current_user_id=current_user_id, chat_data=chat_data
+        )
 
 
 @pytest.mark.parametrize("failure_method", ("add_chat", "add_user_to_chat"))

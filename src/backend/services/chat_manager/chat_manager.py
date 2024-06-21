@@ -349,6 +349,10 @@ class ChatManager:
          - RepositoryError on repository failure
          - EventBrokerError on Event broker failure
         """
+        if chat_data.owner_id != current_user_id:
+            raise UnauthorizedAction(
+                detail="Can't create chat on behalf of another user"
+            )
         with process_exceptions():
             async with self.uow:
                 chat = await self.uow.chat_repo.add_chat(chat=chat_data)
