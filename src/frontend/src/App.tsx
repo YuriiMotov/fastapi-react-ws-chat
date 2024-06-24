@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { ChatClient } from "./ChatClient";
-import { ChatData, ChatDataExtended, ChatMessage } from "./ChatDataTypes";
+import { ChatData, ChatDataExtended, ChatMessage, User } from "./ChatDataTypes";
 import { ChatListComponent } from "./ChatUI/ChatList";
 
 import { Grid, GridItem } from "@chakra-ui/react";
@@ -28,7 +28,8 @@ function ChatApp() {
       setClientID,
       setChatList,
       setSelectedChat,
-      setChatMessageListStoreScrollPos
+      setChatMessageListStoreScrollPos,
+      setUserAutocompleteResult,
     )
   );
   const connectDelay = useRef<NodeJS.Timeout | null>(null);
@@ -36,6 +37,9 @@ function ChatApp() {
   const chatComponentRef = useRef<ChatComponentRef>(null);
   const chatCreateComponentRef = useRef<ChatCreateComponentRef>(null);
 
+  function onUserAutocomplete(inputText: string) {
+    chatClient.current.getUserAutocomplete(inputText);
+  }
 
   // Connect to WS on user change
   useEffect(() => {
@@ -72,6 +76,10 @@ function ChatApp() {
       chatCreateComponentRef.current.show();
   }
 
+  function setUserAutocompleteResult(users: User[]) {
+    chatComponentRef.current?.onSetUserAutocomplete(users);
+  }
+
   return (
     <>
       { (clientID.length > 1) ? (
@@ -104,6 +112,8 @@ function ChatApp() {
                 onLoadPrevMessagesClick={
                   chatClient.current.loadPreviousMessages.bind(chatClient.current)
                 }
+                onUserAutocompleteRequest={onUserAutocomplete}
+                onAddUserToChatRequest={chatClient.current.addUserToChat.bind(chatClient.current)}
                 ref={chatComponentRef}
               />
             )}

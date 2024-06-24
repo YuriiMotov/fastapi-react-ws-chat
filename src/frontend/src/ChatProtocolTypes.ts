@@ -9,11 +9,12 @@ interface ServerPacketData {
       | "RespGetJoinedChatList"
       | "RespGetMessages"
       | "SrvEventList"
-      | "SrvRespError";
+      | "SrvRespError"
+      | "RespGetUserList";
   }
 
 interface ServerPacket {
-  request_packet_id: boolean | null;
+  request_packet_id: number | null;
   data: ServerPacketData;
 }
 
@@ -28,6 +29,10 @@ interface ChatMessagesResponsePacket extends ServerPacketData {
 interface ChatEventListPacket extends ServerPacketData {
     events: ChatEventBase[];
   }
+
+interface UserAutocompleteResponsePacket extends ServerPacketData {
+  users: User[];
+}
 
 
 // Server Events
@@ -61,6 +66,7 @@ export {
     ChatMessagesResponsePacket,
     ChatEventBase,
     ChatEventListPacket,
+    UserAutocompleteResponsePacket,
     ChatMessageEvent,
     ChatMessageEditedEvent,
     ChatListUpdateEvent,

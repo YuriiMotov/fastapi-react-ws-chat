@@ -1,7 +1,7 @@
 import { ConstantBackoff, Websocket, WebsocketBuilder } from "websocket-ts";
 import { jwtDecode } from "jwt-decode";
 import React from "react";
-import { ChatData, ChatDataExtended, ChatMessage } from "./ChatDataTypes";
+import { ChatData, ChatDataExtended, ChatMessage, User } from "./ChatDataTypes";
 import {
   ChatEventBase,
   ChatEventListPacket,
@@ -12,6 +12,7 @@ import {
   FirstCircleListUpdateEvent,
   JoinedChatListPacket,
   ServerPacket,
+  UserAutocompleteResponsePacket,
 } from "./ChatProtocolTypes";
 
 type SetState<ValueType> = React.Dispatch<React.SetStateAction<ValueType>>;
@@ -33,22 +34,26 @@ class ChatClient {
   #chatList: ChatDataExtended[] = [];
   #chatMessages: Map<string, ChatMessages>;
   #userNamesCache: Map<string, string>;
+  #lastUserAutocompleteInput: number = 0;
 
   #setClientID: SetState<string>;
   #setChatList: SetState<ChatDataExtended[]>;
   #setSelectedChat: SetState<ChatDataExtended | null>;
   #setSelectedChatMessages: (messages: ChatMessage[]) => void;
+  #setUserAutocompleteResults: (users: User[]) => void;
 
   constructor(
     setClientID: SetState<string>,
     setChatList: SetState<ChatDataExtended[]>,
     setSelectedChat: SetState<ChatDataExtended | null>,
-    setSelectedChatMessages: (messages: ChatMessage[]) => void
+    setSelectedChatMessages: (messages: ChatMessage[]) => void,
+    setUserAutocompleteResults: (users: User[]) => void,
   ) {
     this.#setClientID = setClientID;
     this.#setChatList = setChatList;
     this.#setSelectedChat = setSelectedChat;
     this.#setSelectedChatMessages = setSelectedChatMessages;
+    this.#setUserAutocompleteResults = setUserAutocompleteResults;
     this.#chatMessages = new Map<string, ChatMessages>();
     this.#userNamesCache = new Map<string, string>();
   }
@@ -182,6 +187,22 @@ class ChatClient {
     }
   }
 
+  getUserAutocomplete(inputText: string) {
+    if (this.#connection) {
+      const cmd = {
+        id: (this.#lastPacketID += 1),
+        data: {
+          packet_type: "CMDGetUserList",
+          name_filter: inputText,
+        },
+      };
+      this.#lastUserAutocompleteInput = cmd.id;
+      this.#connection.send(JSON.stringify(cmd));
+    } else {
+      console.log("Attempt to call getUserAutocomplete while disconnected");
+    }
+  }
+
   // ................................  Private methods ................................
 
   #acknowledgeEvents() {
@@ -233,6 +254,14 @@ class ChatClient {
             chatID,
             messages.slice().reverse()
           );
+        }
+        break;
+      case "RespGetUserList":
+        if (srv_p.request_packet_id == this.#lastUserAutocompleteInput) {
+          const users = (srv_p.data as UserAutocompleteResponsePacket).users;
+          this.#setUserAutocompleteResults(users);
+        } else {
+          console.debug("Outdated RespGetUserList received");
         }
         break;
       case "SrvEventList":

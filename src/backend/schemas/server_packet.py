@@ -86,7 +86,7 @@ class SrvRespGetUserList(SrvRespSuccess):
     Contains list of users by filter
     """
 
-    packet_type: Literal["SrvRespGetUserList"] = "SrvRespGetUserList"
+    packet_type: Literal["RespGetUserList"] = "RespGetUserList"
     users: list[UserSchema]
 
 
