@@ -192,7 +192,7 @@ class ChatClient {
       const cmd = {
         id: (this.#lastPacketID += 1),
         data: {
-          packet_type: "CMDGetUserList",
+          packet_type: "CMDGetUserAutocomplete",
           name_filter: inputText,
         },
       };
@@ -256,7 +256,7 @@ class ChatClient {
           );
         }
         break;
-      case "RespGetUserList":
+      case "RespGetUserAutocomplete":
         if (srv_p.request_packet_id == this.#lastUserAutocompleteInput) {
           const users = (srv_p.data as UserAutocompleteResponsePacket).users;
           this.#setUserAutocompleteResults(users);

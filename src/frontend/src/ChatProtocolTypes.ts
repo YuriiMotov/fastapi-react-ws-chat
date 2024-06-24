@@ -10,7 +10,7 @@ interface ServerPacketData {
       | "RespGetMessages"
       | "SrvEventList"
       | "SrvRespError"
-      | "RespGetUserList";
+      | "RespGetUserAutocomplete";
   }
 
 interface ServerPacket {

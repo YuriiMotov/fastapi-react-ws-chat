@@ -12,7 +12,7 @@ from backend.schemas.client_packet import (
     CMDGetFirstCircleListUpdates,
     CMDGetJoinedChats,
     CMDGetMessages,
-    CMDGetUserList,
+    CMDGetUserAutocomplete,
     CMDSendMessage,
 )
 from backend.schemas.server_packet import (
@@ -22,7 +22,7 @@ from backend.schemas.server_packet import (
     SrvRespError,
     SrvRespGetJoinedChatList,
     SrvRespGetMessages,
-    SrvRespGetUserList,
+    SrvRespGetUserAutocomplete,
     SrvRespSucessNoBody,
 )
 from backend.services.chat_manager.chat_manager import ChatManager
@@ -74,11 +74,11 @@ async def _process_ws_client_request_packet(
                 current_user_id=current_user_id, full=True
             )
             response_data = SrvRespSucessNoBody()
-        elif isinstance(packet.data, CMDGetUserList):
+        elif isinstance(packet.data, CMDGetUserAutocomplete):
             users = await chat_manager.get_user_list(
                 **packet.data.model_dump(exclude_none=True, exclude={"packet_type"}),
             )
-            response_data = SrvRespGetUserList(users=users)
+            response_data = SrvRespGetUserAutocomplete(users=users)
         elif isinstance(packet.data, CMDCreateChat):
             await chat_manager.create_chat(
                 current_user_id=current_user_id, chat_data=packet.data.chat_data

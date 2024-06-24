@@ -316,7 +316,7 @@ async def test_process_ws_client_request_get_first_circle_list(
 
 
 # ---------------------------------------------------------------------------------
-# CMDGetUserList
+# CMDGetUserAutocomplete
 
 
 async def test_process_ws_client_request_get_user_list(
@@ -333,15 +333,15 @@ async def test_process_ws_client_request_get_user_list(
 
     request = cli_p.ClientPacket(
         id=random.randint(1, 10000),
-        data=cli_p.CMDGetUserList(name_filter="user 1"),
+        data=cli_p.CMDGetUserAutocomplete(name_filter="user 1"),
     )
 
     response = await _process_ws_client_request_packet(
         chat_manager=chat_manager, packet=request, current_user_id=current_user_id
     )
 
-    assert isinstance(response.data, srv_p.SrvRespGetUserList) is True
-    if isinstance(response.data, srv_p.SrvRespGetUserList):
+    assert isinstance(response.data, srv_p.SrvRespGetUserAutocomplete) is True
+    if isinstance(response.data, srv_p.SrvRespGetUserAutocomplete):
         assert len(response.data.users) == 1
         assert response.data.users[0].id == user_id
 
@@ -361,7 +361,7 @@ async def test_process_ws_client_request_get_user_list__limit_offset(
 
     request = cli_p.ClientPacket(
         id=random.randint(1, 10000),
-        data=cli_p.CMDGetUserList.model_validate(input_json),
+        data=cli_p.CMDGetUserAutocomplete.model_validate(input_json),
     )
 
     with patch.object(chat_manager, "get_user_list") as patched:

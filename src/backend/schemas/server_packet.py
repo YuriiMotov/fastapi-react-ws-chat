@@ -16,7 +16,7 @@ ServerPacketData: TypeAlias = Union[
     "SrvRespGetJoinedChatList",
     "SrvRespGetMessages",
     "SrvEventList",
-    "SrvRespGetUserList",
+    "SrvRespGetUserAutocomplete",
 ]
 
 
@@ -80,13 +80,13 @@ class SrvRespGetMessages(SrvRespSuccess):
     messages: list[ChatMessageAny]
 
 
-class SrvRespGetUserList(SrvRespSuccess):
+class SrvRespGetUserAutocomplete(SrvRespSuccess):
     """
-    Response for CMDGetUserList command.
+    Response for CMDGetUserAutocomplete command.
     Contains list of users by filter
     """
 
-    packet_type: Literal["RespGetUserList"] = "RespGetUserList"
+    packet_type: Literal["RespGetUserAutocomplete"] = "RespGetUserAutocomplete"
     users: list[UserSchema]
 
 
