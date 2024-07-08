@@ -11,6 +11,7 @@ from starlette.testclient import TestClient, WebSocketTestSession
 from backend.auth_setups import Scopes
 from backend.models.chat import Chat
 from backend.models.chat_message import ChatUserMessage
+from backend.models.user import User
 from backend.models.user_chat_link import UserChatLink
 from backend.schemas.chat_message import ChatUserMessageCreateSchema
 from backend.schemas.client_packet import (
@@ -155,8 +156,11 @@ async def test_ws_chat_add_user_to_chat__success(
     owner_id = current_user_id
     another_user_id = uuid.uuid4()
     chat_id = uuid.uuid4()
-    # Create chat
-    async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
+
+    # Create chat and user
+    another_user = User(id=another_user_id, name=f"user_{another_user_id.hex[:5]}")
+    chat = Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id)
+    async_session.add_all([another_user, chat])
     await async_session.commit()
 
     cmd = CMDAddUserToChat(chat_id=chat_id, user_id=another_user_id)

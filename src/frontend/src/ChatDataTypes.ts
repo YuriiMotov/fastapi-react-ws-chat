@@ -9,6 +9,10 @@ interface ChatDataExtended extends ChatData {
   members_count: number;
 }
 
+interface ChatNotificationParams {
+  user_name?: string
+}
+
 interface ChatMessage {
   id: string;
   chat_id: string;
@@ -26,4 +30,4 @@ interface User {
 }
 
 
-export { ChatData, ChatDataExtended, ChatMessage, User };
+export { ChatData, ChatDataExtended, ChatMessage, ChatNotificationParams, User };

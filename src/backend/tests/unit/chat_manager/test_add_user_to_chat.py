@@ -1,3 +1,4 @@
+import json
 import uuid
 from unittest.mock import Mock, patch
 
@@ -78,11 +79,13 @@ async def test_add_user_to_chat_notification_added_to_db(
     # Create User and Chat
     chat_owner_id = event_broker_user_id_list[0]
     user_id = event_broker_user_id_list[1]
+    user_name = f"user_{uuid.uuid4().hex[:5]}"
     chat_id = uuid.uuid4()
     chat = Chat(id=chat_id, title="", owner_id=chat_owner_id)
-    user = User(id=user_id, name="")
+    user = User(id=user_id, name=user_name)
     async_session.add_all((user, chat))
     await async_session.commit()
+    await async_session.refresh(user)
 
     # Call chat_manager.add_user_to_chat()
     await chat_manager.add_user_to_chat(
@@ -97,7 +100,7 @@ async def test_add_user_to_chat_notification_added_to_db(
     notifications = res.all()
     assert len(notifications) == 1
     assert notifications[0].text == USER_JOINED_CHAT_NOTIFICATION
-    assert notifications[0].params == str(user_id)
+    assert notifications[0].params == json.dumps({"user_name": user_name})
 
 
 async def test_add_user_to_chat_notifications_posted_to_mb(
@@ -115,7 +118,7 @@ async def test_add_user_to_chat_notifications_posted_to_mb(
     other_user_id = event_broker_user_id_list[2]
     chat_id = uuid.uuid4()
     chat = Chat(id=chat_id, title="", owner_id=chat_owner_id)
-    user = User(id=user_id, name="")
+    user = User(id=user_id, name=f"user_{uuid.uuid4().hex[:5]}")
     async_session.add_all((user, chat))
     await async_session.commit()
     await chat_manager.event_broker.subscribe(
@@ -133,7 +136,7 @@ async def test_add_user_to_chat_notifications_posted_to_mb(
     assert isinstance(events[0], ChatMessageEvent)
     event_json = events[0].model_dump_json()
     assert USER_JOINED_CHAT_NOTIFICATION in event_json
-    assert str(user_id) in event_json
+    assert user.name in event_json
     assert isinstance(events[1], AnotherUserJoinedChatNotification)
 
 

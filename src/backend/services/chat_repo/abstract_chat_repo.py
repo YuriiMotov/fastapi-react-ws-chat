@@ -201,3 +201,13 @@ class AbstractChatRepo(ABC):
          - ChatRepoDatabaseError if the database fails
         """
         raise NotImplementedError()
+
+    @abstractmethod
+    async def get_user_by_id(self, user_id: uuid.UUID) -> UserSchemaExt:
+        """
+        Get the User data by user's id.
+
+        Raises:
+         - ChatRepoDatabaseError if the database fails
+        """
+        raise NotImplementedError()

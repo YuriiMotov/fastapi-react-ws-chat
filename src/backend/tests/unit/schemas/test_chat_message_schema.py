@@ -46,15 +46,39 @@ def test_validate_user_message():
         assert message.sender_id == json_data["sender_id"]
 
 
-def test_validate_notification():
+def test_validate_notification__params_dict():
     """
-    Validate data that is ChatNotificationSchema object (is_notification=True)
+    Validate data that is ChatNotificationSchema object (is_notification=True).
+    `params` is dictionary
     """
     json_data = {
         "id": 1,
         "chat_id": uuid.uuid4(),
         "text": "message text",
-        "params": str(uuid.uuid4()),
+        "params": {"user_name": "user name"},
+        "dt": datetime.now(UTC),
+        "is_notification": True,
+    }
+
+    message_adapter: TypeAdapter[ChatMessageAny] = TypeAdapter(
+        AnnotatedChatMessageAny  # type: ignore
+    )
+
+    message = message_adapter.validate_python(json_data)
+
+    assert isinstance(message, ChatNotificationSchema) is True
+
+
+def test_validate_notification__params_str():
+    """
+    Validate data that is ChatNotificationSchema object (is_notification=True).
+    `params` is string
+    """
+    json_data = {
+        "id": 1,
+        "chat_id": uuid.uuid4(),
+        "text": "message text",
+        "params": '{"user_name": "user name"}',
         "dt": datetime.now(UTC),
         "is_notification": True,
     }

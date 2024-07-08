@@ -129,10 +129,11 @@ class ChatManager:
                 await self.uow.chat_repo.add_user_to_chat(
                     chat_id=chat_id, user_id=user_id
                 )
+                user = await self.uow.chat_repo.get_user_by_id(user_id=user_id)
                 notification_create = ChatNotificationCreateSchema(
                     chat_id=chat_id,
                     text=USER_JOINED_CHAT_NOTIFICATION,
-                    params=str(user_id),
+                    params={"user_name": user.name},
                 )
                 notification = await self.uow.chat_repo.add_notification(
                     notification_create

@@ -1,8 +1,9 @@
+import json
 import uuid
 from datetime import datetime
-from typing import Annotated, Literal, TypeAlias, Union
+from typing import Annotated, Any, Literal, TypeAlias, Union
 
-from pydantic import Field
+from pydantic import Field, field_serializer, field_validator
 
 from .base import BaseSchema
 
@@ -49,7 +50,21 @@ class ChatNotificationCreateSchema(ChatMessageSchemaBase):
     """
 
     is_notification: Literal[True] = Field(default=True)
-    params: str
+    params: dict[str, str]
+
+    @field_validator("params", mode="before")
+    @classmethod
+    def decode_params(cls, v: Any):
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except json.JSONDecodeError:
+                raise ValueError("params is not valid JSON-strings")
+        return v
+
+    @field_serializer("params", when_used="always")
+    def serialize_params(self, params: dict[str, str]):
+        return json.dumps(params)
 
 
 class ChatNotificationSchema(ChatNotificationCreateSchema, ChatMessagePersistedSchema):

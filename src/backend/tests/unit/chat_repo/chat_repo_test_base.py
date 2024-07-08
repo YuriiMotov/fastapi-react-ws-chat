@@ -252,7 +252,9 @@ class ChatRepoTestBase:
             ChatCreateSchema(id=chat_id, title="my chat", owner_id=user_id)
         )
         notification_before = ChatNotificationCreateSchema(
-            chat_id=chat_id, text="notification", params=str(uuid.uuid4())
+            chat_id=chat_id,
+            text="notification",
+            params={"user_name": f"user_{uuid.uuid4().hex[:5]}"},
         )
 
         # Call repo.add_notification()
@@ -277,7 +279,9 @@ class ChatRepoTestBase:
         # Prepare data
         chat_id = uuid.uuid4()
         notification = ChatNotificationCreateSchema(
-            chat_id=chat_id, text="notification", params=str(uuid.uuid4())
+            chat_id=chat_id,
+            text="notification",
+            params={"user_name": f"user_{uuid.uuid4().hex[:5]}"},
         )
 
         # Mock DB connection to make it always return error
@@ -567,7 +571,9 @@ class ChatRepoTestBase:
             for chat_message in chat_notification:
                 await self.repo.add_notification(
                     ChatNotificationCreateSchema(
-                        chat_id=chat_id, text=chat_message, params=str(uuid.uuid4())
+                        chat_id=chat_id,
+                        text=chat_message,
+                        params={"user_name": f"user_{uuid.uuid4().hex[:5]}"},
                     )
                 )
 

@@ -2,7 +2,9 @@ import uuid
 from unittest.mock import Mock, patch
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.models.user import User
 from backend.schemas.chat import ChatCreateSchema
 from backend.services.chat_manager.chat_manager import ChatManager
 from backend.services.chat_manager.chat_manager_exc import (
@@ -98,6 +100,7 @@ async def test_create_chat__repo_failure(
 
 @pytest.mark.parametrize("failure_method", ("post_event",))
 async def test_create_chat__event_broker_failure(
+    async_session: AsyncSession,
     chat_manager: ChatManager,
     failure_method: str,
 ):
@@ -105,6 +108,10 @@ async def test_create_chat__event_broker_failure(
     create_chat() raises EventBrokerError if EventBroker raises error
     """
     current_user_id = uuid.uuid4()
+    current_user = User(id=current_user_id, name=f"user_{current_user_id.hex[:5]}")
+    async_session.add(current_user)
+    await async_session.commit()
+
     chat_data = ChatCreateSchema(
         id=uuid.uuid4(),
         title=f"chat {uuid.uuid4()}",

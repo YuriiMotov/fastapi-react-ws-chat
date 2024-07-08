@@ -253,3 +253,7 @@ class SQLAlchemyChatRepo(AbstractChatRepo):
         with sqla_exceptions_to_repo_exc():
             res = await self._session.scalars(user_list_st)
         return [UserSchemaExt.model_validate(user) for user in res.all()]
+
+    async def get_user_by_id(self, user_id: uuid.UUID) -> UserSchemaExt:
+        user = await self._session.get(User, user_id)
+        return UserSchemaExt.model_validate(user)

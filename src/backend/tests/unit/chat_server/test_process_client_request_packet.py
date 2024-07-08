@@ -64,10 +64,14 @@ async def test_process_ws_client_request_add_user_to_chat(
     async_session: AsyncSession,
     event_broker_user_id_list: list[uuid.UUID],
 ):
-
     user_id = event_broker_user_id_list[0]
     chat_id = uuid.uuid4()
     current_user_id = user_id
+
+    # Create user
+    user = User(id=user_id, name=f"user_{user_id.hex[:5]}")
+    async_session.add(user)
+    await async_session.commit()
 
     async_session.add(Chat(id=chat_id, title="my chat", owner_id=current_user_id))
     await async_session.commit()

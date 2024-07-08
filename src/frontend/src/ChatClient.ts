@@ -1,7 +1,7 @@
 import { ConstantBackoff, Websocket, WebsocketBuilder } from "websocket-ts";
 import { jwtDecode } from "jwt-decode";
 import React from "react";
-import { ChatData, ChatDataExtended, ChatMessage, User } from "./ChatDataTypes";
+import { ChatData, ChatDataExtended, ChatMessage, ChatNotificationParams, User } from "./ChatDataTypes";
 import {
   ChatEventBase,
   ChatEventListPacket,
@@ -35,6 +35,7 @@ class ChatClient {
   #chatMessages: Map<string, ChatMessages>;
   #userNamesCache: Map<string, string>;
   #lastUserAutocompleteInput: number = 0;
+  #updateRequiredIDs: number[] = [];
 
   #setClientID: SetState<string>;
   #setChatList: SetState<ChatDataExtended[]>;
@@ -347,8 +348,11 @@ class ChatClient {
         }
         break;
       }
+      case "UserAddedToChatNotification":
+        // just ignore this event
+        break;
       default:
-        console.log(`Unknown chat event ${chatEvent}.`);
+        console.log(`Unknown chat event ${chatEvent.event_type}.`);
     }
   }
 
@@ -413,7 +417,7 @@ class ChatClient {
 
     messages.forEach((message) => {
       if (message.is_notification)
-        message.text = this.#getNotificationText(message.text, message.params || "-")
+        message.text = this.#getNotificationText(message.text, message.params)
 
       const messageID = parseInt(message.id);
       if (messageID < minMessageID) {
@@ -472,10 +476,13 @@ class ChatClient {
       message.senderName = this.#userNamesCache.get(message.sender_id);
   }
 
-  #getNotificationText(messageText: string, params: string): string {
+  #getNotificationText(messageText: string, params?: string): string {
+    let paramsParsed: ChatNotificationParams | undefined;
+    if (params)
+      paramsParsed = JSON.parse(params) as ChatNotificationParams;
     switch (messageText) {
       case "USER_JOINED_CHAT_MSG":
-        const userName = this.#userNamesCache.get(params) || "Unknown user"
+        const userName = paramsParsed!.user_name;
         return `${userName} joined chat`;
       default:
         return `Unknown event (${messageText})`;
@@ -483,7 +490,6 @@ class ChatClient {
   }
 
 }
-
 
 
 function fixUUID(uuidString: string): string {
