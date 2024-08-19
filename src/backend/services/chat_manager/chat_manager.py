@@ -72,11 +72,10 @@ class ChatManager:
          - EventBrokerError on event broker failure
         """
         with process_exceptions():
-            async with self.uow:
-                chat_list = await self.uow.chat_repo.get_joined_chat_ids(
-                    current_user_id
-                )
-                channel_list = [channel_code("chat", chat_id) for chat_id in chat_list]
+            chat_list = await self._get_joined_chat_ids(
+                current_user_id, use_cache=False
+            )
+            channel_list = [channel_code("chat", chat_id) for chat_id in chat_list]
             channel_list.append(channel_code("user", current_user_id))
             await self.event_broker.subscribe_list(
                 channels=channel_list, user_id=current_user_id
@@ -129,6 +128,7 @@ class ChatManager:
                 await self.uow.chat_repo.add_user_to_chat(
                     chat_id=chat_id, user_id=user_id
                 )
+                self._invalidate_joined_chat_ids_cache()
                 user = await self.uow.chat_repo.get_user_by_id(user_id=user_id)
                 notification_create = ChatNotificationCreateSchema(
                     chat_id=chat_id,
@@ -363,6 +363,7 @@ class ChatManager:
                 user_id=current_user_id,
                 chat_id=chat.id,
             )
+            self._invalidate_joined_chat_ids_cache()
 
     async def _get_first_circle_user_list_updates(
         self, current_user_id: uuid.UUID, full: bool = False
@@ -470,11 +471,27 @@ class ChatManager:
                     )
                     await self.uow.commit()
 
-    async def _get_joined_chat_ids(self, current_user_id: uuid.UUID) -> list[uuid.UUID]:
-        async with self.uow:
-            if self._user_chat_ids_cached is not None:
-                return self._user_chat_ids_cached
-            else:
-                return await self.uow.chat_repo.get_joined_chat_ids(
-                    user_id=current_user_id
+    async def _get_joined_chat_ids(
+        self, current_user_id: uuid.UUID, use_cache: bool = True
+    ) -> list[uuid.UUID]:
+        """
+        Get list of user's chat ids.
+        Uses cache if results are cached and use_cache is True.
+        """
+        if use_cache is False:
+            self._user_chat_ids_cached = None
+
+        if self._user_chat_ids_cached is None:
+            async with self.uow:
+                self._user_chat_ids_cached = (
+                    await self.uow.chat_repo.get_joined_chat_ids(
+                        user_id=current_user_id
+                    )
                 )
+        return self._user_chat_ids_cached
+
+    def _invalidate_joined_chat_ids_cache(self):
+        """
+        Invalidate the cache of user's chat ids list.
+        """
+        self._user_chat_ids_cached = None
