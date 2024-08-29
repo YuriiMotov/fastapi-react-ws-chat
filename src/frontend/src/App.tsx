@@ -91,7 +91,7 @@ function ChatApp() {
           templateColumns="250px 1fr 250px"
           backgroundColor="whitesmoke"
         >
-          <GridItem p={4}>
+          <GridItem p={4} overflow="scroll">
             <ChatListComponent
               chatList={chatList}
               selectedChatID={selectedChat?.id}
