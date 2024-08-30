@@ -3,7 +3,7 @@ import uuid
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.auth_setups import Scopes, pwd_context
+from backend.auth_setups import Scopes, auth_config
 from backend.models.user import User
 from backend.services.auth.internal_sqla_auth import InternalSQLAAuth
 from backend.tests.unit.auth_service.auth_service_test_base import AuthServiceTestBase
@@ -24,7 +24,7 @@ class TestInternalSQLAAuth(AuthServiceTestBase):
             "password": password,
             "scope": " ".join([e.value for e in Scopes]),
         }
-        hashed_password = pwd_context.hash(password)
+        hashed_password = auth_config.pwd_context.hash(password)
         user = User(
             id=uuid.UUID(user_data["id"]),
             name=user_data["name"],

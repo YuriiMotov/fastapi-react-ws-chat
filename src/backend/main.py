@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.auth_setups import pwd_context
+from backend.auth_setups import auth_config
 from backend.database import engine
 from backend.dependencies import sqla_sessionmaker_dep
 from backend.models.base import BaseModel
@@ -26,12 +26,12 @@ async def lifespan(app: FastAPI):
         user_1 = User(
             id=uuid.UUID("ef376e46-db3b-4beb-8170-82940d849847"),
             name="John",
-            hashed_password=pwd_context.hash("123"),
+            hashed_password=auth_config.pwd_context.hash("123"),
         )
         user_2 = User(
             id=uuid.UUID("ef376e56-db3b-4beb-8170-82940d849847"),
             name="Joe",
-            hashed_password=pwd_context.hash("123"),
+            hashed_password=auth_config.pwd_context.hash("123"),
         )
         chats = [
             Chat(id=uuid.uuid4(), title=f"Chat {i}", owner_id=user_1.id)

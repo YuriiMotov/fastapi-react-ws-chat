@@ -9,14 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from backend.auth_setups import (
-    ACCESS_TOKEN_EXPIRE_TIMEDELTA,
-    ALGORITHM,
-    JWT_AUD,
-    REFRESH_TOKEN_EXPIRE_TIMEDELTA,
-    SECRET_KEY,
-    pwd_context,
-)
+from backend.auth_setups import auth_config
 from backend.models.user import User
 from backend.schemas.token_data import TokenData
 from backend.schemas.tokens_response import TokensResponse
@@ -43,7 +36,7 @@ class InternalSQLAAuth(AbstractAuth):
                 )
                 if existed_user:
                     raise AuthBadRequestParametersError(detail="Duplicated user name")
-                hashed_password = pwd_context.hash(user_data.password)
+                hashed_password = auth_config.pwd_context.hash(user_data.password)
                 user = User(
                     id=uuid.uuid4(),
                     name=user_data.name,
@@ -64,7 +57,9 @@ class InternalSQLAAuth(AbstractAuth):
             user = await session.scalar(select(User).where(User.name == user_name))
         if not user:
             raise AuthBadCredentialsError(detail="Incorrect username or password")
-        is_password_correct = pwd_context.verify(password, user.hashed_password)
+        is_password_correct = auth_config.pwd_context.verify(
+            password, user.hashed_password
+        )
         if not is_password_correct:
             raise AuthBadCredentialsError(detail="Incorrect username or password")
         user_scopes = user.scope.split(" ")
@@ -114,9 +109,9 @@ class InternalSQLAAuth(AbstractAuth):
                 dict[str, Any],
                 jwt.decode(
                     jwt=token,
-                    audience=JWT_AUD,
-                    key=SECRET_KEY,
-                    algorithms=[ALGORITHM],
+                    audience=auth_config.JWT_AUD,
+                    key=auth_config.SECRET_KEY,
+                    algorithms=[auth_config.ALGORITHM],
                     options={"require": ["exp", "aud", "sub"]},
                 ),
             )
@@ -156,8 +151,12 @@ class InternalSQLAAuth(AbstractAuth):
     ):
         to_encode = data.model_dump()
         expire = datetime.now(timezone.utc) + expires_delta
-        to_encode.update({"exp": expire, "aud": JWT_AUD, "token_type": token_type})
-        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        to_encode.update(
+            {"exp": expire, "aud": auth_config.JWT_AUD, "token_type": token_type}
+        )
+        encoded_jwt = jwt.encode(
+            to_encode, auth_config.SECRET_KEY, algorithm=auth_config.ALGORITHM
+        )
         return encoded_jwt
 
     def _create_token_pair(
@@ -168,12 +167,12 @@ class InternalSQLAAuth(AbstractAuth):
         )
         access_token = self._create_token(
             data=token_data,
-            expires_delta=ACCESS_TOKEN_EXPIRE_TIMEDELTA,
+            expires_delta=auth_config.ACCESS_TOKEN_EXPIRE_TIMEDELTA,
             token_type="access",
         )
         refresh_token = self._create_token(
             data=token_data,
-            expires_delta=REFRESH_TOKEN_EXPIRE_TIMEDELTA,
+            expires_delta=auth_config.REFRESH_TOKEN_EXPIRE_TIMEDELTA,
             token_type="refresh",
         )
         return TokensResponse(

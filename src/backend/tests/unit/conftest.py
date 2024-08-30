@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from backend.auth_setups import Scopes, pwd_context
+from backend.auth_setups import Scopes, auth_config
 from backend.dependencies import (
     event_broker_dep,
     get_current_user,
@@ -114,7 +114,7 @@ async def _registered_user_data(async_session: AsyncSession):
         "password": password,
         "scope": " ".join([e.value for e in Scopes]),
     }
-    hashed_password = pwd_context.hash(password)
+    hashed_password = auth_config.pwd_context.hash(password)
     user = User(
         id=uuid.UUID(user_data["id"]),
         name=user_data["name"],

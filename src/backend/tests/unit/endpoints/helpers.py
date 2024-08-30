@@ -4,12 +4,7 @@ from typing import Any
 import jwt
 from starlette.testclient import TestClient, WebSocketTestSession
 
-from backend.auth_setups import (
-    ACCESS_TOKEN_EXPIRE_TIMEDELTA,
-    ALGORITHM,
-    JWT_AUD,
-    SECRET_KEY,
-)
+from backend.auth_setups import auth_config
 from backend.schemas.client_packet import ClientPacket
 from backend.schemas.server_packet import ServerPacket
 
@@ -40,7 +35,11 @@ def create_access_token(
         "user_name": user_data["name"],
         "scopes": scopes,
     }
-    expire = datetime.now(timezone.utc) + ACCESS_TOKEN_EXPIRE_TIMEDELTA
-    to_encode.update({"exp": expire, "aud": JWT_AUD, "token_type": "access"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    expire = datetime.now(timezone.utc) + auth_config.ACCESS_TOKEN_EXPIRE_TIMEDELTA
+    to_encode.update(
+        {"exp": expire, "aud": auth_config.JWT_AUD, "token_type": "access"}
+    )
+    encoded_jwt = jwt.encode(
+        to_encode, auth_config.SECRET_KEY, algorithm=auth_config.ALGORITHM
+    )
     return encoded_jwt

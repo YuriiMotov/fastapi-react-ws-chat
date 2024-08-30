@@ -6,11 +6,7 @@ import pytest
 from fastapi.security import SecurityScopes
 from freezegun import freeze_time
 
-from backend.auth_setups import (
-    ACCESS_TOKEN_EXPIRE_TIMEDELTA,
-    REFRESH_TOKEN_EXPIRE_TIMEDELTA,
-    Scopes,
-)
+from backend.auth_setups import Scopes, auth_config
 from backend.schemas.token_data import TokenData
 from backend.schemas.tokens_response import TokensResponse
 from backend.schemas.user import UserCreateSchema, UserSchema
@@ -116,7 +112,9 @@ class AuthServiceTestBase:
         assert isinstance(tokens, TokensResponse)
         refresh_token = tokens.refresh_token
         with freeze_time(
-            datetime.now() + REFRESH_TOKEN_EXPIRE_TIMEDELTA + timedelta(minutes=1)
+            datetime.now()
+            + auth_config.REFRESH_TOKEN_EXPIRE_TIMEDELTA
+            + timedelta(minutes=1)
         ):
             with pytest.raises(AuthBadTokenError):
                 await auth_service.get_token_with_refresh_token(
@@ -208,7 +206,9 @@ class AuthServiceTestBase:
         required_scopes = SecurityScopes([Scopes.chat_user.value])
 
         with freeze_time(
-            datetime.now() + ACCESS_TOKEN_EXPIRE_TIMEDELTA + timedelta(seconds=1)
+            datetime.now()
+            + auth_config.ACCESS_TOKEN_EXPIRE_TIMEDELTA
+            + timedelta(seconds=1)
         ):
             with pytest.raises(AuthBadTokenError):
                 await auth_service.validate_token(
@@ -234,11 +234,10 @@ class AuthServiceTestBase:
                 token=access_token, token_type="access", required_scopes=required_scopes
             )
 
-    @pytest.mark.xfail(reason="Need to group settings into config object")
     async def test_vaidate_token__wrong_aud(
         self, auth_service: AbstractAuth, user_data: dict[str, str]
     ):
-        with patch("backend.auth_setups.JWT_AUD", "another_aud"):
+        with patch.object(auth_config, "JWT_AUD", "another_aud"):
             tokens = await auth_service.get_token_with_pwd(
                 user_name=user_data["name"],
                 password=user_data["password"],

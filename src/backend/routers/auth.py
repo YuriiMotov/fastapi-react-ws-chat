@@ -3,11 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from backend.auth_setups import (
-    AUTH_ROUTER_PATH,
-    TOKEN_PATH_WITH_PWD,
-    TOKEN_PATH_WITH_REFRESH,
-)
+from backend.auth_setups import auth_config
 from backend.dependencies import get_auth_service
 from backend.extended_security.oauth_refresh_scheme import OAuth2RefreshRequestForm
 from backend.schemas.tokens_response import TokensResponse
@@ -18,7 +14,7 @@ from backend.services.auth.auth_exc import (
     AuthUnauthorizedError,
 )
 
-auth_router = APIRouter(prefix=AUTH_ROUTER_PATH)
+auth_router = APIRouter(prefix=auth_config.AUTH_ROUTER_PATH)
 
 
 @auth_router.post("/register", status_code=201)
@@ -32,7 +28,7 @@ async def register(
         raise HTTPException(status_code=400, detail=f"{exc}: {exc.detail}")
 
 
-@auth_router.post(TOKEN_PATH_WITH_PWD)
+@auth_router.post(auth_config.TOKEN_PATH_WITH_PWD)
 async def get_token_with_pwd(
     auth_service: Annotated[AbstractAuth, Depends(get_auth_service)],
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -47,7 +43,7 @@ async def get_token_with_pwd(
         raise HTTPException(status_code=403, detail=exc.detail, headers=exc.headers)
 
 
-@auth_router.post(TOKEN_PATH_WITH_REFRESH)
+@auth_router.post(auth_config.TOKEN_PATH_WITH_REFRESH)
 async def get_token_with_refresh_token(
     auth_service: Annotated[AbstractAuth, Depends(get_auth_service)],
     form_data: Annotated[OAuth2RefreshRequestForm, Depends()],

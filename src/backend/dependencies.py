@@ -5,7 +5,7 @@ from fastapi.requests import HTTPConnection
 from fastapi.security import SecurityScopes
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.auth_setups import oauth2_scheme
+from backend.auth_setups import auth_config
 from backend.database import async_session_maker
 from backend.schemas.user import UserSchema
 from backend.services.auth.abstract_auth import AbstractAuth
@@ -49,7 +49,7 @@ async def get_current_user(
     connection: HTTPConnection,
     security_scopes: SecurityScopes,
     auth_service: Annotated[AbstractAuth, Depends(get_auth_service)],
-    access_token: Annotated[str, Depends(oauth2_scheme)],
+    access_token: Annotated[str, Depends(auth_config.oauth2_scheme)],
 ) -> UserSchema:
 
     try:

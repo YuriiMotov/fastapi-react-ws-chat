@@ -7,18 +7,16 @@ from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from starlette.testclient import TestClient, WebSocketTestSession
 
-from backend.auth_setups import (
-    AUTH_ROUTER_PATH,
-    TOKEN_PATH_WITH_PWD,
-    TOKEN_PATH_WITH_REFRESH,
-)
+from backend.auth_setups import auth_config
 from backend.dependencies import get_current_user, sqla_sessionmaker_dep
 from backend.routers.auth import auth_router
 from backend.schemas.user import UserCreateSchema, UserSchema
 
-PWD_TOKEN_PATH = f"{AUTH_ROUTER_PATH}{TOKEN_PATH_WITH_PWD}"
-REFRESH_TOKEN_PATH = f"{AUTH_ROUTER_PATH}{TOKEN_PATH_WITH_REFRESH}"
-REGISTER_PATH = f"{AUTH_ROUTER_PATH}/register"
+PWD_TOKEN_PATH = f"{auth_config.AUTH_ROUTER_PATH}{auth_config.TOKEN_PATH_WITH_PWD}"
+REFRESH_TOKEN_PATH = (
+    f"{auth_config.AUTH_ROUTER_PATH}{auth_config.TOKEN_PATH_WITH_REFRESH}"
+)
+REGISTER_PATH = f"{auth_config.AUTH_ROUTER_PATH}/register"
 
 # Get token pwd
 
