@@ -9,9 +9,5 @@ class EventBrokerException(Exception):
         return f"Error {self.__class__.__name__}: {self.detail}"
 
 
-class EventBrokerUserNotSubscribedError(EventBrokerException):
-    pass
-
-
 class EventBrokerFail(EventBrokerException):
     pass

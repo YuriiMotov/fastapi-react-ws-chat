@@ -31,10 +31,7 @@ from backend.services.chat_manager.utils import channel_code
 from backend.services.chat_repo.abstract_chat_repo import MAX_MESSAGE_COUNT_PER_PAGE
 from backend.services.chat_repo.chat_repo_exc import ChatRepoException
 from backend.services.event_broker.abstract_event_broker import AbstractEventBroker
-from backend.services.event_broker.event_broker_exc import (
-    EventBrokerException,
-    EventBrokerUserNotSubscribedError,
-)
+from backend.services.event_broker.event_broker_exc import EventBrokerException
 from backend.services.uow.abstract_uow import AbstractUnitOfWork
 
 USER_JOINED_CHAT_NOTIFICATION = "USER_JOINED_CHAT_MSG"
@@ -62,6 +59,7 @@ class ChatManager:
         self._first_circle_user_list_updated: datetime = datetime.now() - timedelta(
             days=10 * 365
         )
+        self._subscribed = False
 
     async def subscribe_for_updates(self, current_user_id: uuid.UUID):
         """
@@ -80,6 +78,7 @@ class ChatManager:
             await self.event_broker.subscribe_list(
                 channels=channel_list, user_id=current_user_id
             )
+            self._subscribed = True
 
     async def get_joined_chat_list(
         self, current_user_id: uuid.UUID
@@ -231,18 +230,19 @@ class ChatManager:
          - EventBrokerError on Event broker failure
          - BadRequest on wrong message id or sender_id
         """
+        if not self._subscribed:
+            raise NotSubscribedError(
+                detail="Subscribe to events before using `get_events`"
+            )
         with process_exceptions():
-            try:
-                events = await self.event_broker.get_events(
-                    user_id=current_user_id, limit=limit
+            events = await self.event_broker.get_events(
+                user_id=current_user_id, limit=limit
+            )
+            if events:
+                await self._process_events_before_send(
+                    current_user_id=current_user_id, events=events
                 )
-                if events:
-                    await self._process_events_before_send(
-                        current_user_id=current_user_id, events=events
-                    )
-                return events
-            except EventBrokerUserNotSubscribedError as exc:
-                raise NotSubscribedError(detail=str(exc))
+            return events
 
     async def get_message_list(
         self,

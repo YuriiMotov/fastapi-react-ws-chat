@@ -114,12 +114,11 @@ class AbstractEventBroker(ABC):
         Return all new events for specific user.
 
         Raises:
-         - EventBrokerUserNotSubscribedError if user isn't subscribed
          - EventBrokerFail in case of Event broker failure
         """
         with handle_exceptions():
             user_id_int = user_id.int
-            if unack_data := self._unacknowledged_events[user_id_int]:
+            if unack_data := self._unacknowledged_events.get(user_id_int, None):
                 if unack_data.sent_events:
                     if unack_data.expire_dt > datetime.now():
                         return []  # Waiting for aknowledgment of previous events

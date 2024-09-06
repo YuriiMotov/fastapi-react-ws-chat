@@ -30,6 +30,7 @@ async def test_get_events(
     another_user_id = event_broker_user_id_list[1]
     chat_id = uuid.uuid4()
     channel = channel_code("chat", chat_id)
+    await chat_manager.subscribe_for_updates(current_user_id=user_id)
     await chat_manager.event_broker.subscribe(channel=channel, user_id=user_id)
     messages = []
     for _ in range(count):
@@ -53,7 +54,6 @@ async def test_get_events(
         assert messages[i].model_dump_json() in events_res[i].model_dump_json()
 
 
-@pytest.mark.xfail
 async def test_get_events_not_subscribed(
     chat_manager: ChatManager,
     event_broker_user_id_list: list[uuid.UUID],
@@ -69,12 +69,15 @@ async def test_get_events_not_subscribed(
 
 @pytest.mark.parametrize("failure_method", ("get_events",))
 async def test_get_events_event_bus_failure(
-    chat_manager: ChatManager, failure_method: str
+    chat_manager: ChatManager,
+    event_broker_user_id_list: list[uuid.UUID],
+    failure_method: str,
 ):
     """
     get_events() raises EventBrokerError in case of Event broker failure
     """
-    user_id = uuid.uuid4()
+    user_id = event_broker_user_id_list[0]
+    await chat_manager.subscribe_for_updates(current_user_id=user_id)
 
     # Patch InMemoryEventBroker.{failure_method} method so that it always raises
     # EventBrokerException
