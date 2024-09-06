@@ -483,7 +483,6 @@ async def test_ws_chat_receive_events__user_message(
                 assert event.message.text == message.text
 
 
-@pytest.mark.xfail()
 async def test_ws_chat_receive_events__user_added_to_chat_message(
     client: TestClient, async_session: AsyncSession, registered_user_data: dict
 ):
@@ -494,6 +493,7 @@ async def test_ws_chat_receive_events__user_added_to_chat_message(
     chat_id = uuid.uuid4()
     async_session.add(Chat(id=chat_id, title=f"chat {chat_id}", owner_id=owner_id))
     async_session.add(UserChatLink(chat_id=chat_id, user_id=user1_id))
+    async_session.add(User(id=user2_id, name="user 2"))
     await async_session.commit()
 
     cmd = CMDAddUserToChat(chat_id=chat_id, user_id=user2_id)
